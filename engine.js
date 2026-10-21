@@ -160,6 +160,7 @@
       if (l.ic != null && l.ic < diag * 0.97) continue;          // 像面必须覆盖靶面
       if (l.mp != null && l.mp < camMp * 0.85) continue;         // 镜头解析力不能低于相机
       if (!(l.focal < inp.wd * 0.95)) continue;                  // 工作距离必须大于焦距
+      if (l.minDist != null && l.minDist * 1000 > inp.wd) continue; // 工作距离必须 ≥ 最近摄距
       if (l.focal > fReq + 1e-9) continue;                       // 焦距过大则视场不足
       pool.push(l);
     }
@@ -459,24 +460,50 @@
       type: want,
       color: pick.color,
       size: pick.size,
+      power: pick.power || null,
       note: note
     };
   }
 
   /* ============================ 线扫 / 远心建议 ============================ */
 
-  function suggestLineScan(inp, needW, pxAccReq) {
+  function suggestLineScan(inp, needW, pxAccReq, isColor) {
     var list = (CAT && CAT.LINESCAN) || [];
     if (!list.length) return null;
 
+    var color = isColor ? '彩色' : '黑白';
     var needRate = inp.speed > 0 ? (inp.speed / pxAccReq) / 1000 : null; // kHz
-    var cands = list.filter(function (x) { return x.w >= needW; });
-    if (!cands.length) return null;
+
+    var pool = list.filter(function (x) { return x.w >= needW && x.color === color; });
+    if (!pool.length) return null;
     if (needRate) {
-      var ok = cands.filter(function (x) { return x.lineRate >= needRate * 1.2; });
-      if (ok.length) cands = ok;
+      var rateOk = pool.filter(function (x) { return x.lineRate >= needRate * 1.2; });
+      if (rateOk.length) pool = rateOk;
     }
-    var pick = cands.sort(function (a, b) { return a.w - b.w || b.lineRate - a.lineRate; })[0];
+    pool.sort(function (a, b) { return a.w - b.w || b.lineRate - a.lineRate; });
+    var pick = pool[0];
+
+    // 光学：像面宽 = 像素数 × 像元；倍率 m = 像面宽 / 视野宽；焦距 f = WD·m/(1+m)
+    var sensorW = (pick.w * pick.pxH) / 1000;
+    var m = sensorW / inp.fovW;
+    var f = (inp.wd * m) / (1 + m);
+
+    // 运动方向进度：每行前进距离 = 速度 / 行频
+    var runPxAcc = needRate && inp.speed > 0 ? inp.speed / (pick.lineRate * 1000) : null;
+    var tMaxMs = inp.speed > 0 ? (pxAccReq / inp.speed) * 1000 : Infinity;
+
+    // 数据带宽（按需要的行频或相机常用行频估算）
+    var useRate = needRate || Math.min(pick.lineRate, 20); // kHz
+    var bitDepth = isColor ? 16 : 8;
+    var bandwidth = (pick.w * bitDepth * useRate * 1000) / 8 / 1e6;
+    var cap = IFACE_BW[pick.iface] || 350;
+
+    // 线光源：长度 ≥ 视野宽
+    var lineLights = (CAT && CAT.LIGHTS ? CAT.LIGHTS : []).filter(function (x) {
+      return (x.type === 'line' || x.type === 'line_high') && x.color === 'white';
+    }).sort(function (a, b) { return (a.size[0] || 0) - (b.size[0] || 0); });
+    var llGood = lineLights.filter(function (x) { return (x.size[0] || 0) >= inp.fovW * 1.15; });
+    var lineLight = llGood[0] || lineLights[lineLights.length - 1] || null;
 
     return {
       model: pick.model,
@@ -485,10 +512,27 @@
       pxH: pick.pxH,
       lineRate: pick.lineRate,
       iface: pick.iface,
+      color: pick.color,
+      mount: pick.mount,
+      powerW: pick.powerW,
       needRate: needRate,
-      note: '单相机面阵方案精度不足时，线扫是标准解法：' +
-        (needRate ? '所需行频约 ' + fmt(needRate, 1) + ' kHz，' : '') +
-        '扫描宽度 ' + pick.w + ' 像素，需配编码器触发与线光源。'
+      useRate: useRate,
+      optics: {
+        sensorW: sensorW,
+        m: m,
+        f: f,
+        note: '像面宽 ' + fmt(sensorW, 1) + ' mm，需 ' + fmt(m, 3) + '× 放大、焦距约 ' +
+          fmt(f, 1) + ' mm 的线扫镜头（手册未收录线扫镜头，需按像面宽度另选）'
+      },
+      runPxAcc: runPxAcc,
+      tMaxMs: tMaxMs,
+      bandwidth: bandwidth,
+      ifaceCap: cap,
+      lineLight: lineLight ? { model: lineLight.model, size: lineLight.size, power: lineLight.power } : null,
+      note: '线扫是面阵精度不足时的标准解法：' +
+        (needRate ? '所需行频约 ' + fmt(needRate, 1) + ' kHz（' + pick.lineRate + ' kHz 可满足）；' : '') +
+        '沿运动方向每行前进 ' + (runPxAcc ? fmt(runPxAcc, 4) : '—') + ' mm/px；' +
+        '需编码器触发并与线光源同步。'
     };
   }
 
@@ -501,23 +545,37 @@
       if (/1\/1\.8/.test(f)) return diag <= 9.2;
       if (/2\/3/.test(f)) return diag <= 11.2;
       if (/1".*2"/.test(f)) return diag <= 32;
-      if (/39mm/.test(f)) return true;
       return true;
     }
-
-    var cands = list.filter(function (t) {
-      if (m < t.magMin * 0.98 || m > t.magMax * 1.02) return false;
-      if (!fmtFits(t.fmt)) return false;
+    function mountFits(t) {
       if (cam.mount === 'C') return t.mount === 'C';
       return t.mount !== 'C';
-    });
-    if (!cands.length) return null;
+    }
 
-    // 选靶面刚好够用的（最便宜）
-    cands.sort(function (a, b) { return (a.magMax - a.magMin) - (b.magMax - b.magMin); });
-    var pick = cands[cands.length - 1];
+    var candidates = list.filter(function (t) {
+      if (!fmtFits(t.fmt) || !mountFits(t)) return false;
+      return m >= t.magMin * 0.98 && m <= t.magMax * 1.02;
+    });
+    if (!candidates.length) return null;
+
+    // 靶面刚好够用的优先
+    candidates.sort(function (a, b) {
+      return (a.magMax - a.magMin) - (b.magMax - b.magMin);
+    });
+
+    // 工作距离必须落在系列的 WD 区间内
+    var inWd = candidates.filter(function (t) {
+      return inp.wd >= t.wdMin && inp.wd <= t.wdMax;
+    });
+    var pick = inWd[0] || candidates[0];
+    var feasible = inWd.length > 0;
+
+    // 远心镜头工作光圈通常在 F8 左右，景深按此估算并标注
+    var cc = 2 * (cam.sh / cam.h);
+    var dofEst = (2 * 8 * cc * (1 + m)) / (m * m);
 
     return {
+      feasible: feasible,
       series: pick.series,
       model: pick.model,
       mag: m,
@@ -525,8 +583,13 @@
       wdMax: pick.wdMax,
       mount: pick.mount,
       coax: pick.coax,
-      note: '需要固定倍率的远心镜头：倍率 ' + fmt(m, 3) + '×，工作距离需落在 ' +
-        pick.wdMin + '~' + pick.wdMax + ' mm 内，型号按 ' + pick.model + ' 在该范围选具体组合。'
+      dofEst: dofEst,
+      note: feasible
+        ? '倍率 ' + fmt(m, 3) + '×，工作距离需在 ' + pick.wdMin + '~' + pick.wdMax +
+          ' mm 内（当前 ' + fmt(inp.wd) + ' mm 符合）；景深按 F8 估算约 ' + fmt(dofEst, 2) +
+          ' mm，具体以实型号参数为准。'
+        : '当前工作距离 ' + fmt(inp.wd) + ' mm 不在 ' + pick.series + ' 允许的 ' +
+          pick.wdMin + '~' + pick.wdMax + ' mm 内，需调整 WD 或改用其它系列，否则远心方案不成立。'
     };
   }
 
@@ -743,6 +806,19 @@
     if (inp.wd < lens.focal * 3) {
       warnings.push({ level: 'warn', text: '工作距离 ' + fmt(inp.wd) + ' mm 不到焦距的 3 倍，安装空间紧张且畸变偏大，建议加长 WD 或换短焦镜头。' });
     }
+    if (lens.minDist != null && inp.wd < lens.minDist * 1000 * 1.15) {
+      warnings.push({ level: 'warn', text: '工作距离 ' + fmt(inp.wd) + ' mm 接近镜头最近摄距 ' + lens.minDist * 1000 + ' mm，可能无法对焦，建议放大 WD 或换最近摄距更近的型号。' });
+    }
+    // 相机曝光能力校验
+    if (isFinite(tMaxMs)) {
+      var needExpUs = tMaxMs * 1000;
+      if (cam.expMinUs != null && needExpUs < cam.expMinUs) {
+        warnings.push({ level: 'warn', text: '所需曝光 ' + fmt(needExpUs, 0) + ' µs 小于该相机最短曝光 ' + cam.expMinUs + ' µs，当前速度下拍不清；需降速或换更短曝光机型。' });
+      }
+      if (cam.snr != null && needExpUs < 200 && cam.snr < 40) {
+        warnings.push({ level: 'warn', text: '曝光仅 ' + fmt(needExpUs, 0) + ' µs，该相机信噪比 ' + cam.snr + ' dB 偏低，画面噪点会明显，建议提高照度或换高灵敏机型。' });
+      }
+    }
     if (lens.ic != null && lens.ic < diag + 0.2) {
       warnings.push({ level: 'info', text: '镜头像面 ' + lens.ic + ' mm 与靶面对角 ' + fmt(diag) + ' mm 基本持平，边缘可能有暗角，建议留 5% 余量。' });
     }
@@ -755,6 +831,19 @@
       light.skuNote = lightSku.note;
       light.skuSize = lightSku.size;
       light.skuColor = lightSku.color;
+      light.power = lightSku.power;
+      // 条形光通常需要 2~4 条对打，其余 1 只
+      light.count = light.type === 'bar_low' ? 2 : 1;
+      light.totalPower = light.power ? +(light.power * light.count).toFixed(1) : null;
+      // 控制器：通道数够用即可，优先最省的
+      var ctrls = ((CAT && CAT.CONTROLLERS) || []).filter(function (c) {
+        return (c.channels || 1) >= light.count;
+      });
+      ctrls.sort(function (a, b) { return (a.channels || 99) - (b.channels || 99); });
+      if (ctrls.length) {
+        light.controllerModel = ctrls[0].model;
+        light.controllerChannels = ctrls[0].channels;
+      }
     }
 
     // 同系列参数对比（换一档相机 / 换焦距 / 换光源尺寸时直接看）
@@ -796,7 +885,7 @@
 
     // 扩展建议：面阵搞不定时给具体线扫型号；高精度/景深不足时给远心系列
     var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
-    var lineScan = !feasible ? suggestLineScan(inp, needW, pxAccReq) : null;
+    var lineScan = !feasible ? suggestLineScan(inp, needW, pxAccReq, isColor) : null;
     var telecentric =
       (inp.task === 'precise_measure' || !dofOK) && cam.mount !== 'Bare'
         ? suggestTelecentric(inp, cam, m0)
@@ -830,7 +919,14 @@
         shutter: cam.shutter === 'Global' ? '全局快门' : '卷帘快门',
         bitDepth: bitDepth,
         pxAcc: pxAcc,
-        capability: pxAcc * k
+        capability: pxAcc * k,
+        sensor: cam.sensor || null,
+        dr: cam.dr == null ? null : cam.dr,
+        snr: cam.snr == null ? null : cam.snr,
+        expMinUs: cam.expMinUs == null ? null : cam.expMinUs,
+        expMaxUs: cam.expMaxUs == null ? null : cam.expMaxUs,
+        poe: cam.poe == null ? null : !!cam.poe,
+        powerW: cam.powerW == null ? null : cam.powerW
       },
       lens: {
         model: lens.model,

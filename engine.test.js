@@ -253,7 +253,53 @@ test('同系列列表最多展示 12 条并给出总数', () => {
   });
 });
 
-console.log('\n[8] 边界');
+console.log('\n[8] P0 完善项');
+test('镜头满足最近摄距：工作距离 ≥ 镜头最近摄距', () => {
+  const r = Engine.solve(base());
+  if (r.lens.minDist != null) {
+    assert.ok(r.input.wd >= r.lens.minDist * 1000 - 1e-6,
+      'WD ' + r.input.wd + ' < 最近摄距 ' + r.lens.minDist * 1000);
+  }
+});
+
+test('相机带详细参数：动态范围 / 信噪比 / 曝光范围 / PoE', () => {
+  const r = Engine.solve(base());
+  assert.ok(r.camera.dr != null, '缺动态范围');
+  assert.ok(r.camera.snr != null, '缺信噪比');
+  assert.ok(r.camera.expMinUs != null, '缺最短曝光');
+  assert.ok(typeof r.camera.poe === 'boolean', '缺 PoE 标识');
+});
+
+test('光源带功率，并匹配到具体控制器型号', () => {
+  const r = Engine.solve(base());
+  assert.ok(r.light.power != null, '缺光源功率');
+  assert.ok(r.light.totalPower >= r.light.power, '总功率异常');
+  assert.ok(r.light.controllerModel, '缺控制器型号');
+  assert.ok(CAT.CONTROLLERS.some((c) => c.model === r.light.controllerModel), '控制器不在库中');
+  assert.ok(r.light.count >= 1);
+});
+
+test('远心建议校验工作距离区间', () => {
+  const ok = Engine.solve(base({ fovW: 20, fovH: 15, precision: 0.05, task: 'precise_measure', wd: 250 }));
+  assert.ok(ok.telecentric, '缺远心建议');
+  assert.strictEqual(ok.telecentric.feasible, true, 'WD 250 应可行');
+  assert.ok(ok.telecentric.dofEst > 0, '缺景深估算');
+
+  const bad = Engine.solve(base({ fovW: 20, fovH: 15, precision: 0.05, task: 'precise_measure', wd: 800 }));
+  assert.ok(!bad.telecentric || bad.telecentric.feasible === false, 'WD 800 超出所有系列区间，应标记不可行');
+});
+
+test('线扫方案给出光学参数与线光源型号', () => {
+  const r = Engine.solve(base({ fovW: 100, fovH: 80, precision: 0.02, task: 'defect', speed: 200 }));
+  assert.ok(r.lineScan, '缺线扫方案');
+  assert.ok(r.lineScan.optics && r.lineScan.optics.f > 0, '缺焦距');
+  assert.ok(r.lineScan.optics.m > 0, '缺放大倍率');
+  assert.ok(r.lineScan.lineLight && r.lineScan.lineLight.model, '缺线光源');
+  assert.ok(r.lineScan.bandwidth > 0, '缺带宽估算');
+  assert.ok(r.lineScan.needRate > 0, '缺行频需求');
+});
+
+console.log('\n[9] 边界');
 test('超出单相机能力 → feasible=false 并建议升级', () => {
   const r = Engine.solve(base({ fovW: 900, fovH: 700, precision: 0.01 }));
   assert.strictEqual(r.feasible, false);

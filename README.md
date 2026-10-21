@@ -11,8 +11,9 @@
 
 内置 **海康机器人（HIKROBOT）完整型号库**：
 面阵相机 **300** 台（含板级 37）、线扫相机 **18** 台、FA/M12 工业镜头 **85** 支、
-远心镜头 **7** 个系列、光源 **211** 个型号。
-相机与镜头抽取自《机器视觉标准产品手册-2026.Q3》，光源取自官网产品列表；
+远心镜头 **7** 个系列、光源 **211** 个型号、光源控制器 **23** 款。
+相机与镜头抽取自《机器视觉标准产品手册-2026.Q3》，光源/控制器与相机详细参数
+（动态范围、信噪比、曝光范围、PoE）取自官网产品数据；
 输出是可直接询价的型号，而不是"300 万像素相机"这类泛称。
 
 纯前端单页，**双击 `index.html` 就能用**，不需要装环境、不需要联网。
@@ -58,6 +59,7 @@ index.html?p=glass      玻璃件
 | `engine.test.js` | 23 个单元测试，`node engine.test.js` 运行 |
 | `tools/parse-catalog.js` | 从手册 PDF 抽取相机/镜头/远心的生成脚本 |
 | `tools/fetch-lights.js` | 从官网抓取光源型号的脚本 |
+| `tools/fetch-specs.js` | 从官网逐型号抓取详细参数（动态范围/信噪比/曝光/PoE/功率/控制器） |
 | `assets/hikrobot-logo.png` | 海康机器人 HIKROBOT 字标（仅用于标注数据来源） |
 | `assets/favicon.ico` | 站点图标 |
 | `package.json` | 只用来跑 `npm test`，不是构建工程 |
@@ -178,8 +180,10 @@ DOF = 2 · F · c · (1 + m) / m²      c = 2 像元
 pdftotext -enc UTF-8 -raw "机器视觉标准产品手册-2026.Q3.pdf" stdraw.txt
 # 2. 抓光源型号（手册不含光源章节，取自官网产品列表）
 node tools/fetch-lights.js > lights.json
-# 3. 生成型号库（webref.json 为官网型号对照，用于校正排版丢失的黑白/彩色与接口）
-node tools/parse-catalog.js stdraw.txt webref.json lights.json > hikrobot-catalog.js
+# 3. 抓详细参数（动态范围/信噪比/曝光/PoE/功率/控制器，约 800 个请求、20 秒）
+node tools/fetch-specs.js > specs.json
+# 4. 生成型号库（webref.json 为官网型号对照，用于校正排版丢失的黑白/彩色与接口）
+node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikrobot-catalog.js
 ```
 
 抽取逻辑要点：
@@ -203,8 +207,17 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json > hikrobot-catalo
 
 ## 六、这套算法的边界
 
-- 主搜索只在**面阵相机 × FA/M12 镜头**里进行；线扫相机与远心镜头以「扩展建议」形式给出具体型号/系列，不参与主搜索。
+- 主搜索只在**面阵相机 × FA/M12 镜头**里进行。线扫与远心走独立通道：
+  - **线扫**给出完整方案：相机型号 + 所需倍率/焦距/像面宽 + 行频需求 + 线光源型号 + 带宽校验；
+    但线扫镜头需按像面宽度另选（手册未收录线扫镜头）。
+  - **远心**给出系列 + 倍率，并**校验工作距离是否落在该系列 WD 区间内**；
+    景深按 F8 估算（远心实际工作光圈以型号为准），超出范围会明确标为不可行。
 - 板级相机中裸板式（无镜头接口，型号后缀 `-B`）会被自动排除；`-C` / `-S` 分别按 C 口 / M12 配镜。
+- 镜头**最近摄距**参与筛选：工作距离小于最近摄距的镜头会被剔除，接近时给警告。
+- 光源按 **类型 + 颜色 + 尺寸 + 功率** 选型，并自动匹配控制器型号（按通道数）；
+  但**照度**仍需现场试样——工具算不出工件反射率和环境光。
+- 相机详细参数（动态范围/信噪比/曝光/PoE）覆盖官网在售型号（187/300），旧型号显示为 `—`；
+  短曝光 + 低信噪比会主动告警。
 - 光源颜色标准系列只有白 / 红 / 蓝 / 红外；绿、黄、青光会退回白光并提示需定制。
 - 焦距只能取库里已有的档位，所以有时「视场略大于需求」（像素被摊薄几个百分点），界面会提示。
 - 景深用几何光学近似，不含镜头像差；微距（m > 0.3）场景误差会变大。
@@ -213,15 +226,15 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json > hikrobot-catalo
 ## 七、开发与发布
 
 ```bash
-npm test                 # 等价于 node engine.test.js，27 项全绿才算数
+npm test                 # 等价于 node engine.test.js，32 项全绿才算数
 ```
 
-测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口匹配、
+测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口/最近摄距匹配、
 "取像素最少可行机型"、光学计算自洽（倍率/视场/像素精度）、景深、曝光、光源系列与 SKU、
-线扫与远心建议、同系列参数分组、精度不足降级、非法输入。
+线扫完整方案、远心工作距离校验、同系列参数分组、精度不足降级、非法输入。
 
 - **CI**：`.github/workflows/test.yml`，push / PR 自动跑 `npm test`。
-- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.3.0`），
+- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.2.0`），
   用 `gh release create` 打 Release。
 - **部署**：GitHub Pages 从 `main` 分支根目录直接托管，纯静态无需构建；
   push 到 `main` 后几十秒自动更新。

@@ -15,14 +15,31 @@ const fs = require('fs');
 const textPath = process.argv[2];
 const refPath = process.argv[3];
 const lightPath = process.argv[4];
+const specPath = process.argv[5];
 if (!textPath) {
-  console.error('用法: node tools/parse-catalog.js <stdraw.txt> [webref.json] [lights.json]');
+  console.error('用法: node tools/parse-catalog.js <stdraw.txt> <webref.json> <lights.json> <specs.json>');
   process.exit(1);
 }
 
 const lines = fs.readFileSync(textPath, 'utf8').split(/\r?\n/).map((s) => s.trim());
 const webRef = refPath && fs.existsSync(refPath) ? JSON.parse(fs.readFileSync(refPath, 'utf8')) : {};
 const LIGHTS_RAW = lightPath && fs.existsSync(lightPath) ? JSON.parse(fs.readFileSync(lightPath, 'utf8')) : [];
+const SPECS = specPath && fs.existsSync(specPath)
+  ? JSON.parse(fs.readFileSync(specPath, 'utf8'))
+  : { cameras: {}, linescan: {}, lights: {}, controllers: {} };
+
+/** 官网镜头接口字段 -> 统一卡口代号 */
+function normalizeMount(s) {
+  const t = String(s || '');
+  if (/C-Mount/i.test(t)) return 'C';
+  if (/CS-Mount/i.test(t)) return 'CS';
+  if (/F-Mount/i.test(t)) return 'F';
+  if (/M72/i.test(t)) return 'M72';
+  if (/M58/i.test(t)) return 'M58';
+  if (/M42/i.test(t)) return 'M42';
+  if (/M12|S-Mount/i.test(t)) return 'M12';
+  return null;
+}
 
 /* ============================== 通用 ============================== */
 
@@ -356,17 +373,89 @@ const LIGHTS = LIGHTS_RAW.map((x) => ({
   name: x.name
 }));
 
+/* ============================== 合并官网详细参数 ============================== */
+
+// 官网型号与手册型号存在 " V5" 版本后缀、分隔符差异，用归一化 key 匹配
+function specKey(m) {
+  return String(m || '')
+    .toUpperCase()
+    .replace(/\s+V\d+$/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function indexSpecs(obj) {
+  const idx = {};
+  for (const k of Object.keys(obj || {})) {
+    const key = specKey(k);
+    if (!idx[key]) idx[key] = obj[k];
+  }
+  return idx;
+}
+
+const CAM_SPEC_IDX = indexSpecs(SPECS.cameras);
+const LINE_SPEC_IDX = indexSpecs(SPECS.linescan);
+
+function findSpec(idx, model) {
+  const k = specKey(model);
+  if (idx[k]) return idx[k];
+  const k2 = k.replace(/[BCS]$/, ''); // 板级型号的 -B/-C/-S 卡口后缀
+  if (idx[k2]) return idx[k2];
+  // 官网可能带 -OCT / -PRO / -BASE 等后缀：唯一前缀匹配
+  const hits = Object.keys(idx).filter((x) => x.indexOf(k) === 0);
+  return hits.length === 1 ? idx[hits[0]] : null;
+}
+
+for (const c of CAMERAS) {
+  const s = findSpec(CAM_SPEC_IDX, c.model);
+  if (!s) continue;
+  c.dr = s.dynamicRange;
+  c.snr = s.snr;
+  c.expMinUs = s.exposureMinUs;
+  c.expMaxUs = s.exposureMaxUs;
+  c.poe = !!s.poe;
+  c.powerW = s.power;
+  c.sensor = s.sensor;
+  const m = normalizeMount(s.mount);
+  if (m) c.mount = m;
+}
+
+for (const c of LINESCAN) {
+  const s = findSpec(LINE_SPEC_IDX, c.model);
+  if (!s) continue;
+  if (s.lineRateKHz) c.lineRate = s.lineRateKHz;
+  const m = normalizeMount(s.mount);
+  if (m) c.mount = m;
+  c.powerW = s.power;
+  c.sensor = s.sensor;
+  c.expMinUs = s.exposureMinUs;
+}
+
+for (const l of LIGHTS) {
+  const s = SPECS.lights[l.model];
+  if (!s) continue;
+  l.power = s.power;
+  l.angle = s.angle;
+}
+
+const CONTROLLERS = Object.keys(SPECS.controllers || {})
+  .map((model) => {
+    const s = SPECS.controllers[model];
+    return { model, channels: s.channels, mode: s.mode, strobe: !!s.strobe };
+  })
+  .sort((a, b) => (a.channels || 0) - (b.channels || 0) || a.model.localeCompare(b.model));
+
 /* ============================== 输出 ============================== */
 
 const META = {
-  source: '机器视觉标准产品手册-2026.Q3 + 官网光源产品列表',
+  source: '机器视觉标准产品手册-2026.Q3 + 官网产品数据',
   brand: '海康机器人 HIKROBOT',
   generated: new Date().toISOString().slice(0, 10),
   cameras: CAMERAS.length,
   linescan: LINESCAN.length,
   lenses: lenses.length,
   telecentric: TELECENTRIC.length,
-  lights: LIGHTS.length
+  lights: LIGHTS.length,
+  controllers: CONTROLLERS.length
 };
 
 const body =
@@ -388,7 +477,8 @@ const body =
   '  var LENSES = [\n' + lenses.map((l) => '    ' + JSON.stringify(l)).join(',\n') + '\n  ];\n' +
   '  var TELECENTRIC = [\n' + TELECENTRIC.map((t) => '    ' + JSON.stringify(t)).join(',\n') + '\n  ];\n' +
   '  var LIGHTS = [\n' + LIGHTS.map((t) => '    ' + JSON.stringify(t)).join(',\n') + '\n  ];\n' +
-  '  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: LENSES, TELECENTRIC: TELECENTRIC, LIGHTS: LIGHTS };\n' +
+  '  var CONTROLLERS = [\n' + CONTROLLERS.map((t) => '    ' + JSON.stringify(t)).join(',\n') + '\n  ];\n' +
+  '  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: LENSES, TELECENTRIC: TELECENTRIC, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };\n' +
   '});\n';
 
 process.stdout.write(body);

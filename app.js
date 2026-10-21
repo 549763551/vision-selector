@@ -119,6 +119,17 @@
   }
 
   /* ---------------- 卡片渲染 ---------------- */
+  function expoRange(a, b) {
+    function one(us) {
+      if (us == null) return '—';
+      if (us >= 1e6) return num(us / 1e6, 1) + ' s';
+      if (us >= 1000) return num(us / 1000, 1) + ' ms';
+      return num(us, 0) + ' µs';
+    }
+    if (a == null && b == null) return '—';
+    return one(a) + ' ~ ' + one(b);
+  }
+
   function camCard(r) {
     var c = r.camera;
     return '<div class="card cam">' +
@@ -129,6 +140,11 @@
       kv('像元尺寸', esc(c.pxUm) + ' µm') +
       kv('数据接口', esc(c.interface)) +
       kv('快门类型', esc(c.shutter)) +
+      kv('动态范围', esc(c.dr == null ? '—' : c.dr + ' dB')) +
+      kv('信噪比', esc(c.snr == null ? '—' : c.snr + ' dB')) +
+      kv('曝光范围', esc(expoRange(c.expMinUs, c.expMaxUs))) +
+      kv('供电', esc(c.poe == null ? '—' : c.poe ? 'PoE / 12V' : '12V')) +
+      kv('典型功耗', esc(c.powerW == null ? '—' : c.powerW + ' W')) +
       kv('最大帧率', esc(c.maxFps) + ' fps') +
       kv('所需带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
       kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
@@ -168,7 +184,12 @@
       block('安装 / 打光角度', esc(g.angle)) +
       block('尺寸建议', esc(g.size)) +
       block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
-      block('控制器', esc(g.controller)) +
+      block('功率 / 数量',
+        esc(g.power == null ? '—' : g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W')) +
+      block('控制器型号', esc(g.controllerModel
+        ? g.controllerModel + '（' + g.controllerChannels + ' 通道）'
+        : '—')) +
+      block('控制方式', esc(g.controller)) +
       (g.reasons.length
         ? '<ul class="why">' + g.reasons.slice(0, 4).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
         : '') +
@@ -178,16 +199,25 @@
   function suggestCard(r) {
     var items = [];
     if (r.lineScan) {
+      var ls = r.lineScan;
+      var optics = ls.optics || {};
       items.push(block('线扫方案（面阵精度不足时）',
-        '<b>' + esc(r.lineScan.model) + '</b>　' + r.lineScan.w + ' 像素　' + r.lineScan.lineRate +
-        ' kHz　' + esc(r.lineScan.iface) +
-        '<br><span style="color:#64748b">' + esc(r.lineScan.note) + '</span>'));
+        '<b>' + esc(ls.model) + '</b>　' + ls.w + ' 像素　' + ls.lineRate + ' kHz　' + esc(ls.iface) +
+        '　' + esc(ls.color) +
+        '<br>光学：倍率 ' + num(optics.m, 3) + '×，焦距 ≈ ' + num(optics.f, 1) + ' mm（像面宽 ' + num(optics.sensorW, 1) + ' mm）' +
+        '<br>行频需求 ' + num(ls.needRate, 1) + ' kHz　带宽约 ' + num(ls.bandwidth, 0) + ' MB/s（接口上限 ' + ls.ifaceCap + '）' +
+        '<br>线光源：' + (ls.lineLight ? esc(ls.lineLight.model) + '　' + (ls.lineLight.size || []).join(' × ') +
+          ' mm　' + (ls.lineLight.power || '—') + ' W' : '—') +
+        '<br><span style="color:#64748b">' + esc(ls.note) + '</span>'));
     }
     if (r.telecentric) {
+      var t = r.telecentric;
       items.push(block('远心镜头（高精度 / 景深不足时）',
-        '<b>' + esc(r.telecentric.series) + '</b>　倍率 ' + num(r.telecentric.mag, 3) + '×　卡口 ' + esc(r.telecentric.mount) +
-        (r.telecentric.coax ? '　可扩展同轴光' : '') +
-        '<br><span style="color:#64748b">' + esc(r.telecentric.note) + '</span>'));
+        '<b>' + esc(t.series) + '</b>　倍率 ' + num(t.mag, 3) + '×　工作距离 ' + t.wdMin + '~' + t.wdMax + ' mm　' +
+        (t.feasible ? '<span class="ok-mark">当前 WD 可用</span>' : '<span style="color:#b91c1c">当前 WD 不在区间</span>') +
+        '<br>景深估算 ' + num(t.dofEst, 2) + ' mm（按 F8 估）　卡口 ' + esc(t.mount) +
+        (t.coax ? '　可扩展同轴光' : '') +
+        '<br><span style="color:#64748b">' + esc(t.note) + '</span>'));
     }
     if (!items.length) return '';
     return '<div class="card"><h2 class="sec">扩展建议 <span class="hint">主方案之外的升级路径</span></h2>' +
@@ -288,10 +318,11 @@
 
     $('catalogNote').innerHTML =
       '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +
-      '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>　' +
+      '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>（生成于 ' + esc(CAT.META.generated) + '）　' +
       '面阵 <b>' + CAT.CAMERAS.length + '</b> 台（含板级 ' + CAT.CAMERAS.filter(function (c) { return c.kind === 'board'; }).length + '）、' +
       '线扫 <b>' + (CAT.LINESCAN || []).length + '</b> 台、FA/M12 镜头 <b>' + CAT.LENSES.length + '</b> 支、' +
-      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 个型号。<br>' +
+      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 个型号、' +
+      '控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。<br>' +
       '<span style="color:#94a3b8">本项目为非官方选型辅助工具，HIKROBOT 标识归海康机器人所有，仅用于标注数据来源。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
@@ -327,6 +358,8 @@
     lines.push('· 相机：' + c.model + '（' + c.series + '）');
     lines.push('　 ' + c.w + '×' + c.h + '，' + c.color + '，' + c.shutter + '，' + c.sw + '×' + c.sh + 'mm 靶面，像元 ' + c.pxUm + 'µm，' + c.mount + ' 口');
     lines.push('　 接口 ' + c.interface + '，最大 ' + c.maxFps + 'fps，所需带宽 ' + num(c.bandwidthMBps, 2) + 'MB/s');
+    lines.push('　 动态范围 ' + (c.dr == null ? '—' : c.dr + 'dB') + '，信噪比 ' + (c.snr == null ? '—' : c.snr + 'dB') +
+      '，曝光 ' + expoRange(c.expMinUs, c.expMaxUs) + '，' + (c.poe ? '支持 PoE' : '12V 供电'));
     lines.push('　 有效像素精度 ' + n4(c.pxAcc) + 'mm/px，可辨最小特征 ' + n4(c.capability) + 'mm');
     lines.push('· 镜头：' + l.model + '（' + l.series + '）');
     lines.push('　 ' + l.f + 'mm F' + l.aperture + '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
@@ -339,15 +372,26 @@
     lines.push('　 尺寸：' + g.size);
     lines.push('　 配件：' + (g.accessories.length ? g.accessories.join('；') : '无'));
     lines.push('　 控制：' + g.controller);
+    if (g.power != null) {
+      lines.push('　 功率：' + g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W' +
+        (g.controllerModel ? '；控制器 ' + g.controllerModel + '（' + g.controllerChannels + ' 通道）' : ''));
+    }
     if (r.lineScan) {
+      var ls = r.lineScan;
       lines.push('');
-      lines.push('· 扩展建议（线扫）：' + r.lineScan.model + '　' + r.lineScan.w + ' 像素　' + r.lineScan.lineRate + 'kHz　' + r.lineScan.iface);
-      lines.push('　 ' + r.lineScan.note);
+      lines.push('· 扩展建议（线扫）：' + ls.model + '　' + ls.w + ' 像素　' + ls.lineRate + 'kHz　' + ls.iface);
+      lines.push('　 光学：倍率 ' + n4(ls.optics.m) + '×，焦距 ≈ ' + num(ls.optics.f, 1) + 'mm（像面宽 ' + num(ls.optics.sensorW, 1) + 'mm）');
+      lines.push('　 行频需求 ' + num(ls.needRate, 1) + 'kHz，带宽约 ' + num(ls.bandwidth, 0) + 'MB/s（上限 ' + ls.ifaceCap + '）');
+      if (ls.lineLight) lines.push('　 线光源：' + ls.lineLight.model + '　' + (ls.lineLight.size || []).join('×') + 'mm');
+      lines.push('　 ' + ls.note);
     }
     if (r.telecentric) {
+      var t = r.telecentric;
       lines.push('');
-      lines.push('· 扩展建议（远心）：' + r.telecentric.series + ' 系列，倍率 ' + n4(r.telecentric.mag) + '×，卡口 ' + r.telecentric.mount);
-      lines.push('　 ' + r.telecentric.note);
+      lines.push('· 扩展建议（远心）：' + t.series + ' 系列，倍率 ' + n4(t.mag) + '×，工作距离 ' + t.wdMin + '~' + t.wdMax + 'mm' +
+        (t.feasible ? '（当前 WD 可用）' : '（当前 WD 不在区间，需调整）'));
+      lines.push('　 景深估算 ' + num(t.dofEst, 2) + 'mm（F8）');
+      lines.push('　 ' + t.note);
     }
     if (r.warnings.length) {
       lines.push('');
@@ -389,6 +433,21 @@
     document.body.removeChild(ta);
   }
 
+  /** 从 URL 读取表单参数，便于把具体需求发给别人 */
+  function fromQuery() {
+    var q = {};
+    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm'].forEach(function (k) {
+      var m = new RegExp('[?&]' + k + '=([\\d.]+)').exec(location.search);
+      if (m) q[k] = parseFloat(m[1]);
+    });
+    ['task', 'material', 'colorTarget'].forEach(function (k) {
+      var m = new RegExp('[?&]' + k + '=([a-zA-Z_]+)').exec(location.search);
+      if (m) q[k] = m[1];
+    });
+    if (/[?&]needColor=1\b/.test(location.search)) q.needColor = true;
+    return q;
+  }
+
   /* ---------------- 绑定 ---------------- */
   function init() {
     fillSelects();
@@ -408,8 +467,10 @@
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
     $('copyBtn').addEventListener('click', copyText);
 
-    var m = /[?&]p=([a-z]+)/.exec(location.search);
-    applyState(m && PRESETS[m[1]] ? PRESETS[m[1]] : DEFAULT);
+    // ?p=copper 直接打开预设；再叠加显式参数，如 ?fovW=100&precision=0.02&speed=200
+    var pm = /[?&]p=([a-z]+)/.exec(location.search);
+    var state = Object.assign({}, pm && PRESETS[pm[1]] ? PRESETS[pm[1]] : DEFAULT, fromQuery());
+    applyState(state);
   }
 
   if (document.readyState === 'loading') {
