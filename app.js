@@ -151,6 +151,7 @@
       kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
       kv('景深', esc(num(l.dof, 2)) + ' mm') +
       kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
+      kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
       kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
       '</div>';
   }
@@ -193,6 +194,64 @@
       items.join('') + '</div>';
   }
 
+  /** 同系列参数表：当前型号高亮，便于换一档/换焦距 */
+  function siblingCard(r) {
+    var s = r.siblings;
+    if (!s) return '';
+
+    function table(headers, rows) {
+      return '<table class="mini"><thead><tr>' +
+        headers.map(function (h) { return '<th' + (h.align ? ' style="text-align:' + h.align + '"' : '') + '>' + esc(h.t) + '</th>'; }).join('') +
+        '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    var camRows = s.camera.items.map(function (x) {
+      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+        '<td class="mono">' + esc(x.model) + '</td>' +
+        '<td>' + x.megs + 'MP</td>' +
+        '<td>' + x.w + '×' + x.h + '</td>' +
+        '<td>' + x.fps + ' fps</td>' +
+        '<td>' + (x.meets ? '<span class="ok-mark">✓</span>' : '<span class="bad-mark">—</span>') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var lensRows = s.lens.items.map(function (x) {
+      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+        '<td class="mono">' + esc(x.model) + '</td>' +
+        '<td>' + x.focal + ' mm</td>' +
+        '<td>' + (x.ic == null ? '—' : x.ic + ' mm') + '</td>' +
+        '<td>' + (x.minDist == null ? '—' : x.minDist + ' m') + '</td>' +
+        '<td>' + (x.dist == null ? '—' : num(x.dist, 2) + '%') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var lightRows = s.light.items.map(function (x) {
+      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+        '<td class="mono">' + esc(x.model) + '</td>' +
+        '<td>' + (x.size && x.size.length ? x.size.join(' × ') + ' mm' : '—') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    function blk(title, cnt, omitted, inner) {
+      return '<div class="sib-block"><h4>' + esc(title) +
+        '<span class="cnt">共 ' + cnt + ' 个' + (omitted ? '，显示邻近 ' + (cnt - omitted) + ' 个' : '') + '</span>' +
+        '</h4>' + inner + '</div>';
+    }
+
+    return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">换一档相机 / 换焦距 / 换光源尺寸时直接对比</span></h2>' +
+      '<div class="sib-grid">' +
+        blk('相机　' + s.camera.label, s.camera.total, s.camera.omitted,
+          table([{ t: '型号' }, { t: '像素' }, { t: '分辨率' }, { t: '帧率' }, { t: '够用?', align: 'center' }], camRows)) +
+        blk('镜头　' + s.lens.label, s.lens.total, s.lens.omitted,
+          table([{ t: '型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensRows)) +
+        blk('光源　' + s.light.label, s.light.total, s.light.omitted,
+          table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
+      '</div>' +
+      '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽，' +
+      '点击左侧表单微调后右侧会重新自动选型。高亮行为当前推荐型号。</div>' +
+      '</div>';
+  }
+
   /* ---------------- 渲染 ---------------- */
   function render() {
     if (!E || !CAT) {
@@ -225,6 +284,7 @@
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
     $('suggest').innerHTML = suggestCard(r);
+    $('siblings').innerHTML = siblingCard(r);
 
     $('catalogNote').innerHTML =
       '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +

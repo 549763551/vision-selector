@@ -391,6 +391,14 @@
     coaxial: 'coaxial'
   };
 
+  var LIGHT_TYPE_LABEL = {
+    ring: '环形光源', ring_dome: '环形无影光源', bar: '条形光源', bar_array: '组合条形光源',
+    backlight: '面光源（背光）', backlight_parallel: '平行面光源', backlight_hole: '中孔面光源',
+    backlight_side: '侧导面光源', dome: '穹顶光源', coaxial: '同轴光源',
+    line: '线光源', line_high: '高亮线光源', line_focus: '聚光线光源', line_coax: '同轴线光源',
+    point: '点光源', flat_shadowless: '平面无影光源'
+  };
+
   function lightSizeNeed(inp, type) {
     var longSide = Math.max(inp.fovW, inp.fovH);
     if (type === 'bar_low') return { d: Math.ceil(inp.fovW * 1.15), axis: 'length' };
@@ -519,6 +527,99 @@
       coax: pick.coax,
       note: '需要固定倍率的远心镜头：倍率 ' + fmt(m, 3) + '×，工作距离需落在 ' +
         pick.wdMin + '~' + pick.wdMax + ' mm 内，型号按 ' + pick.model + ' 在该范围选具体组合。'
+    };
+  }
+
+  /* ============================ 同系列参数对比 ============================ */
+
+  /** 长列表只保留当前型号附近的 max 条，避免页面被撑爆 */
+  function windowAround(items, curIndex, max) {
+    if (items.length <= max) return { items: items, omitted: 0 };
+    var half = Math.floor(max / 2);
+    var start = Math.max(0, Math.min(curIndex - half, items.length - max));
+    return { items: items.slice(start, start + max), omitted: items.length - max };
+  }
+
+  function buildSiblings(cam, lens, needW, needH, light) {
+    // 相机：同系列 + 同接口 + 同黑白彩色
+    var camAll = CAT.CAMERAS.filter(function (c) {
+      return c.series === cam.series && c.iface === cam.iface && c.color === cam.color;
+    }).sort(function (a, b) { return a.w * a.h - b.w * b.h; });
+
+    var camIdx = 0;
+    var camItems = camAll.map(function (c, i) {
+      if (c.model === cam.model) camIdx = i;
+      return {
+        model: c.model,
+        w: c.w,
+        h: c.h,
+        sw: c.sw,
+        sh: c.sh,
+        pxUm: c.pxUm,
+        fps: c.fps,
+        megs: round((c.w * c.h) / 1e6, 1),
+        cur: c.model === cam.model,
+        meets: c.w >= needW && c.h >= needH
+      };
+    });
+    var camWin = windowAround(camItems, camIdx, 12);
+
+    // 镜头：同系列 + 同卡口，按焦距排序
+    var lensAll = CAT.LENSES.filter(function (l) {
+      return l.series === lens.series && l.mount === lens.mount;
+    }).sort(function (a, b) { return a.focal - b.focal; });
+
+    var lensIdx = 0;
+    var lensItems = lensAll.map(function (l, i) {
+      if (l.model === lens.model) lensIdx = i;
+      return {
+        model: l.model,
+        focal: l.focal,
+        fmin: l.fmin,
+        ic: l.ic,
+        mp: l.mp,
+        minDist: l.minDist,
+        dist: l.dist,
+        cur: l.model === lens.model
+      };
+    });
+    var lensWin = windowAround(lensItems, lensIdx, 12);
+
+    // 光源：同子类 + 同颜色，按尺寸排序
+    var ltype = LIGHT_TYPE_MAP[light.type] || 'ring';
+    var lcolor = light.skuColor || light.color;
+    var lightAll = ((CAT && CAT.LIGHTS) || []).filter(function (x) {
+      return x.type === ltype && x.color === lcolor;
+    }).sort(function (a, b) {
+      return (a.size[0] || 0) - (b.size[0] || 0) || (a.size[1] || 0) - (b.size[1] || 0);
+    });
+
+    var lightIdx = 0;
+    var lightItems = lightAll.map(function (x, i) {
+      if (x.model === light.sku) lightIdx = i;
+      return { model: x.model, size: x.size, cur: x.model === light.sku };
+    });
+    var lightWin = windowAround(lightItems, lightIdx, 12);
+
+    return {
+      camera: {
+        label: cam.series + '　' + cam.iface + ' · ' + cam.color,
+        items: camWin.items,
+        total: camItems.length,
+        omitted: camWin.omitted
+      },
+      lens: {
+        label: lens.series + '　' + lens.mount + ' 口',
+        items: lensWin.items,
+        total: lensItems.length,
+        omitted: lensWin.omitted
+      },
+      light: {
+        label: LIGHT_TYPE_LABEL[ltype] || ltype,
+        items: lightWin.items,
+        total: lightItems.length,
+        omitted: lightWin.omitted
+      }
     };
   }
 
@@ -653,7 +754,11 @@
       light.sku = lightSku.model;
       light.skuNote = lightSku.note;
       light.skuSize = lightSku.size;
+      light.skuColor = lightSku.color;
     }
+
+    // 同系列参数对比（换一档相机 / 换焦距 / 换光源尺寸时直接看）
+    var siblings = buildSiblings(cam, lens, needW, needH, light);
 
     /* ---- 匹配度 ---- */
     var score = 100;
@@ -748,6 +853,7 @@
       },
       exposure: { tMaxMs: tMaxMs },
       light: light,
+      siblings: siblings,
       lineScan: lineScan,
       telecentric: telecentric,
       calc: calc,

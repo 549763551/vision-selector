@@ -205,7 +205,55 @@ test('精密测量时给出远心镜头系列建议', () => {
   assert.ok(r.telecentric.mag >= hit.magMin * 0.98 && r.telecentric.mag <= hit.magMax * 1.02, '倍率超出系列范围');
 });
 
-console.log('\n[7] 边界');
+console.log('\n[7] 同系列参数');
+test('相机同系列：包含当前型号，且同系列同接口同颜色', () => {
+  const r = Engine.solve(base());
+  const cur = byModel(r.camera.model);
+  const s = r.siblings.camera;
+  assert.ok(s.items.some((x) => x.cur), '缺少当前型号');
+  s.items.forEach((x) => {
+    const c = byModel(x.model);
+    assert.strictEqual(c.series, cur.series, x.model + ' 系列不同');
+    assert.strictEqual(c.iface, cur.iface, x.model + ' 接口不同');
+    assert.strictEqual(c.color, cur.color, x.model + ' 颜色不同');
+  });
+});
+
+test('镜头同系列：按焦距升序，含当前型号', () => {
+  const r = Engine.solve(base());
+  const s = r.siblings.lens;
+  assert.ok(s.items.some((x) => x.cur), '缺少当前镜头');
+  for (let i = 1; i < s.items.length; i++) {
+    assert.ok(s.items[i].focal >= s.items[i - 1].focal, '焦距未升序');
+  }
+  s.items.forEach((x) => {
+    const l = lensByModel(x.model);
+    assert.strictEqual(l.series, lensByModel(r.lens.model).series);
+  });
+});
+
+test('光源同系列：同子类同颜色，含当前 SKU', () => {
+  const r = Engine.solve(base());
+  const s = r.siblings.light;
+  assert.ok(s.items.some((x) => x.cur), '缺少当前光源');
+  const color = r.light.skuColor || r.light.color;
+  s.items.forEach((x) => {
+    const hit = CAT.LIGHTS.find((l) => l.model === x.model);
+    assert.ok(hit, x.model + ' 不在光源库');
+    assert.strictEqual(hit.color, color);
+  });
+});
+
+test('同系列列表最多展示 12 条并给出总数', () => {
+  const r = Engine.solve(base());
+  ['camera', 'lens', 'light'].forEach((k) => {
+    const s = r.siblings[k];
+    assert.ok(s.items.length <= 12, k + ' 展示 ' + s.items.length + ' 条');
+    assert.ok(s.total >= s.items.length, k + ' 总数异常');
+  });
+});
+
+console.log('\n[8] 边界');
 test('超出单相机能力 → feasible=false 并建议升级', () => {
   const r = Engine.solve(base({ fovW: 900, fovH: 700, precision: 0.01 }));
   assert.strictEqual(r.feasible, false);
