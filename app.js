@@ -1,8 +1,9 @@
-/* 界面逻辑：读表单 → 调引擎 → 渲染结果 */
+/* 界面逻辑：读表单 → 调引擎（海康型号库）→ 渲染结果 */
 (function () {
   'use strict';
 
   var E = window.VisionEngine;
+  var CAT = window.HikrobotCatalog;
   var $ = function (id) { return document.getElementById(id); };
 
   /* ---------------- 预设场景 ---------------- */
@@ -45,6 +46,8 @@
   }
 
   function n4(x) { return num(x, 4); }
+
+  function pct(x) { return isFinite(x) ? Math.round(x * 100) + '%' : '—'; }
 
   function kv(k, v) {
     return '<div class="kv"><span>' + esc(k) + '</span><b>' + v + '</b></div>';
@@ -115,8 +118,69 @@
     render();
   }
 
+  /* ---------------- 卡片渲染 ---------------- */
+  function camCard(r) {
+    var c = r.camera;
+    return '<div class="card cam">' +
+      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3><span class="tag">' + esc(c.color) + '</span></div>' +
+      '<div class="hero">' + esc(c.model) + '</div>' +
+      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px</div>' +
+      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size ? '（' + esc(c.size) + '）' : '')) +
+      kv('像元尺寸', esc(c.pxUm) + ' µm') +
+      kv('数据接口', esc(c.interface)) +
+      kv('快门类型', esc(c.shutter)) +
+      kv('最大帧率', esc(c.maxFps) + ' fps') +
+      kv('所需带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
+      kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
+      kv('精度余量', esc(r.margin >= 0 ? pct(r.margin) : '不足')) +
+      kv('镜头接口', esc(c.mount) + ' 口') +
+      '</div>';
+  }
+
+  function lensCard(r) {
+    var l = r.lens;
+    var icTxt = (l.ic == null ? '大靶面' : l.ic + ' mm') + (l.mp ? '　' + l.mp + 'MP' : '');
+    return '<div class="card lens">' +
+      '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3><span class="tag">' + esc(l.mount) + ' 口</span></div>' +
+      '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
+      '<div class="hero-sub">' + esc(l.model) + '</div>' +
+      kv('镜头系列', esc(l.series)) +
+      kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
+      kv('放大倍率', esc(n4(l.m)) + '×') +
+      kv('像面 / 解析力', esc(icTxt)) +
+      kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
+      kv('景深', esc(num(l.dof, 2)) + ' mm') +
+      kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
+      kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
+      '</div>';
+  }
+
+  function lightCard(r) {
+    var g = r.light;
+    return '<div class="card light">' +
+      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3><span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
+      '<div class="hero">' + esc(g.seriesName) + '</div>' +
+      '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' + esc(g.series) + esc(g.suffix) + '</div>' +
+      block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
+      block('安装 / 打光角度', esc(g.angle)) +
+      block('尺寸建议', esc(g.size)) +
+      block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
+      block('控制器', esc(g.controller)) +
+      (g.reasons.length
+        ? '<ul class="why">' + g.reasons.slice(0, 4).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
+        : '') +
+      '</div>';
+  }
+
   /* ---------------- 渲染 ---------------- */
   function render() {
+    if (!E || !CAT) {
+      $('stateChip').className = 'tag bad';
+      $('stateChip').textContent = '加载失败';
+      $('summary').innerHTML = '<span style="color:#b91c1c">型号库或引擎未加载：请确认 hikrobot-catalog.js 与 engine.js 在同一目录。</span>';
+      return;
+    }
+
     var r = E.solve(readInput());
 
     if (!r.ok) {
@@ -132,64 +196,19 @@
       return;
     }
 
-    /* --- 顶部分数 --- */
     $('scoreNum').innerHTML = r.score + '<small>/100</small>';
     $('scoreBar').style.width = r.score + '%';
     $('stateChip').className = 'tag ' + (r.feasible ? 'ok' : 'bad');
     $('stateChip').textContent = r.feasible ? '方案可行' : '需升级方案';
     $('summary').innerHTML = esc(r.summary);
 
-    /* --- 三张卡 --- */
-    var c = r.camera;
-    var l = r.lens;
-    var g = r.light;
+    $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
 
-    var camHtml =
-      '<div class="card cam">' +
-        '<div class="card-head"><span class="ico">📷</span><h3>相机</h3><span class="tag">' + esc(c.color) + '</span></div>' +
-        '<div class="hero">' + esc(c.model) + '</div>' +
-        '<div class="hero-sub">' + c.w + ' × ' + c.h + ' px　·　' + esc(c.interface) + '</div>' +
-        kv('所需分辨率', esc(r.pxNeed.w + ' × ' + r.pxNeed.h) + ' px') +
-        kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm') +
-        kv('像元尺寸', esc(c.pixelSizeUm) + ' µm') +
-        kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
-        kv('精度余量', esc(r.margin >= 0 ? Math.round(r.margin * 100) + '%' : '不足')) +
-        kv('可辨最小特征', esc(n4(c.capability)) + ' mm') +
-        kv('所需帧率', esc(c.fps) + ' fps') +
-        kv('数据带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
-        kv('镜头接口', esc(c.mount) + ' 口') +
-      '</div>';
+    $('catalogNote').innerHTML =
+      '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>　' +
+      '内置 <b>' + CAT.CAMERAS.length + '</b> 台面阵相机、<b>' + CAT.LENSES.length + '</b> 支 FA 工业镜头；' +
+      '光源按海康光源产品系列（MV-L 型号）给出系列与颜色后缀，具体 SKU 按尺寸就近选择。';
 
-    var lensHtml =
-      '<div class="card lens">' +
-        '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3><span class="tag">' + esc(c.mount) + ' 口</span></div>' +
-        '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
-        '<div class="hero-sub">放大倍率 ' + esc(n4(l.m)) + '×</div>' +
-        kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
-        kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
-        kv('景深', esc(num(l.dof, 2)) + ' mm') +
-        kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
-        kv('工作距离', esc(r.input.wd) + ' mm') +
-        kv('高度容差', esc(r.input.heightDiff) + ' mm') +
-      '</div>';
-
-    var lightHtml =
-      '<div class="card light">' +
-        '<div class="card-head"><span class="ico">💡</span><h3>光源</h3><span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
-        '<div class="hero">' + esc(g.label) + '</div>' +
-        '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '</div>' +
-        block('安装 / 打光角度', esc(g.angle)) +
-        block('尺寸建议', esc(g.size)) +
-        block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
-        block('控制器', esc(g.controller)) +
-        (g.reasons.length
-          ? '<ul class="why">' + g.reasons.slice(0, 4).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
-          : '') +
-      '</div>';
-
-    $('cards').innerHTML = camHtml + lensHtml + lightHtml;
-
-    /* --- 验算表 --- */
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +
         '<td class="mono">' + esc(x.formula) + '</td>' +
@@ -197,7 +216,6 @@
         '<td class="unit">' + esc(x.unit) + '</td></tr>';
     }).join('');
 
-    /* --- 风险 --- */
     var risks = r.warnings.length
       ? r.warnings.map(function (w) {
           return '<div class="risk ' + (w.level === 'warn' ? 'warn' : 'info') + '">' +
@@ -221,13 +239,16 @@
     lines.push(r.summary);
     lines.push('');
     lines.push('· 任务：' + r.task.label + '（每特征 ' + r.task.k + ' 像素）');
-    lines.push('· 相机：' + c.model + '，' + c.w + '×' + c.h + '，' + c.color + '，' +
-      c.sw + '×' + c.sh + 'mm 靶面，像元 ' + c.pixelSizeUm + 'µm，' + c.mount + ' 口');
-    lines.push('　 接口 ' + c.interface + '，' + c.fps + 'fps，带宽 ' + num(c.bandwidthMBps, 2) + 'MB/s，' +
-      '有效像素精度 ' + n4(c.pxAcc) + 'mm/px');
-    lines.push('· 镜头：' + l.f + 'mm F' + l.aperture + '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
-      num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm，' + l.mount + ' 口');
-    lines.push('· 光源：' + g.label + '，' + g.colorName + ' ' + g.wavelength);
+    lines.push('· 相机：' + c.model + '（' + c.series + '）');
+    lines.push('　 ' + c.w + '×' + c.h + '，' + c.color + '，' + c.shutter + '，' + c.sw + '×' + c.sh + 'mm 靶面，像元 ' + c.pxUm + 'µm，' + c.mount + ' 口');
+    lines.push('　 接口 ' + c.interface + '，最大 ' + c.maxFps + 'fps，所需带宽 ' + num(c.bandwidthMBps, 2) + 'MB/s');
+    lines.push('　 有效像素精度 ' + n4(c.pxAcc) + 'mm/px，可辨最小特征 ' + n4(c.capability) + 'mm');
+    lines.push('· 镜头：' + l.model + '（' + l.series + '）');
+    lines.push('　 ' + l.f + 'mm F' + l.aperture + '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
+      num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm');
+    lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口');
+    lines.push('· 光源：' + g.series + ' ' + g.seriesName + '，' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
+    lines.push('　 型号构成：' + g.example);
     lines.push('　 安装：' + g.angle);
     lines.push('　 尺寸：' + g.size);
     lines.push('　 配件：' + (g.accessories.length ? g.accessories.join('；') : '无'));
@@ -291,7 +312,6 @@
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
     $('copyBtn').addEventListener('click', copyText);
 
-    // 支持 ?p=copper 直接打开某个预设，便于分享/演示
     var m = /[?&]p=([a-z]+)/.exec(location.search);
     applyState(m && PRESETS[m[1]] ? PRESETS[m[1]] : DEFAULT);
   }

@@ -202,8 +202,15 @@
   .risk.good { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
   .risk.good .dot { background: #22c55e; }
 
-  /* ---------- 按钮 ---------- */
-  .actions { display: flex; gap: 9px; margin-top: 12px; }
+  /* ---------- 型号库说明 ---------- */
+  .catalog-note {
+    margin-top: 10px; padding: 9px 13px; border-radius: 10px;
+    background: #f8fafc; border: 1px dashed #cfdae7;
+    font-size: 11.5px; line-height: 1.7; color: #64748b;
+  }
+  .catalog-note b { color: #334155; font-weight: 600; }
+
+  /* ---------- 按钮 ---------- */  .actions { display: flex; gap: 9px; margin-top: 12px; }
   .btn {
     flex: 1; height: 38px; border-radius: 9px; cursor: pointer;
     font-family: inherit; font-size: 13px; font-weight: 600;
@@ -335,6 +342,7 @@
     </div>
 
     <div class="cards" id="cards"></div>
+    <div class="catalog-note" id="catalogNote"></div>
 
     <div class="card">
       <h2 class="sec">验算过程 <span class="hint">每一格都能手算复核</span></h2>
@@ -361,6 +369,7 @@
 
 </main>
 
+<script src="hikrobot-catalog.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

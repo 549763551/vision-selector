@@ -7,6 +7,9 @@
 输入检测需求（视野、精度、任务、材质、节拍……），自动推导出一套
 **相机 + 镜头 + 光源** 方案，并把每一步算术都摊开给你复核。
 
+内置 **海康机器人（HIKROBOT）真实型号库**：263 台工业面阵相机、85 支 FA 工业镜头，
+数据抽取自《机器视觉标准产品手册-2026.Q3》，输出是可直接询价的型号，而不是"300 万像素相机"这类泛称。
+
 纯前端单页，**双击 `index.html` 就能用**，不需要装环境、不需要联网。
 
 ## 在线使用
@@ -42,14 +45,17 @@ index.html?p=glass      玻璃件
 | 文件 | 作用 |
 |---|---|
 | `index.html` | 页面骨架 + 样式（无依赖） |
+| `hikrobot-catalog.js` | **海康型号库**（263 台相机 / 85 支镜头），由脚本生成，勿手改 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染 |
-| `engine.test.js` | 17 个单元测试，`node engine.test.js` 运行 |
+| `engine.test.js` | 18 个单元测试，`node engine.test.js` 运行 |
+| `tools/parse-catalog.js` | 从手册 PDF 抽取型号库的生成脚本 |
 | `package.json` | 只用来跑 `npm test`，不是构建工程 |
 | `.github/workflows/test.yml` | 每次 push / PR 自动跑测试 |
 | `LICENSE` | MIT |
 
-> 想改规则只动 `engine.js`；想改界面只动 `index.html` / `app.js`。两者彻底分离。
+> 想改选型规则只动 `engine.js`；想换型号库只重跑 `tools/parse-catalog.js`；
+> 想改界面只动 `index.html` / `app.js`。
 
 ## 三、输入项
 
@@ -153,39 +159,56 @@ DOF = 2 · F · c · (1 + m) / m²      c = 2 像元
 
 曝光 < 1ms 或速度 > 300mm/s 时自动改推**频闪控制器**。
 
-## 五、换成你自己的产品库
+## 五、型号库怎么来的、怎么换
 
-全部数据在 `engine.js` 顶部：
+型号库 `hikrobot-catalog.js` 由脚本从手册生成，不要手改：
 
-- `SENSORS` —— 相机表：`{ model, w, h, sw, sh }`（像素宽高、靶面宽高 mm）。
-  按像素数**升序**排列，引擎依赖这个顺序。
-- `FOCALS` —— 你的镜头焦距梯。
-- `APERTURES` —— 常用光圈档。
-- `TASKS` —— 任务表，改 `k` 就改变了精度口径。
-- `COLOR` —— 单色光波长表。
-- `buildLight()` —— 光源规则，按 `task` / `material` 分支。
+```bash
+# 1. 手册转文本（xpdf 的 pdftotext 默认 Latin1，必须显式 UTF-8）
+pdftotext -enc UTF-8 -raw "机器视觉标准产品手册-2026.Q3.pdf" stdraw.txt
+# 2. 抽取型号表（第 3 个参数是可选的官网型号对照，用于校正排版丢失的黑白/彩色与接口）
+node tools/parse-catalog.js stdraw.txt webref.json > hikrobot-catalog.js
+```
+
+抽取逻辑要点：
+
+- 按章节标题切分「CS / CU / CT / CH 系列 × GigE / USB3 / CameraLink / CoaXPress / 万兆网 / XoFLink」表格；
+- 型号行可能被 PDF 排版拆成多行，脚本会向后合并最多 7 行再取分辨率、像元、帧率、快门；
+- 靶面宽高不直接用「1/1.8"」这类标称值，而是 `分辨率 × 像元` 算出真实 mm（更准）；
+- 黑白/彩色与接口用官网产品列表逐型号校正，避免手册排版串行。
+
+要换自己的品牌/型号库：**保持 `CAMERAS` / `LENSES` 的字段结构**即可，引擎只依赖这些字段：
+
+```js
+// 相机
+{ model, w, h, pxUm, sw, sh, size, fps, shutter:'Global'|'Rolling',
+  iface:'GigE'|'USB3'|..., color:'黑白'|'彩色', mount:'C'|'M42'|'F'|'M58'|'M72', series }
+// 镜头
+{ model, focal, fmin, fmax, mount, ic /*像面直径mm，未知填null*/, mp /*解析力MP，未知null*/, series }
+```
 
 改完跑一次 `node engine.test.js`，测试会告诉你有没有算歪。
 
 ## 六、这套算法的边界
 
-- 相机表是**通用规格**，不是具体型号库；真实选型还要比对品牌、靶面工艺、全局快门/卷帘、动态范围、价格。
-- 焦距取标准梯级，所以有时会「视场略大于需求」（像素被摊薄几个百分点），界面会提示。
+- 型号库只覆盖**面阵相机 + FA 工业镜头**（手册中与选型直接相关的部分）；线扫、远心镜头、光源 SKU 未入库。
+- 光源按**产品系列 + 颜色后缀**给出（如 `MV-LLDS-{长度}-{宽度}-B`），具体尺寸/功率需按视野就近选型。
+- 焦距只能取库里已有的档位，所以有时「视场略大于需求」（像素被摊薄几个百分点），界面会提示。
 - 景深用几何光学近似，不含镜头像差；微距（m > 0.3）场景误差会变大。
-- 光源给的是**方式 + 波长 + 角度**，具体型号和功率必须现场试样确定。
-- 不含线扫相机、远心镜头的专门计算（只在建议里提到）。
+- 价格、货期、停产状态未入库，最终选型仍需与供应商确认。
 
 ## 七、开发与发布
 
 ```bash
-npm test                 # 等价于 node engine.test.js，17 项全绿才算数
+npm test                 # 等价于 node engine.test.js，18 项全绿才算数
 ```
 
-测试覆盖：精度换算、相机选型、焦距/视场反算、景深光圈、曝光、带宽接口、
-各任务的光源分支、颜色与彩机、精度不足的降级方案、非法输入。
+测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口匹配、
+"取像素最少可行机型"、光学计算自洽（倍率/视场/像素精度）、景深、曝光、光源系列与后缀、
+精度不足降级、非法输入。
 
 - **CI**：`.github/workflows/test.yml`，push / PR 自动跑 `npm test`。
-- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.0.0`），
+- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.2.0`），
   用 `gh release create` 打 Release。
 - **部署**：GitHub Pages 从 `main` 分支根目录直接托管，纯静态无需构建；
   push 到 `main` 后几十秒自动更新。
@@ -193,6 +216,6 @@ npm test                 # 等价于 node engine.test.js，17 项全绿才算数
 需要发新版本时：
 
 ```bash
-git tag v1.1.0 && git push --tags
-gh release create v1.1.0 --title "v1.1.0" --notes "改了什么"
+git tag v1.3.0 && git push --tags
+gh release create v1.3.0 --title "v1.3.0" --notes "改了什么"
 ```
