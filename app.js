@@ -124,7 +124,7 @@
     return '<div class="card cam">' +
       '<div class="card-head"><span class="ico">📷</span><h3>相机</h3><span class="tag">' + esc(c.color) + '</span></div>' +
       '<div class="hero">' + esc(c.model) + '</div>' +
-      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px</div>' +
+      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px　·　HIKROBOT</div>' +
       kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size ? '（' + esc(c.size) + '）' : '')) +
       kv('像元尺寸', esc(c.pxUm) + ' µm') +
       kv('数据接口', esc(c.interface)) +
@@ -143,7 +143,7 @@
     return '<div class="card lens">' +
       '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3><span class="tag">' + esc(l.mount) + ' 口</span></div>' +
       '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
-      '<div class="hero-sub">' + esc(l.model) + '</div>' +
+      '<div class="hero-sub">' + esc(l.model) + '　·　HIKROBOT</div>' +
       kv('镜头系列', esc(l.series)) +
       kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
       kv('放大倍率', esc(n4(l.m)) + '×') +
@@ -205,9 +205,11 @@
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
 
     $('catalogNote').innerHTML =
+      '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +
       '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>　' +
       '内置 <b>' + CAT.CAMERAS.length + '</b> 台面阵相机、<b>' + CAT.LENSES.length + '</b> 支 FA 工业镜头；' +
-      '光源按海康光源产品系列（MV-L 型号）给出系列与颜色后缀，具体 SKU 按尺寸就近选择。';
+      '光源按海康光源产品系列（MV-L 型号）给出系列与颜色后缀，具体 SKU 按尺寸就近选择。<br>' +
+      '<span style="color:#94a3b8">本项目为非官方选型辅助工具，HIKROBOT 标识归海康机器人所有，仅用于标注数据来源。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +

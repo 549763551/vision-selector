@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉智能选型助手</title>
+<link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
     --bg: #eef2f7;
@@ -34,6 +35,7 @@
     background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
     color: #fff;
     padding: 20px 26px 18px;
+    border-top: 3px solid #e60012;
     border-bottom: 1px solid rgba(255, 255, 255, .06);
   }
   .topbar-inner {
@@ -41,12 +43,12 @@
     display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   }
   .brand { display: flex; align-items: center; gap: 13px; }
-  .logo {
-    width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto;
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
-    display: grid; place-items: center; font-size: 19px;
-    box-shadow: 0 6px 18px -6px rgba(56, 189, 248, .8);
+  .brand-chip {
+    flex: 0 0 auto; display: grid; place-items: center;
+    padding: 10px 13px; border-radius: 12px; background: #fff;
+    box-shadow: 0 8px 22px -10px rgba(0, 0, 0, .65);
   }
+  .brand-logo { display: block; height: 19px; width: auto; }
   .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
   .brand p { margin: 4px 0 0; font-size: 12.5px; color: #93a4bd; }
   .presets { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
@@ -241,10 +243,10 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <div class="logo">◉</div>
+      <span class="brand-chip"><img class="brand-logo" src="assets/hikrobot-logo.png" alt="HIKROBOT" /></span>
       <div>
         <h1>机器视觉智能选型助手</h1>
-        <p>输入检测需求 → 自动推导「相机 / 镜头 / 光源」方案，并给出每一步验算</p>
+        <p>型号库：海康机器人 HIKROBOT　·　输入检测需求 → 自动推导相机 / 镜头 / 光源方案</p>
       </div>
     </div>
     <div class="presets">

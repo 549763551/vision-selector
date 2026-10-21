@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/hikrobot-logo.png" alt="HIKROBOT" width="230"></p>
+
 # 机器视觉智能选型助手
 
 [![tests](https://github.com/549763551/vision-selector/actions/workflows/test.yml/badge.svg)](https://github.com/549763551/vision-selector/actions/workflows/test.yml)
@@ -50,6 +52,8 @@ index.html?p=glass      玻璃件
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染 |
 | `engine.test.js` | 18 个单元测试，`node engine.test.js` 运行 |
 | `tools/parse-catalog.js` | 从手册 PDF 抽取型号库的生成脚本 |
+| `assets/hikrobot-logo.png` | 海康机器人 HIKROBOT 字标（仅用于标注数据来源） |
+| `assets/favicon.ico` | 站点图标 |
 | `package.json` | 只用来跑 `npm test`，不是构建工程 |
 | `.github/workflows/test.yml` | 每次 push / PR 自动跑测试 |
 | `LICENSE` | MIT |
@@ -219,3 +223,11 @@ npm test                 # 等价于 node engine.test.js，18 项全绿才算数
 git tag v1.3.0 && git push --tags
 gh release create v1.3.0 --title "v1.3.0" --notes "改了什么"
 ```
+
+## 八、关于标识与数据来源
+
+- 本项目是**个人/第三方选型辅助工具，非海康机器人官方产品**，不代表官方推荐或背书。
+- 页面中的 HIKROBOT 字标与站点图标取自海康机器人官网，**商标与标识归杭州海康机器人股份有限公司所有**，
+  本项目仅用于标注型号库的数据来源。若需商用或公开发布，请自行评估商标使用规范，或删除 `assets/` 下的标识文件。
+- 型号参数来自公开产品手册与官网产品页，可能随厂商更新而变化；**采购前请以官方最新资料为准**。
+
