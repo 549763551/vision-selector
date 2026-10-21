@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>机器视觉智能选型助手</title>
+<style>
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e3e9f1;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
+      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    color: #fff;
+    padding: 20px 26px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  .topbar-inner {
+    max-width: 1480px; margin: 0 auto;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 13px; }
+  .logo {
+    width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto;
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    display: grid; place-items: center; font-size: 19px;
+    box-shadow: 0 6px 18px -6px rgba(56, 189, 248, .8);
+  }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .brand p { margin: 4px 0 0; font-size: 12.5px; color: #93a4bd; }
+  .presets { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .presets > span { font-size: 12px; color: #7d8ca5; margin-right: 2px; }
+  .presets button {
+    font-family: inherit; font-size: 12px; cursor: pointer;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(255, 255, 255, .07); color: #d7e3f4;
+    border: 1px solid rgba(255, 255, 255, .16);
+    transition: .15s;
+  }
+  .presets button:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .5); color: #fff; }
+
+  /* ---------- 布局 ---------- */
+  .layout {
+    max-width: 1480px; margin: 0 auto;
+    padding: 18px 22px 44px;
+    display: grid; grid-template-columns: 356px minmax(0, 1fr);
+    gap: 18px; align-items: start;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 24px -20px rgba(15, 23, 42, .35);
+  }
+  .card + .card { margin-top: 14px; }
+  h2.sec {
+    margin: 0 0 14px; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px; letter-spacing: .3px;
+  }
+  h2.sec::before {
+    content: ""; width: 4px; height: 15px; border-radius: 2px;
+    background: linear-gradient(180deg, #38bdf8, #2563eb);
+  }
+  h2.sec .hint { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+
+  /* ---------- 表单 ---------- */
+  .field { margin-bottom: 12px; }
+  .field > label {
+    display: flex; align-items: baseline; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;
+  }
+  .field > label em { font-style: normal; font-weight: 400; color: #94a3b8; font-size: 11px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; height: 37px; padding: 0 10px;
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
+    background: #fbfdff; border: 1px solid #d6e0ea; border-radius: 9px;
+    outline: none; transition: .15s;
+  }
+  select { cursor: pointer; }
+  input:focus, select:focus {
+    background: #fff; border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .18);
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .check {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    font-size: 12.5px; color: #475569; padding: 9px 11px;
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 9px;
+    user-select: none;
+  }
+  .check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  .divider { height: 1px; background: var(--line); margin: 16px 0 14px; }
+  .unit { color: #94a3b8; font-size: 12px; }
+
+  /* ---------- 顶部分数 ---------- */
+  .score-card { display: block; }
+  .score-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .score-num {
+    font-size: 42px; font-weight: 800; line-height: 1;
+    letter-spacing: -1px; font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #2563eb, #0891b2);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .score-num small { font-size: 13px; font-weight: 600; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+  .score-mid { flex: 1; min-width: 190px; }
+  .score-mid .lbl { font-size: 12px; color: var(--muted); margin-bottom: 7px; display: flex; justify-content: space-between; }
+  .bar { height: 8px; border-radius: 999px; background: #e6edf5; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 999px; transition: width .45s ease; background: linear-gradient(90deg, #22c55e, #0ea5e9 70%, #2563eb); }
+  .tag {
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+    background: #f1f5f9; color: #475569; white-space: nowrap;
+  }
+  .tag.ok { background: #dcfce7; color: #15803d; }
+  .tag.bad { background: #fee2e2; color: #b91c1c; }
+  .summary {
+    margin-top: 14px; padding: 11px 13px; border-radius: 10px;
+    background: #f8fafc; border: 1px dashed #cfdae7;
+    font-size: 12.5px; line-height: 1.75; color: #334155;
+    word-break: break-word;
+  }
+
+  /* ---------- 三张方案卡 ---------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)); gap: 14px; }
+  .cards .card { margin-top: 0; display: flex; flex-direction: column; }
+  .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+  .card-head h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .4px; }
+  .card-head .tag { margin-left: auto; }
+  .ico {
+    width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
+    display: grid; place-items: center; font-size: 15px;
+  }
+  .cam .ico { background: #eff6ff; }
+  .lens .ico { background: #f5f3ff; }
+  .light .ico { background: #fffbeb; }
+  .hero { font-size: 19px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; }
+  .hero-sub { font-size: 12px; color: var(--muted); margin: 3px 0 12px; }
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 12.5px; border-top: 1px dashed #eef2f7; }
+  .kv:first-of-type { border-top: 1px solid #eef2f7; }
+  .kv span { color: var(--muted); flex: 0 1 auto; }
+  .kv b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .kv-block { padding: 8px 0; border-top: 1px dashed #eef2f7; font-size: 12.5px; }
+  .kv-block:first-of-type { border-top: 1px solid #eef2f7; }
+  .kv-block span { display: block; color: var(--muted); margin-bottom: 3px; }
+  .kv-block p { margin: 0; line-height: 1.6; color: #1e293b; word-break: break-word; }
+  .why { margin: 12px 0 0; padding: 0; list-style: none; }
+  .why li {
+    position: relative; padding-left: 14px; margin-bottom: 6px;
+    font-size: 12px; line-height: 1.65; color: #475569;
+  }
+  .why li::before {
+    content: ""; position: absolute; left: 3px; top: 8px;
+    width: 5px; height: 5px; border-radius: 50%; background: #93c5fd;
+  }
+
+  /* ---------- 验算表 ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    text-align: left; font-weight: 600; color: var(--muted); font-size: 11.5px;
+    padding: 0 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  tbody td { padding: 7px 6px; border-bottom: 1px solid #f4f7fb; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11.8px; color: #475569; }
+  td.num { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  td.unit { color: var(--muted); white-space: nowrap; font-size: 11.5px; }
+  .foot-note { margin-top: 11px; font-size: 11.5px; color: #94a3b8; line-height: 1.7; }
+
+  /* ---------- 风险 ---------- */
+  .risk {
+    display: flex; gap: 9px; align-items: flex-start;
+    padding: 9px 11px; border-radius: 9px; margin-bottom: 8px;
+    font-size: 12.5px; line-height: 1.65;
+  }
+  .risk:last-child { margin-bottom: 0; }
+  .risk .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; flex: 0 0 auto; }
+  .risk.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .risk.warn .dot { background: #f59e0b; }
+  .risk.info { background: #eff6ff; border: 1px solid #dbeafe; color: #1e40af; }
+  .risk.info .dot { background: #3b82f6; }
+  .risk.good { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+  .risk.good .dot { background: #22c55e; }
+
+  /* ---------- 按钮 ---------- */
+  .actions { display: flex; gap: 9px; margin-top: 12px; }
+  .btn {
+    flex: 1; height: 38px; border-radius: 9px; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    border: 1px solid #d6e0ea; background: #fff; color: #334155;
+    transition: .15s;
+  }
+  .btn:hover { border-color: #93c5fd; background: #f8fbff; }
+  .btn.primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: #1d4ed8; color: #fff;
+    box-shadow: 0 6px 16px -8px rgba(37, 99, 235, .8);
+  }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .err {
+    padding: 12px 14px; border-radius: 10px;
+    background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 13px;
+  }
+
+  @media (max-width: 1020px) {
+    .layout { grid-template-columns: 1fr; padding: 14px 14px 36px; }
+    .topbar { padding: 16px 16px; }
+    .presets { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">◉</div>
+      <div>
+        <h1>机器视觉智能选型助手</h1>
+        <p>输入检测需求 → 自动推导「相机 / 镜头 / 光源」方案，并给出每一步验算</p>
+      </div>
+    </div>
+    <div class="presets">
+      <span>快速试用</span>
+      <button data-preset="copper">铜线检测</button>
+      <button data-preset="precision">精密测量</button>
+      <button data-preset="qr">二维码读取</button>
+      <button data-preset="scratch">表面划痕</button>
+      <button data-preset="inline">高速在线</button>
+      <button data-preset="glass">玻璃件</button>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ==================== 左：需求输入 ==================== -->
+  <section class="card">
+    <h2 class="sec">检测需求 <span class="hint">本地计算，无需联网</span></h2>
+
+    <div class="field">
+      <label>视野 FOV <em>要拍到多大范围</em></label>
+      <div class="row2">
+        <input type="number" id="fovW" min="1" step="1" value="50" placeholder="宽 mm" />
+        <input type="number" id="fovH" min="1" step="1" value="40" placeholder="高 mm" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>需要分辨的最小特征 <em>δ，公差或最小缺陷</em></label>
+      <input type="number" id="precision" min="0.001" step="0.001" value="0.1" />
+    </div>
+
+    <div class="field">
+      <label>检测任务</label>
+      <select id="task"></select>
+    </div>
+
+    <div class="field">
+      <label>工作距离 WD <em>镜头前端到工件</em></label>
+      <input type="number" id="wd" min="10" step="10" value="300" />
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>被测物材质</label>
+      <select id="material"></select>
+    </div>
+
+    <div class="field">
+      <label>目标主色 <em>用来选单色光</em></label>
+      <select id="colorTarget"></select>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="needColor" />
+      <span>需要彩色相机（颜色区分 / 真实还原）</span>
+    </label>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>工件高度变化 <em>沿光轴，决定景深</em></label>
+      <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>运动速度 <span class="unit">mm/s</span></label>
+        <input type="number" id="speed" min="0" step="10" value="0" />
+      </div>
+      <div class="field">
+        <label>生产节拍 <span class="unit">件/分</span></label>
+        <input type="number" id="cpm" min="0" step="1" value="0" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="resetBtn">恢复默认</button>
+    </div>
+  </section>
+
+  <!-- ==================== 右：方案输出 ==================== -->
+  <section>
+    <div class="card score-card" id="scoreCard">
+      <div class="score-top">
+        <div class="score-num" id="scoreNum">--<small>/100</small></div>
+        <div class="score-mid">
+          <div class="lbl"><span>方案匹配度</span><span id="stateChip" class="tag">计算中</span></div>
+          <div class="bar"><i id="scoreBar" style="width:0%"></i></div>
+        </div>
+      </div>
+      <div class="summary" id="summary">—</div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="card">
+      <h2 class="sec">验算过程 <span class="hint">每一格都能手算复核</span></h2>
+      <table>
+        <thead>
+          <tr><th>步骤</th><th>公式 / 代入</th><th style="text-align:right">结果</th><th>单位</th></tr>
+        </thead>
+        <tbody id="calcBody"></tbody>
+      </table>
+      <div class="foot-note">
+        依据：像素精度 = δ / k（k 为每个特征占用的像素数，按任务取 2～5）；焦距 f = WD·m/(1+m)；
+        景深 DOF = 2·F·c·(1+m)/m²，c 取 2 像元；运动模糊 ≤ 1 像素 → 曝光 ≤ 像素精度 / 速度。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec">风险与建议 <span class="hint" id="riskCount"></span></h2>
+      <div id="risks"></div>
+      <div class="actions">
+        <button class="btn primary" id="copyBtn">复制方案文本</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
