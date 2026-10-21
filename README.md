@@ -9,8 +9,11 @@
 输入检测需求（视野、精度、任务、材质、节拍……），自动推导出一套
 **相机 + 镜头 + 光源** 方案，并把每一步算术都摊开给你复核。
 
-内置 **海康机器人（HIKROBOT）真实型号库**：263 台工业面阵相机、85 支 FA 工业镜头，
-数据抽取自《机器视觉标准产品手册-2026.Q3》，输出是可直接询价的型号，而不是"300 万像素相机"这类泛称。
+内置 **海康机器人（HIKROBOT）完整型号库**：
+面阵相机 **300** 台（含板级 37）、线扫相机 **18** 台、FA/M12 工业镜头 **85** 支、
+远心镜头 **7** 个系列、光源 **211** 个型号。
+相机与镜头抽取自《机器视觉标准产品手册-2026.Q3》，光源取自官网产品列表；
+输出是可直接询价的型号，而不是"300 万像素相机"这类泛称。
 
 纯前端单页，**双击 `index.html` 就能用**，不需要装环境、不需要联网。
 
@@ -47,11 +50,12 @@ index.html?p=glass      玻璃件
 | 文件 | 作用 |
 |---|---|
 | `index.html` | 页面骨架 + 样式（无依赖） |
-| `hikrobot-catalog.js` | **海康型号库**（263 台相机 / 85 支镜头），由脚本生成，勿手改 |
+| `hikrobot-catalog.js` | **完整型号库**（面阵/线扫/镜头/远心/光源），由脚本生成，勿手改 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染 |
-| `engine.test.js` | 18 个单元测试，`node engine.test.js` 运行 |
-| `tools/parse-catalog.js` | 从手册 PDF 抽取型号库的生成脚本 |
+| `engine.test.js` | 23 个单元测试，`node engine.test.js` 运行 |
+| `tools/parse-catalog.js` | 从手册 PDF 抽取相机/镜头/远心的生成脚本 |
+| `tools/fetch-lights.js` | 从官网抓取光源型号的脚本 |
 | `assets/hikrobot-logo.png` | 海康机器人 HIKROBOT 字标（仅用于标注数据来源） |
 | `assets/favicon.ico` | 站点图标 |
 | `package.json` | 只用来跑 `npm test`，不是构建工程 |
@@ -170,8 +174,10 @@ DOF = 2 · F · c · (1 + m) / m²      c = 2 像元
 ```bash
 # 1. 手册转文本（xpdf 的 pdftotext 默认 Latin1，必须显式 UTF-8）
 pdftotext -enc UTF-8 -raw "机器视觉标准产品手册-2026.Q3.pdf" stdraw.txt
-# 2. 抽取型号表（第 3 个参数是可选的官网型号对照，用于校正排版丢失的黑白/彩色与接口）
-node tools/parse-catalog.js stdraw.txt webref.json > hikrobot-catalog.js
+# 2. 抓光源型号（手册不含光源章节，取自官网产品列表）
+node tools/fetch-lights.js > lights.json
+# 3. 生成型号库（webref.json 为官网型号对照，用于校正排版丢失的黑白/彩色与接口）
+node tools/parse-catalog.js stdraw.txt webref.json lights.json > hikrobot-catalog.js
 ```
 
 抽取逻辑要点：
@@ -195,8 +201,9 @@ node tools/parse-catalog.js stdraw.txt webref.json > hikrobot-catalog.js
 
 ## 六、这套算法的边界
 
-- 型号库只覆盖**面阵相机 + FA 工业镜头**（手册中与选型直接相关的部分）；线扫、远心镜头、光源 SKU 未入库。
-- 光源按**产品系列 + 颜色后缀**给出（如 `MV-LLDS-{长度}-{宽度}-B`），具体尺寸/功率需按视野就近选型。
+- 主搜索只在**面阵相机 × FA/M12 镜头**里进行；线扫相机与远心镜头以「扩展建议」形式给出具体型号/系列，不参与主搜索。
+- 板级相机中裸板式（无镜头接口，型号后缀 `-B`）会被自动排除；`-C` / `-S` 分别按 C 口 / M12 配镜。
+- 光源颜色标准系列只有白 / 红 / 蓝 / 红外；绿、黄、青光会退回白光并提示需定制。
 - 焦距只能取库里已有的档位，所以有时「视场略大于需求」（像素被摊薄几个百分点），界面会提示。
 - 景深用几何光学近似，不含镜头像差；微距（m > 0.3）场景误差会变大。
 - 价格、货期、停产状态未入库，最终选型仍需与供应商确认。
@@ -204,15 +211,15 @@ node tools/parse-catalog.js stdraw.txt webref.json > hikrobot-catalog.js
 ## 七、开发与发布
 
 ```bash
-npm test                 # 等价于 node engine.test.js，18 项全绿才算数
+npm test                 # 等价于 node engine.test.js，23 项全绿才算数
 ```
 
 测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口匹配、
-"取像素最少可行机型"、光学计算自洽（倍率/视场/像素精度）、景深、曝光、光源系列与后缀、
-精度不足降级、非法输入。
+"取像素最少可行机型"、光学计算自洽（倍率/视场/像素精度）、景深、曝光、光源系列与 SKU、
+线扫与远心建议、精度不足降级、非法输入。
 
 - **CI**：`.github/workflows/test.yml`，push / PR 自动跑 `npm test`。
-- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.2.0`），
+- **发布**：版本号见 `package.json` 与 Git tag（当前 `v1.3.0`），
   用 `gh release create` 打 Release。
 - **部署**：GitHub Pages 从 `main` 分支根目录直接托管，纯静态无需构建；
   push 到 `main` 后几十秒自动更新。
@@ -220,8 +227,8 @@ npm test                 # 等价于 node engine.test.js，18 项全绿才算数
 需要发新版本时：
 
 ```bash
-git tag v1.3.0 && git push --tags
-gh release create v1.3.0 --title "v1.3.0" --notes "改了什么"
+git tag v1.4.0 && git push --tags
+gh release create v1.4.0 --title "v1.4.0" --notes "改了什么"
 ```
 
 ## 八、关于标识与数据来源

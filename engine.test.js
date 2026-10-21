@@ -168,7 +168,44 @@ test('尺寸测量 → 背光（MV-LB 系列）', () => {
   assert.ok(/MV-LB/.test(r.light.series), r.light.series);
 });
 
-console.log('\n[6] 边界');
+console.log('\n[6] 完整型号库');
+test('型号库含线扫 / 远心 / 光源 / 板级相机', () => {
+  assert.ok(CAT.LINESCAN && CAT.LINESCAN.length >= 10, '线扫 ' + (CAT.LINESCAN || []).length);
+  assert.ok(CAT.TELECENTRIC && CAT.TELECENTRIC.length >= 5, '远心 ' + (CAT.TELECENTRIC || []).length);
+  assert.ok(CAT.LIGHTS && CAT.LIGHTS.length >= 150, '光源 ' + (CAT.LIGHTS || []).length);
+  assert.ok(CAT.CAMERAS.some((c) => c.kind === 'board'), '缺板级相机');
+});
+
+test('选型结果不会用裸板相机（无镜头接口）', () => {
+  const r = Engine.solve(base());
+  const c = byModel(r.camera.model);
+  assert.notStrictEqual(c.mount, 'Bare');
+});
+
+test('光源给出型号库里的具体型号', () => {
+  const r = Engine.solve(base());
+  assert.ok(r.light.sku, '缺少光源型号');
+  const hit = CAT.LIGHTS.find((x) => x.model === r.light.sku);
+  assert.ok(hit, '光源型号不在库中: ' + r.light.sku);
+  assert.strictEqual(hit.color, r.light.color);
+});
+
+test('面阵不可行时给出具体线扫型号建议', () => {
+  const r = Engine.solve(base({ fovW: 100, fovH: 80, precision: 0.02, task: 'defect', speed: 200 }));
+  assert.strictEqual(r.feasible, false, '该场景应超出面阵能力');
+  assert.ok(r.lineScan, '缺少线扫建议');
+  assert.ok(CAT.LINESCAN.some((x) => x.model === r.lineScan.model), '线扫型号不在库中');
+});
+
+test('精密测量时给出远心镜头系列建议', () => {
+  const r = Engine.solve(base({ fovW: 20, fovH: 15, precision: 0.05, task: 'precise_measure', wd: 250 }));
+  assert.ok(r.telecentric, '缺少远心建议');
+  const hit = CAT.TELECENTRIC.find((t) => t.series === r.telecentric.series);
+  assert.ok(hit, '远心系列不在库中: ' + r.telecentric.series);
+  assert.ok(r.telecentric.mag >= hit.magMin * 0.98 && r.telecentric.mag <= hit.magMax * 1.02, '倍率超出系列范围');
+});
+
+console.log('\n[7] 边界');
 test('超出单相机能力 → feasible=false 并建议升级', () => {
   const r = Engine.solve(base({ fovW: 900, fovH: 700, precision: 0.01 }));
   assert.strictEqual(r.feasible, false);

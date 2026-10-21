@@ -159,9 +159,11 @@
     var g = r.light;
     return '<div class="card light">' +
       '<div class="card-head"><span class="ico">💡</span><h3>光源</h3><span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
-      '<div class="hero">' + esc(g.seriesName) + '</div>' +
-      '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' + esc(g.series) + esc(g.suffix) + '</div>' +
+      '<div class="hero">' + esc(g.sku || g.seriesName) + '</div>' +
+      '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' +
+        esc(g.series) + esc(g.suffix) + '　·　HIKROBOT</div>' +
       block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
+      (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
       block('安装 / 打光角度', esc(g.angle)) +
       block('尺寸建议', esc(g.size)) +
       block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
@@ -170,6 +172,25 @@
         ? '<ul class="why">' + g.reasons.slice(0, 4).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
         : '') +
       '</div>';
+  }
+
+  function suggestCard(r) {
+    var items = [];
+    if (r.lineScan) {
+      items.push(block('线扫方案（面阵精度不足时）',
+        '<b>' + esc(r.lineScan.model) + '</b>　' + r.lineScan.w + ' 像素　' + r.lineScan.lineRate +
+        ' kHz　' + esc(r.lineScan.iface) +
+        '<br><span style="color:#64748b">' + esc(r.lineScan.note) + '</span>'));
+    }
+    if (r.telecentric) {
+      items.push(block('远心镜头（高精度 / 景深不足时）',
+        '<b>' + esc(r.telecentric.series) + '</b>　倍率 ' + num(r.telecentric.mag, 3) + '×　卡口 ' + esc(r.telecentric.mount) +
+        (r.telecentric.coax ? '　可扩展同轴光' : '') +
+        '<br><span style="color:#64748b">' + esc(r.telecentric.note) + '</span>'));
+    }
+    if (!items.length) return '';
+    return '<div class="card"><h2 class="sec">扩展建议 <span class="hint">主方案之外的升级路径</span></h2>' +
+      items.join('') + '</div>';
   }
 
   /* ---------------- 渲染 ---------------- */
@@ -203,12 +224,14 @@
     $('summary').innerHTML = esc(r.summary);
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
+    $('suggest').innerHTML = suggestCard(r);
 
     $('catalogNote').innerHTML =
       '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +
       '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>　' +
-      '内置 <b>' + CAT.CAMERAS.length + '</b> 台面阵相机、<b>' + CAT.LENSES.length + '</b> 支 FA 工业镜头；' +
-      '光源按海康光源产品系列（MV-L 型号）给出系列与颜色后缀，具体 SKU 按尺寸就近选择。<br>' +
+      '面阵 <b>' + CAT.CAMERAS.length + '</b> 台（含板级 ' + CAT.CAMERAS.filter(function (c) { return c.kind === 'board'; }).length + '）、' +
+      '线扫 <b>' + (CAT.LINESCAN || []).length + '</b> 台、FA/M12 镜头 <b>' + CAT.LENSES.length + '</b> 支、' +
+      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 个型号。<br>' +
       '<span style="color:#94a3b8">本项目为非官方选型辅助工具，HIKROBOT 标识归海康机器人所有，仅用于标注数据来源。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
@@ -249,12 +272,23 @@
     lines.push('　 ' + l.f + 'mm F' + l.aperture + '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
       num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm');
     lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口');
-    lines.push('· 光源：' + g.series + ' ' + g.seriesName + '，' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
+    lines.push('· 光源：' + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
     lines.push('　 型号构成：' + g.example);
+    if (g.skuNote) lines.push('　 选型说明：' + g.skuNote);
     lines.push('　 安装：' + g.angle);
     lines.push('　 尺寸：' + g.size);
     lines.push('　 配件：' + (g.accessories.length ? g.accessories.join('；') : '无'));
     lines.push('　 控制：' + g.controller);
+    if (r.lineScan) {
+      lines.push('');
+      lines.push('· 扩展建议（线扫）：' + r.lineScan.model + '　' + r.lineScan.w + ' 像素　' + r.lineScan.lineRate + 'kHz　' + r.lineScan.iface);
+      lines.push('　 ' + r.lineScan.note);
+    }
+    if (r.telecentric) {
+      lines.push('');
+      lines.push('· 扩展建议（远心）：' + r.telecentric.series + ' 系列，倍率 ' + n4(r.telecentric.mag) + '×，卡口 ' + r.telecentric.mount);
+      lines.push('　 ' + r.telecentric.note);
+    }
     if (r.warnings.length) {
       lines.push('');
       lines.push('· 风险与建议：');

@@ -132,22 +132,31 @@
 
   /* ============================ 选型核心 ============================ */
 
+  /** 相机卡口与镜头卡口是否兼容 */
+  function mountCompatible(camMount, lensMount) {
+    if (camMount === 'C') return lensMount === 'C';
+    if (camMount === 'M12') return lensMount === 'M12';
+    if (camMount === 'M42/F' || camMount === 'M42' || camMount === 'M58' || camMount === 'M72') {
+      return lensMount !== 'C' && lensMount !== 'M12';
+    }
+    return false; // 裸板无卡口
+  }
+
   /**
    * 单台相机 + 镜头可行性评估。
-   * m0 取宽高两个方向所需倍率的较小值，保证两台相机都能覆盖整个视野。
+   * m0 取宽高两个方向所需倍率的较小值，保证两个方向都能覆盖整个视野。
    */
   function tryCamera(cam, inp) {
+    if (cam.mount === 'Bare') return null;                      // 裸板式无镜头接口
     var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH); // 覆盖视野所需最大倍率
     var fReq = (inp.wd * m0) / (1 + m0);                     // 对应焦距 f = WD·m/(1+m)
     var camMp = (cam.w * cam.h) / 1e6;
     var diag = Math.sqrt(cam.sw * cam.sw + cam.sh * cam.sh);
-    var isC = cam.mount === 'C';
 
     var pool = [];
     for (var i = 0; i < CAT.LENSES.length; i++) {
       var l = CAT.LENSES[i];
-      var mountOk = isC ? l.mount === 'C' : l.mount !== 'C';
-      if (!mountOk) continue;
+      if (!mountCompatible(cam.mount, l.mount)) continue;
       if (l.ic != null && l.ic < diag * 0.97) continue;          // 像面必须覆盖靶面
       if (l.mp != null && l.mp < camMp * 0.85) continue;         // 镜头解析力不能低于相机
       if (!(l.focal < inp.wd * 0.95)) continue;                  // 工作距离必须大于焦距
@@ -371,6 +380,148 @@
     return L;
   }
 
+  /* ============================ 光源型号（SKU） ============================ */
+
+  // 引擎的照明方式 -> 型号库里的光源子类
+  var LIGHT_TYPE_MAP = {
+    ring: 'ring', ring_low: 'ring', ring_high: 'ring',
+    bar_low: 'bar',
+    backlight: 'backlight_parallel',
+    dome: 'dome',
+    coaxial: 'coaxial'
+  };
+
+  function lightSizeNeed(inp, type) {
+    var longSide = Math.max(inp.fovW, inp.fovH);
+    if (type === 'bar_low') return { d: Math.ceil(inp.fovW * 1.15), axis: 'length' };
+    if (type === 'backlight') return { w: Math.ceil(inp.fovW * 1.15), h: Math.ceil(inp.fovH * 1.15), axis: 'area' };
+    if (type === 'dome') return { d: Math.ceil(longSide * 1.5), axis: 'diameter' };
+    if (type === 'coaxial') return { d: Math.ceil(longSide * 1.15), axis: 'diameter' };
+    return { d: Math.ceil(longSide * 1.3), axis: 'diameter' };
+  }
+
+  /** 按 类型 + 颜色 + 视野尺寸 从光源型号库里挑具体型号 */
+  function pickLightSku(inp, light) {
+    var list = (CAT && CAT.LIGHTS) || [];
+    if (!list.length) return null;
+
+    var want = LIGHT_TYPE_MAP[light.type] || 'ring';
+    var color = light.color;
+    var note = '';
+    var cands = list.filter(function (x) { return x.type === want && x.color === color; });
+
+    if (!cands.length) {
+      cands = list.filter(function (x) { return x.type === want && x.color === 'white'; });
+      if (cands.length) note = '标准系列无' + light.colorName + '，先按白光选型；特定波长建议非标定制或咨询厂商';
+    }
+    if (!cands.length) {
+      // 背光平行系列没有对应尺寸时退回普通面光
+      if (want === 'backlight_parallel') {
+        cands = list.filter(function (x) { return x.type === 'backlight' && (x.color === color || x.color === 'white'); });
+        if (cands.length) note = note || '平行面光无对应规格，退回普通面光源';
+      }
+    }
+    if (!cands.length) return null;
+
+    var need = lightSizeNeed(inp, light.type);
+
+    function metric(x) {
+      if (need.axis === 'area') {
+        var w = x.size[0] || 0;
+        var h = x.size[1] || 0;
+        return Math.min(w / need.w, h / need.h); // >=1 表示够大
+      }
+      var d = x.size[0] || 0;
+      return d / need.d;
+    }
+
+    var good = cands.filter(function (x) { return metric(x) >= 1; });
+    var pick;
+    if (good.length) {
+      // 够用的里面挑最小（最便宜）
+      pick = good.sort(function (a, b) { return metric(a) - metric(b); })[0];
+    } else {
+      // 都不够大：取最大的并提示
+      pick = cands.sort(function (a, b) { return metric(b) - metric(a); })[0];
+      note = note || '型号库中该系列最大规格仍小于建议尺寸，可多灯拼接或选更大系列';
+    }
+
+    return {
+      model: pick.model,
+      type: want,
+      color: pick.color,
+      size: pick.size,
+      note: note
+    };
+  }
+
+  /* ============================ 线扫 / 远心建议 ============================ */
+
+  function suggestLineScan(inp, needW, pxAccReq) {
+    var list = (CAT && CAT.LINESCAN) || [];
+    if (!list.length) return null;
+
+    var needRate = inp.speed > 0 ? (inp.speed / pxAccReq) / 1000 : null; // kHz
+    var cands = list.filter(function (x) { return x.w >= needW; });
+    if (!cands.length) return null;
+    if (needRate) {
+      var ok = cands.filter(function (x) { return x.lineRate >= needRate * 1.2; });
+      if (ok.length) cands = ok;
+    }
+    var pick = cands.sort(function (a, b) { return a.w - b.w || b.lineRate - a.lineRate; })[0];
+
+    return {
+      model: pick.model,
+      w: pick.w,
+      taps: pick.taps,
+      pxH: pick.pxH,
+      lineRate: pick.lineRate,
+      iface: pick.iface,
+      needRate: needRate,
+      note: '单相机面阵方案精度不足时，线扫是标准解法：' +
+        (needRate ? '所需行频约 ' + fmt(needRate, 1) + ' kHz，' : '') +
+        '扫描宽度 ' + pick.w + ' 像素，需配编码器触发与线光源。'
+    };
+  }
+
+  function suggestTelecentric(inp, cam, m) {
+    var list = (CAT && CAT.TELECENTRIC) || [];
+    if (!list.length) return null;
+
+    var diag = Math.sqrt(cam.sw * cam.sw + cam.sh * cam.sh);
+    function fmtFits(f) {
+      if (/1\/1\.8/.test(f)) return diag <= 9.2;
+      if (/2\/3/.test(f)) return diag <= 11.2;
+      if (/1".*2"/.test(f)) return diag <= 32;
+      if (/39mm/.test(f)) return true;
+      return true;
+    }
+
+    var cands = list.filter(function (t) {
+      if (m < t.magMin * 0.98 || m > t.magMax * 1.02) return false;
+      if (!fmtFits(t.fmt)) return false;
+      if (cam.mount === 'C') return t.mount === 'C';
+      return t.mount !== 'C';
+    });
+    if (!cands.length) return null;
+
+    // 选靶面刚好够用的（最便宜）
+    cands.sort(function (a, b) { return (a.magMax - a.magMin) - (b.magMax - b.magMin); });
+    var pick = cands[cands.length - 1];
+
+    return {
+      series: pick.series,
+      model: pick.model,
+      mag: m,
+      wdMin: pick.wdMin,
+      wdMax: pick.wdMax,
+      mount: pick.mount,
+      coax: pick.coax,
+      note: '需要固定倍率的远心镜头：倍率 ' + fmt(m, 3) + '×，工作距离需落在 ' +
+        pick.wdMin + '~' + pick.wdMax + ' mm 内，型号按 ' + pick.model + ' 在该范围选具体组合。'
+    };
+  }
+
   /* ============================ 主流程 ============================ */
 
   function solve(raw) {
@@ -497,6 +648,12 @@
 
     /* ---- 光源 ---- */
     var light = buildLight(inp, { tMaxMs: tMaxMs, speed: inp.speed, mount: cam.mount });
+    var lightSku = pickLightSku(inp, light);
+    if (lightSku) {
+      light.sku = lightSku.model;
+      light.skuNote = lightSku.note;
+      light.skuSize = lightSku.size;
+    }
 
     /* ---- 匹配度 ---- */
     var score = 100;
@@ -528,9 +685,17 @@
     ];
 
     var summary = '相机 ' + cam.model + '（' + cam.w + '×' + cam.h + '，' + cam.iface + '）｜ 镜头 ' +
-      lens.model + ' ' + lens.focal + 'mm F' + ap + ' ｜ 光源 ' + light.series + ' ' +
-      light.seriesName + ' ' + light.colorName + ' ' + light.wavelength +
+      lens.model + ' ' + lens.focal + 'mm F' + ap + ' ｜ 光源 ' +
+      (light.sku || (light.series + ' ' + light.seriesName)) + ' ' + light.colorName + ' ' + light.wavelength +
       ' ｜ 有效像素精度 ' + fmt(pxAcc, 4) + ' mm/px ｜ 景深 ' + fmt(dof) + ' mm';
+
+    // 扩展建议：面阵搞不定时给具体线扫型号；高精度/景深不足时给远心系列
+    var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
+    var lineScan = !feasible ? suggestLineScan(inp, needW, pxAccReq) : null;
+    var telecentric =
+      (inp.task === 'precise_measure' || !dofOK) && cam.mount !== 'Bare'
+        ? suggestTelecentric(inp, cam, m0)
+        : null;
 
     return {
       ok: true,
@@ -583,6 +748,8 @@
       },
       exposure: { tMaxMs: tMaxMs },
       light: light,
+      lineScan: lineScan,
+      telecentric: telecentric,
       calc: calc,
       warnings: warnings,
       summary: summary
