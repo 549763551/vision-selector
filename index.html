@@ -79,6 +79,7 @@
   .layout-wide.duo > .card { display: flex; flex-direction: column; }
   .layout-wide.duo > .card .actions { margin-top: auto; }
   #sibCol .card { margin-top: 0; }
+  #suggestWrap .card { margin-top: 0; }
   .sib-scroll {
     max-height: 300px; overflow: auto;
     border: 1px solid #eef2f7; border-radius: 9px;
@@ -464,10 +465,14 @@
     </div>
 
     <div class="cards" id="cards"></div>
-    <div id="suggest"></div>
   </section>
 
 </main>
+
+<!-- 扩展建议：独占一行 -->
+<div class="layout-wide" id="suggestWrap">
+  <div id="suggest"></div>
+</div>
 
 <!-- 精度预算 + 光路与安装示意：同一行 -->
 <div class="layout-wide duo">
