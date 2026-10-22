@@ -65,12 +65,12 @@
   /* ---------- 布局 ---------- */
   .layout {
     max-width: 1480px; margin: 0 auto;
-    padding: 18px 22px 18px;
-    display: grid; grid-template-columns: 356px minmax(0, 1fr);
+    padding: 14px 22px 18px;
+    display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
     gap: 18px; align-items: start;
   }
   /* 整行区块 */
-  .layout-wide { max-width: 1480px; margin: 0 auto; padding: 0 22px; }
+  .layout-wide { max-width: 1480px; margin: 14px auto 0; padding: 0 22px; }
   .layout-wide + .layout-wide { margin-top: 14px; }
   .layout-wide.duo {
     display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: stretch;
@@ -78,7 +78,8 @@
   .layout-wide.duo > .card { margin-top: 0; }
   .layout-wide.duo > .card { display: flex; flex-direction: column; }
   .layout-wide.duo > .card .actions { margin-top: auto; }
-  #sibWrap .card { margin-top: 0; }
+  #sibCol .card { margin-top: 0; }
+  .sib-block { overflow-x: auto; }
   .card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -99,6 +100,18 @@
 
   /* ---------- 表单 ---------- */
   .field { margin-bottom: 12px; }
+  /* 检测需求：整行横向表单 */
+  .req-card { margin-top: 0; }
+  .req-grid {
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px 18px; align-items: end;
+  }
+  .req-grid .field { margin-bottom: 0; }
+  .req-grid .fov-cell { grid-column: span 2; }
+  .req-grid .check-cell { align-self: end; padding-bottom: 2px; }
+  .req-grid .check { margin: 0; }
+  .req-grid .btn-cell { display: flex; }
+  .req-grid .btn-cell .btn { width: 100%; }
   .field > label {
     display: flex; align-items: baseline; gap: 6px;
     font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;
@@ -274,10 +287,14 @@
     background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 13px;
   }
 
+  @media (max-width: 1280px) {
+    .req-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
   @media (max-width: 1020px) {
     .layout { grid-template-columns: 1fr; padding: 14px 14px 14px; }
     .layout-wide { padding: 0 14px; }
     .layout-wide.duo { grid-template-columns: 1fr; }
+    .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .topbar { padding: 16px 16px; }
     .presets { margin-left: 0; width: 100%; }
   }
@@ -306,14 +323,14 @@
   </div>
 </header>
 
-<main class="layout">
-
-  <!-- ==================== 左：需求输入 ==================== -->
-  <section class="card">
+<!-- ==================== 检测需求：独占一行 ==================== -->
+<div class="layout-wide">
+  <section class="card req-card">
     <h2 class="sec">检测需求 <span class="hint">本地计算，无需联网</span></h2>
+    <div class="req-grid">
 
-    <div class="field">
-      <label>视野 FOV <em>要拍到多大范围</em></label>
+    <div class="field fov-cell">
+      <label>视野 FOV <em>拍摄范围</em></label>
       <div class="row2">
         <input type="number" id="fovW" min="1" step="1" value="50" placeholder="宽 mm" />
         <input type="number" id="fovH" min="1" step="1" value="40" placeholder="高 mm" />
@@ -321,7 +338,7 @@
     </div>
 
     <div class="field">
-      <label>需要分辨的最小特征 <em>δ，公差或最小缺陷</em></label>
+      <label>最小特征 δ <em>公差/缺陷</em></label>
       <input type="number" id="precision" min="0.001" step="0.001" value="0.1" />
     </div>
 
@@ -331,11 +348,9 @@
     </div>
 
     <div class="field">
-      <label>工作距离 WD <em>镜头前端到工件</em></label>
+      <label>工作距离 WD <em>镜头到工件</em></label>
       <input type="number" id="wd" min="10" step="10" value="300" />
     </div>
-
-    <div class="divider"></div>
 
     <div class="field">
       <label>被测物材质</label>
@@ -343,36 +358,44 @@
     </div>
 
     <div class="field">
-      <label>目标主色 <em>用来选单色光</em></label>
+      <label>目标主色 <em>选单色光</em></label>
       <select id="colorTarget"></select>
     </div>
 
-    <label class="check">
-      <input type="checkbox" id="needColor" />
-      <span>需要彩色相机（颜色区分 / 真实还原）</span>
-    </label>
-
-    <div class="divider"></div>
+    <div class="field check-cell">
+      <label class="check">
+        <input type="checkbox" id="needColor" />
+        <span>需要彩色相机</span>
+      </label>
+    </div>
 
     <div class="field">
-      <label>工件高度变化 <em>沿光轴，决定景深</em></label>
+      <label>高度变化 <em>决定景深</em></label>
       <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
     </div>
 
-    <div class="row2">
-      <div class="field">
-        <label>运动速度 <span class="unit">mm/s</span></label>
-        <input type="number" id="speed" min="0" step="10" value="0" />
-      </div>
-      <div class="field">
-        <label>生产节拍 <span class="unit">件/分</span></label>
-        <input type="number" id="cpm" min="0" step="1" value="0" />
-      </div>
+    <div class="field">
+      <label>运动速度 <span class="unit">mm/s</span></label>
+      <input type="number" id="speed" min="0" step="10" value="0" />
     </div>
 
-    <div class="actions">
+    <div class="field">
+      <label>生产节拍 <span class="unit">件/分</span></label>
+      <input type="number" id="cpm" min="0" step="1" value="0" />
+    </div>
+
+    <div class="field btn-cell">
       <button class="btn" id="resetBtn">恢复默认</button>
     </div>
+    </div>
+  </section>
+</div>
+
+<main class="layout">
+
+  <!-- ==================== 左：同系列参数 ==================== -->
+  <section id="sibCol">
+    <div id="siblings"></div>
   </section>
 
   <!-- ==================== 右：方案输出 ==================== -->
@@ -393,11 +416,6 @@
   </section>
 
 </main>
-
-<!-- 同系列参数：独占一行 -->
-<div class="layout-wide" id="sibWrap">
-  <div id="siblings"></div>
-</div>
 
 <!-- 验算过程 + 风险与建议：同一行 -->
 <div class="layout-wide duo">
