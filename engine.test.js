@@ -299,7 +299,40 @@ test('线扫方案给出光学参数与线光源型号', () => {
   assert.ok(r.lineScan.needRate > 0, '缺行频需求');
 });
 
-console.log('\n[9] 边界');
+console.log('\n[9] 手动指定型号');
+test('手动指定相机后按该型号出方案', () => {
+  const r = Engine.solve(base({ manualCamera: 'MV-CS050-10GM' }));
+  assert.strictEqual(r.camera.model, 'MV-CS050-10GM');
+  assert.strictEqual(r.manual.camera, true);
+});
+
+test('手动指定镜头后按该镜头出方案', () => {
+  const r = Engine.solve(base({ manualLens: 'MVL-MF5028M-5MPE' }));
+  assert.strictEqual(r.lens.model, 'MVL-MF5028M-5MPE');
+  assert.strictEqual(r.manual.lens, true);
+});
+
+test('手动指定光源后按该型号出方案，控制器照常匹配', () => {
+  const r = Engine.solve(base({ manualLight: 'MV-LRDS-132-20-W' }));
+  assert.strictEqual(r.light.sku, 'MV-LRDS-132-20-W');
+  assert.strictEqual(r.manual.light, true);
+  assert.ok(r.light.controllerModel, '应仍匹配控制器');
+});
+
+test('手动指定不达标相机 → 标记不可行并给出告警', () => {
+  const r = Engine.solve(base({ manualCamera: 'MV-CS016-11GM' }));
+  assert.strictEqual(r.feasible, false);
+  assert.ok(r.warnings.some((w) => /手动指定/.test(w.text)), '缺少手动告警');
+});
+
+test('不传手动参数时行为与自动选型一致', () => {
+  const a = Engine.solve(base());
+  const b = Engine.solve(base({ manualCamera: null, manualLens: null, manualLight: null }));
+  assert.strictEqual(a.camera.model, b.camera.model);
+  assert.strictEqual(a.lens.model, b.lens.model);
+});
+
+console.log('\n[10] 边界');
 test('超出单相机能力 → feasible=false 并建议升级', () => {
   const r = Engine.solve(base({ fovW: 900, fovH: 700, precision: 0.01 }));
   assert.strictEqual(r.feasible, false);

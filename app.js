@@ -87,6 +87,9 @@
     return isNaN(v) ? undefined : v;
   }
 
+  /* ---------------- 手动指定型号 ---------------- */
+  var manual = { camera: null, lens: null, light: null };
+
   function readInput() {
     return {
       fovW: readNum('fovW'),
@@ -99,11 +102,17 @@
       needColor: $('needColor').checked,
       heightDiff: readNum('heightDiff'),
       speed: readNum('speed'),
-      cpm: readNum('cpm')
+      cpm: readNum('cpm'),
+      manualCamera: manual.camera,
+      manualLens: manual.lens,
+      manualLight: manual.light
     };
   }
 
   function applyState(st) {
+    manual.camera = null;
+    manual.lens = null;
+    manual.light = null;
     $('fovW').value = st.fovW;
     $('fovH').value = st.fovH;
     $('precision').value = st.precision;
@@ -236,7 +245,7 @@
     }
 
     var camRows = s.camera.items.map(function (x) {
-      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="camera" data-model="' + esc(x.model) + '" title="点击手动指定这台相机">' +
         '<td class="mono">' + esc(x.model) + '</td>' +
         '<td>' + x.megs + 'MP</td>' +
         '<td>' + x.w + '×' + x.h + '</td>' +
@@ -246,7 +255,7 @@
     }).join('');
 
     var lensRows = s.lens.items.map(function (x) {
-      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="lens" data-model="' + esc(x.model) + '" title="点击手动指定这支镜头">' +
         '<td class="mono">' + esc(x.model) + '</td>' +
         '<td>' + x.focal + ' mm</td>' +
         '<td>' + (x.ic == null ? '—' : x.ic + ' mm') + '</td>' +
@@ -256,7 +265,7 @@
     }).join('');
 
     var lightRows = s.light.items.map(function (x) {
-      return '<tr class="' + (x.cur ? 'cur' : '') + '">' +
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="light" data-model="' + esc(x.model) + '" title="点击手动指定这个光源">' +
         '<td class="mono">' + esc(x.model) + '</td>' +
         '<td>' + (x.size && x.size.length ? x.size.join(' × ') + ' mm' : '—') + '</td>' +
         '</tr>';
@@ -268,7 +277,21 @@
         '</h4>' + inner + '</div>';
     }
 
-    return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">换一档相机 / 换焦距 / 换光源尺寸时直接对比</span></h2>' +
+    // 手动指定状态条
+    var m = r.manual || {};
+    var pills = [];
+    if (m.camera) pills.push('相机 ' + esc(r.camera.model));
+    if (m.lens) pills.push('镜头 ' + esc(r.lens.model));
+    if (m.light) pills.push('光源 ' + esc(r.light.sku || ''));
+    var bar = '<div class="sib-manual">' +
+      (pills.length
+        ? '<span>已手动指定：</span>' + pills.map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') +
+          '<button type="button" data-action="auto">恢复自动选型</button>'
+        : '<span>点击下面任意型号可手动指定，再点一次取消；高亮行为当前方案。</span>') +
+      '</div>';
+
+    return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">点型号即可手动指定</span></h2>' +
+      bar +
       '<div class="sib-grid">' +
         blk('相机　' + s.camera.label, s.camera.total, s.camera.omitted,
           table([{ t: '型号' }, { t: '像素' }, { t: '分辨率' }, { t: '帧率' }, { t: '够用?', align: 'center' }], camRows)) +
@@ -277,8 +300,8 @@
         blk('光源　' + s.light.label, s.light.total, s.light.omitted,
           table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
       '</div>' +
-      '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽，' +
-      '点击左侧表单微调后右侧会重新自动选型。高亮行为当前推荐型号。</div>' +
+      '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽。' +
+      '手动指定后若精度或视场不达标，风险区会给出提示。</div>' +
       '</div>';
   }
 
@@ -466,6 +489,25 @@
 
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
     $('copyBtn').addEventListener('click', copyText);
+
+    // 同系列表格：点型号 = 手动指定，再点一次 = 取消
+    $('siblings').addEventListener('click', function (e) {
+      var auto = e.target.closest('[data-action="auto"]');
+      if (auto) {
+        manual.camera = null;
+        manual.lens = null;
+        manual.light = null;
+        render();
+        return;
+      }
+      var tr = e.target.closest('tr[data-kind]');
+      if (!tr) return;
+      var kind = tr.getAttribute('data-kind');
+      var model = tr.getAttribute('data-model');
+      if (!kind || !model) return;
+      manual[kind] = manual[kind] === model ? null : model;
+      render();
+    });
 
     // ?p=copper 直接打开预设；再叠加显式参数，如 ?fovW=100&precision=0.02&speed=200
     var pm = /[?&]p=([a-z]+)/.exec(location.search);

@@ -118,7 +118,10 @@
       needColor: !!i.needColor,
       heightDiff: num(i.heightDiff, 0),
       speed: num(i.speed, 0),
-      cpm: num(i.cpm, 0)
+      cpm: num(i.cpm, 0),
+      manualCamera: i.manualCamera || null,
+      manualLens: i.manualLens || null,
+      manualLight: i.manualLight || null
     };
     if (!(out.fovW > 0) || !(out.fovH > 0)) return { ok: false, error: '视野尺寸必须大于 0' };
     if (!(out.precision > 0)) return { ok: false, error: '检测精度（最小特征）必须大于 0' };
@@ -189,6 +192,62 @@
       // 覆盖性由 m0 的构造保证，这里只需校验像素精度
       ok: pxAcc <= (inp.precision / (TASKS[inp.task] || TASKS.defect).k) * (1 + 1e-9)
     };
+  }
+
+  /** 手动指定相机时：优先正常匹配镜头；匹配不到就取焦距最接近的可用镜头（标记不达标） */
+  function forceCamera(cam, inp) {
+    var t = tryCamera(cam, inp);
+    if (t) return t;
+    if (cam.mount === 'Bare') return null;
+
+    var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
+    var fReq = (inp.wd * m0) / (1 + m0);
+    var pool = [];
+    for (var i = 0; i < CAT.LENSES.length; i++) {
+      var l = CAT.LENSES[i];
+      if (!mountCompatible(cam.mount, l.mount)) continue;
+      if (!(l.focal < inp.wd * 0.95)) continue;
+      pool.push(l);
+    }
+    if (!pool.length) return null;
+    pool.sort(function (a, b) {
+      return Math.abs(a.focal - fReq) - Math.abs(b.focal - fReq);
+    });
+    var lens = pool[0];
+    var m = lens.focal / (inp.wd - lens.focal);
+    var fovW = cam.sw / m;
+    var fovH = cam.sh / m;
+    return {
+      cam: cam,
+      lens: lens,
+      m: m,
+      fReq: fReq,
+      fovW: fovW,
+      fovH: fovH,
+      pxAcc: Math.max(fovW / cam.w, fovH / cam.h),
+      ok: false,
+      forced: true
+    };
+  }
+
+  /** 把选定的光源型号/功率/控制器写回光源对象 */
+  function attachLightSku(light, obj) {
+    light.sku = obj.model;
+    light.skuNote = obj.note || '';
+    light.skuSize = obj.size;
+    light.skuColor = obj.color;
+    light.power = obj.power == null ? null : obj.power;
+    light.count = light.type === 'bar_low' ? 2 : 1;
+    light.totalPower = light.power ? +(light.power * light.count).toFixed(1) : null;
+
+    var ctrls = ((CAT && CAT.CONTROLLERS) || []).filter(function (c) {
+      return (c.channels || 1) >= light.count;
+    });
+    ctrls.sort(function (a, b) { return (a.channels || 99) - (b.channels || 99); });
+    if (ctrls.length) {
+      light.controllerModel = ctrls[0].model;
+      light.controllerChannels = ctrls[0].channels;
+    }
   }
 
   function selectOptics(inp, needW, needH, isColor) {
@@ -716,12 +775,71 @@
       pick.pxAcc = Math.max(pick.fovW / biggest.w, pick.fovH / biggest.h);
     }
 
+    /* ---- 手动指定型号（覆盖自动选型） ---- */
+    var manual = { camera: false, lens: false, light: false };
+
+    if (inp.manualCamera) {
+      var mc = null;
+      for (var mi = 0; mi < CAT.CAMERAS.length; mi++) {
+        if (CAT.CAMERAS[mi].model === inp.manualCamera) { mc = CAT.CAMERAS[mi]; break; }
+      }
+      if (mc) {
+        var forcedPick = forceCamera(mc, inp);
+        if (forcedPick) {
+          pick = forcedPick;
+          manual.camera = true;
+        }
+      }
+    }
+
+    if (inp.manualLens) {
+      var ml = null;
+      for (var li = 0; li < CAT.LENSES.length; li++) {
+        if (CAT.LENSES[li].model === inp.manualLens) { ml = CAT.LENSES[li]; break; }
+      }
+      if (ml && mountCompatible(pick.cam.mount, ml.mount) && ml.focal < inp.wd * 0.95) {
+        var lm = ml.focal / (inp.wd - ml.focal);
+        var lfovW = pick.cam.sw / lm;
+        var lfovH = pick.cam.sh / lm;
+        pick = {
+          cam: pick.cam,
+          lens: ml,
+          m: lm,
+          fReq: pick.fReq,
+          fovW: lfovW,
+          fovH: lfovH,
+          pxAcc: Math.max(lfovW / pick.cam.w, lfovH / pick.cam.h),
+          forced: true
+        };
+        pick.ok = pick.pxAcc <= pxAccReq * (1 + 1e-9);
+        manual.lens = true;
+      }
+    }
+
     if (!pick.ok) {
+      feasible = false;
+      if (manual.camera || manual.lens) {
+        warnings.push({
+          level: 'warn',
+          text: '手动指定的型号不满足当前要求：像素精度 ' + fmt(pick.pxAcc) + ' mm/px，要求 ≤ ' +
+            fmt(pxAccReq) + ' mm/px。可换更大靶面 / 更高分辨率，或放宽精度要求。'
+        });
+      } else {
+        warnings.push({
+          level: 'warn',
+          text: '型号库内单相机方案无法满足：需要 ' + needW + ' × ' + needH + ' 像素（' +
+            fmt(inp.fovW / pxAccReq) + ' mm/px）。建议线扫相机、多相机拼接，或把视野分段检测。'
+        });
+      }
+    }
+
+    if ((manual.camera || manual.lens) &&
+        (pick.fovW < inp.fovW * 0.999 || pick.fovH < inp.fovH * 0.999)) {
       feasible = false;
       warnings.push({
         level: 'warn',
-        text: '型号库内单相机方案无法满足：需要 ' + needW + ' × ' + needH + ' 像素（' +
-          fmt(inp.fovW / pxAccReq) + ' mm/px）。建议线扫相机、多相机拼接，或把视野分段检测。'
+        text: '手动指定组合的实际视场 ' + fmt(pick.fovW) + ' × ' + fmt(pick.fovH) +
+          ' mm 小于需求 ' + fmt(inp.fovW) + ' × ' + fmt(inp.fovH) + ' mm，会拍不全。'
       });
     }
 
@@ -826,25 +944,28 @@
     /* ---- 光源 ---- */
     var light = buildLight(inp, { tMaxMs: tMaxMs, speed: inp.speed, mount: cam.mount });
     var lightSku = pickLightSku(inp, light);
-    if (lightSku) {
-      light.sku = lightSku.model;
-      light.skuNote = lightSku.note;
-      light.skuSize = lightSku.size;
-      light.skuColor = lightSku.color;
-      light.power = lightSku.power;
-      // 条形光通常需要 2~4 条对打，其余 1 只
-      light.count = light.type === 'bar_low' ? 2 : 1;
-      light.totalPower = light.power ? +(light.power * light.count).toFixed(1) : null;
-      // 控制器：通道数够用即可，优先最省的
-      var ctrls = ((CAT && CAT.CONTROLLERS) || []).filter(function (c) {
-        return (c.channels || 1) >= light.count;
-      });
-      ctrls.sort(function (a, b) { return (a.channels || 99) - (b.channels || 99); });
-      if (ctrls.length) {
-        light.controllerModel = ctrls[0].model;
-        light.controllerChannels = ctrls[0].channels;
+
+    if (inp.manualLight) {
+      var ml3 = null;
+      for (var xi = 0; xi < ((CAT && CAT.LIGHTS) || []).length; xi++) {
+        if (CAT.LIGHTS[xi].model === inp.manualLight) { ml3 = CAT.LIGHTS[xi]; break; }
+      }
+      if (ml3) {
+        lightSku = {
+          model: ml3.model, type: ml3.type, color: ml3.color,
+          size: ml3.size, power: ml3.power, note: '手动指定型号'
+        };
+        manual.light = true;
+        if (ml3.color !== light.color) {
+          warnings.push({
+            level: 'info',
+            text: '手动选择的光源颜色与推荐不一致（推荐' + light.colorName + '），请确认打光效果。'
+          });
+        }
       }
     }
+
+    if (lightSku) attachLightSku(light, lightSku);
 
     // 同系列参数对比（换一档相机 / 换焦距 / 换光源尺寸时直接看）
     var siblings = buildSiblings(cam, lens, needW, needH, light);
@@ -950,6 +1071,7 @@
       exposure: { tMaxMs: tMaxMs },
       light: light,
       siblings: siblings,
+      manual: manual,
       lineScan: lineScan,
       telecentric: telecentric,
       calc: calc,
