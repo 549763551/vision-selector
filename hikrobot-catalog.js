@@ -401,7 +401,7 @@
     {"model":"MVL-AF3528M-M42A","letter":"F","focal":35,"fmin":2.8,"fmax":16,"mount":"M42","dist":-0.16,"minDist":null,"ic":null,"fmt":"半画幅","mp":null,"series":"AF 系列","len":102.3},
     {"model":"MVL-AF4028M-M42","letter":"G","focal":40,"fmin":2.8,"fmax":22,"mount":"M42","dist":0.62,"minDist":null,"ic":null,"fmt":"半画幅","mp":null,"series":"AF 系列","len":54.03},
     {"model":"MVL-AF5028M-M42A","letter":"H","focal":50,"fmin":2.8,"fmax":16,"mount":"M42","dist":0.05,"minDist":null,"ic":null,"fmt":"半画幅","mp":null,"series":"AF 系列","len":85.2},
-    {"model":"MVL-AF5040M-M42","letter":null,"focal":50,"fmin":4,"fmax":22,"mount":"M42","dist":0.21,"minDist":null,"ic":null,"fmt":"半画幅","mp":null,"series":"AF 系列"},
+    {"model":"MVL-AF5040M-M42","letter":null,"focal":50,"fmin":4,"fmax":22,"mount":"M42","dist":0.21,"minDist":null,"ic":null,"fmt":"半画幅","mp":null,"series":"AF 系列","len":133.2},
     {"model":"MVL-LF3528M-F","letter":"B","focal":35,"fmin":2.8,"fmax":16,"mount":"M58","dist":0.4,"minDist":null,"ic":44.95,"fmt":"大靶面","mp":null,"series":"LF 系列"},
     {"model":"MVL-LF3540M-F","letter":"C","focal":35,"fmin":4,"fmax":16,"mount":"F","dist":0.46,"minDist":null,"ic":41.73,"fmt":"大靶面","mp":null,"series":"LF 系列"},
     {"model":"MVL-LF5040M-F","letter":"D","focal":50,"fmin":4,"fmax":22,"mount":"F","dist":0.41,"minDist":null,"ic":43.5,"fmt":"大靶面","mp":null,"series":"LF 系列"},

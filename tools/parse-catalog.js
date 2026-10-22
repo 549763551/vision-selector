@@ -383,7 +383,9 @@ const LIGHTS = LIGHTS_RAW.map((x) => ({
 
 for (const l of lenses) {
   const tbl = LENS_LEN[l.series];
-  if (tbl && l.letter && tbl[l.letter] != null) l.len = tbl[l.letter];
+  if (!tbl) continue;
+  if (l.letter && tbl[l.letter] != null) l.len = tbl[l.letter];
+  else if (tbl._byModel && tbl._byModel[l.model] != null) l.len = tbl._byModel[l.model];
 }
 
 /* ============================== 合并官网详细参数 ============================== */
