@@ -415,6 +415,7 @@ for (const c of CAMERAS) {
   c.poe = !!s.poe;
   c.powerW = s.power;
   c.sensor = s.sensor;
+  if (s.dims && s.dims.length === 3) c.dims = s.dims;
   const m = normalizeMount(s.mount);
   if (m) c.mount = m;
 }

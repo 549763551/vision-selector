@@ -19,7 +19,7 @@
   var DEFAULT = {
     fovW: 50, fovH: 40, precision: 0.1, task: 'defect', wd: 300,
     material: 'metal_shiny', colorTarget: 'none', needColor: false,
-    heightDiff: 1, speed: 0, cpm: 0
+    heightDiff: 1, speed: 0, cpm: 0, space: 0
   };
 
   var SWATCH = {
@@ -103,6 +103,7 @@
       heightDiff: readNum('heightDiff'),
       speed: readNum('speed'),
       cpm: readNum('cpm'),
+      space: readNum('space'),
       manualCamera: manual.camera,
       manualLens: manual.lens,
       manualLight: manual.light
@@ -124,6 +125,7 @@
     $('heightDiff').value = st.heightDiff;
     $('speed').value = st.speed;
     $('cpm').value = st.cpm;
+    $('space').value = st.space == null ? 0 : st.space;
     render();
   }
 
@@ -315,6 +317,99 @@
     });
   }
 
+
+  /* ---------------- 精度预算 ---------------- */
+  function budgetCard(r) {
+    var b = r.budget;
+    if (!b) return '';
+    var rows = b.items.map(function (x) {
+      return '<tr><td>' + esc(x.name) + '</td>' +
+        '<td class="num" style="white-space:nowrap">± ' + n4(x.mm) + ' mm</td>' +
+        '<td class="unit">' + esc(x.note) + '</td></tr>';
+    }).join('');
+    var pct = Math.round(b.ratio * 100);
+    return '<table class="mini"><thead><tr><th>误差项</th>' +
+      '<th style="text-align:right">估算</th><th>说明</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="budget-sum">合成 <b>± ' + n4(b.total) + ' mm</b>' +
+      '<span>占像素精度要求 ' + pct + '%</span>' +
+      '<span class="tag ' + (b.pass ? 'ok' : 'bad') + '">' + (b.pass ? '满足' : '超限') + '</span></div>' +
+      '<div class="sib-note">按均方根合成。实际还受温漂、振动、工件表面特性影响，测量类建议用标准件实测复核。</div>';
+  }
+
+  /* ---------------- 光路与安装示意 ---------------- */
+  function diagramCard(r) {
+    var g = r.geometry;
+    if (!g) return '';
+    var W = 660, H = 240, ay = 106;
+    var total = g.wd + g.lensLen + g.camDepth;
+    var x0 = 88, x1 = 600;
+    var k = (x1 - x0) / total;
+    var xObj = x0;
+    var xLens = xObj + g.wd * k;
+    var xCam = xLens + g.lensLen * k;
+    var xEnd = xCam + g.camDepth * k;
+    var fovHalf = Math.max(13, Math.min(46, g.fovH * 0.7));
+    var dofHalf = Math.max(2.5, Math.min(32, g.dof * k));
+
+    var s = [];
+    s.push('<svg viewBox="0 0 ' + W + ' ' + H + '" class="dg" role="img">');
+    s.push('<line x1="' + (xObj - 40) + '" y1="' + ay + '" x2="' + (xEnd + 14) + '" y2="' + ay + '" stroke="#cbd5e1" stroke-dasharray="6 5"/>');
+    // 工件面
+    s.push('<line x1="' + xObj + '" y1="' + (ay - fovHalf - 16) + '" x2="' + xObj + '" y2="' + (ay + fovHalf + 16) + '" stroke="#334155" stroke-width="2.5"/>');
+    s.push('<text x="' + (xObj - 6) + '" y="' + (ay - fovHalf - 22) + '" text-anchor="middle" class="dg-xs">工件</text>');
+    // 视场标注
+    s.push('<line x1="' + (xObj - 30) + '" y1="' + (ay - fovHalf) + '" x2="' + (xObj - 30) + '" y2="' + (ay + fovHalf) + '" stroke="#2563eb" stroke-width="1.2"/>');
+    s.push('<text x="' + (xObj - 38) + '" y="' + (ay - 2) + '" text-anchor="end" class="dg-s" fill="#1d4ed8">' + num(g.fovW, 0) + '×' + num(g.fovH, 0) + '</text>');
+    s.push('<text x="' + (xObj - 38) + '" y="' + (ay + 14) + '" text-anchor="end" class="dg-xs">视场 mm</text>');
+    // 景深带
+    s.push('<line x1="' + (xObj - dofHalf) + '" y1="' + (ay + fovHalf + 24) + '" x2="' + (xObj + dofHalf) + '" y2="' + (ay + fovHalf + 24) + '" stroke="#16a34a" stroke-width="2.5"/>');
+    s.push('<text x="' + (xObj + dofHalf + 8) + '" y="' + (ay + fovHalf + 28) + '" class="dg-xs" fill="#15803d">景深 ' + num(g.dof, 2) + ' mm</text>');
+    // 镜头
+    s.push('<path d="M' + xLens + ' ' + (ay - 30) + ' L' + xCam + ' ' + (ay - 24) + ' L' + xCam + ' ' + (ay + 24) + ' L' + xLens + ' ' + (ay + 30) + ' Z" fill="#eff6ff" stroke="#93c5fd"/>');
+    s.push('<text x="' + (xLens + (xCam - xLens) / 2) + '" y="' + (ay + 4) + '" text-anchor="middle" class="dg-xs">镜头</text>');
+    // 相机
+    s.push('<rect x="' + xCam + '" y="' + (ay - 26) + '" width="' + (xEnd - xCam) + '" height="52" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>');
+    s.push('<text x="' + (xCam + (xEnd - xCam) / 2) + '" y="' + (ay + 4) + '" text-anchor="middle" class="dg-xs">相机</text>');
+    // WD 尺寸线
+    s.push('<line x1="' + xObj + '" y1="' + (ay + 74) + '" x2="' + xLens + '" y2="' + (ay + 74) + '" stroke="#475569"/>');
+    s.push('<line x1="' + xObj + '" y1="' + (ay + 68) + '" x2="' + xObj + '" y2="' + (ay + 80) + '" stroke="#475569"/>');
+    s.push('<line x1="' + xLens + '" y1="' + (ay + 68) + '" x2="' + xLens + '" y2="' + (ay + 80) + '" stroke="#475569"/>');
+    s.push('<text x="' + (xObj + (xLens - xObj) / 2) + '" y="' + (ay + 94) + '" text-anchor="middle" class="dg-s">WD ' + num(g.wd, 0) + ' mm</text>');
+    // 光源
+    if (g.lightType === 'backlight') {
+      s.push('<rect x="' + (xObj - 46) + '" y="' + (ay - fovHalf - 8) + '" width="10" height="' + (fovHalf * 2 + 16) + '" fill="#dbeafe" stroke="#93c5fd" rx="2"/>');
+      s.push('<text x="' + (xObj - 50) + '" y="' + (ay + fovHalf + 30) + '" text-anchor="end" class="dg-xs" fill="#1d4ed8">背光</text>');
+    } else if (g.lightType === 'coaxial') {
+      s.push('<path d="M' + xLens + ' ' + (ay - 7) + ' L' + xObj + ' ' + (ay - fovHalf) + ' L' + xObj + ' ' + (ay + fovHalf) + ' L' + xLens + ' ' + (ay + 7) + ' Z" fill="rgba(37,99,235,.10)"/>');
+      s.push('<text x="' + (xLens - 8) + '" y="' + (ay - 34) + '" text-anchor="end" class="dg-xs" fill="#1d4ed8">同轴光</text>');
+    } else if (g.lightType === 'dome') {
+      s.push('<path d="M' + (xObj + 4) + ' ' + (ay - fovHalf - 12) + ' Q' + (xObj + 92) + ' ' + (ay - 96) + ' ' + (xLens - 6) + ' ' + (ay - 30) + '" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="5 4"/>');
+      s.push('<text x="' + (xObj + 16) + '" y="' + (ay - 88) + '" class="dg-xs" fill="#1d4ed8">穹顶光</text>');
+    } else {
+      s.push('<line x1="' + (xObj + 6) + '" y1="' + (ay + fovHalf + 54) + '" x2="' + (xObj + 64) + '" y2="' + (ay + fovHalf - 2) + '" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="5 3"/>');
+      s.push('<line x1="' + (xObj + 34) + '" y1="' + (ay + fovHalf + 54) + '" x2="' + (xObj + 84) + '" y2="' + (ay + fovHalf - 2) + '" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="5 3"/>');
+      s.push('<text x="' + (xObj + 2) + '" y="' + (ay + fovHalf + 70) + '" class="dg-xs" fill="#b45309">' +
+        (g.lightType === 'bar_low' ? '条形光 低角度' : '环形光 ' + g.lightAngle + '°') + '</text>');
+    }
+    // 总长
+    var sp = r.space;
+    s.push('<text x="' + x0 + '" y="' + (H - 10) + '" class="dg-xs">总长 ≈ ' + num(sp.need, 0) + ' mm（WD + 镜头 ' +
+      sp.lensLen + ' + 相机 ' + sp.camDepth + ' + 线缆 ' + sp.cable + '）</text>');
+    s.push('</svg>');
+
+    var spaceLine = '<div class="space-line">' +
+      (sp.available
+        ? '可用 ' + num(sp.available, 0) + ' mm　<span class="tag ' + (sp.pass ? 'ok' : 'bad') + '">' +
+          (sp.pass ? '放得下' : '超出 ' + num(sp.over, 0) + ' mm') + '</span>'
+        : '<span class="hint">未填可用安装空间，仅列出总长</span>') +
+      '</div>' +
+      '<div class="sib-note">相机厚度取自官方外形尺寸' +
+      (sp.estimated ? '（该型号缺尺寸，按 45 mm 估）' : '') +
+      '；镜头长度按系列典型值估算；线缆与接插件预留 25 mm。</div>';
+
+    return s.join('') + spaceLine;
+  }
+
   /* ---------------- 渲染 ---------------- */
   function render() {
     if (!E || !CAT) {
@@ -349,6 +444,8 @@
     $('suggest').innerHTML = suggestCard(r);
     $('siblings').innerHTML = siblingCard(r);
     scrollSiblingsToCurrent();
+    $('budget').innerHTML = budgetCard(r);
+    $('diagram').innerHTML = diagramCard(r);
 
     $('catalogNote').innerHTML =
       '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +
@@ -470,7 +567,7 @@
   /** 从 URL 读取表单参数，便于把具体需求发给别人 */
   function fromQuery() {
     var q = {};
-    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm'].forEach(function (k) {
+    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm', 'space'].forEach(function (k) {
       var m = new RegExp('[?&]' + k + '=([\\d.]+)').exec(location.search);
       if (m) q[k] = parseFloat(m[1]);
     });

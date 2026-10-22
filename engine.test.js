@@ -341,7 +341,45 @@ test('不传手动参数时行为与自动选型一致', () => {
   assert.strictEqual(a.lens.model, b.lens.model);
 });
 
-console.log('\n[10] 边界');
+console.log('\n[10] 精度预算 / 安装空间 / 图示');
+test('精度预算：4 项误差 + RSS 合成 + 判定', () => {
+  const r = Engine.solve(base());
+  assert.ok(r.budget, '缺预算');
+  assert.ok(r.budget.items.length >= 4, '误差项不足');
+  const sq = Math.sqrt(r.budget.items.reduce((s, x) => s + x.mm * x.mm, 0));
+  assert.ok(Math.abs(sq - r.budget.total) < 1e-9, 'RSS 合成不一致');
+  assert.ok(r.budget.total > 0);
+  assert.strictEqual(r.budget.limit, 0.1 / 3);
+  assert.strictEqual(typeof r.budget.pass, 'boolean');
+});
+
+test('可用安装空间不足 → 告警；充足 → 不告警', () => {
+  const tight = Engine.solve(base({ space: 150 }));
+  assert.strictEqual(tight.space.pass, false);
+  assert.ok(tight.warnings.some((w) => /安装空间不足/.test(w.text)), '缺安装空间告警');
+  const loose = Engine.solve(base({ space: 1200 }));
+  assert.strictEqual(loose.space.pass, true);
+  assert.ok(!loose.warnings.some((w) => /安装空间不足/.test(w.text)));
+});
+
+test('未填可用空间时不判定，只给出总长', () => {
+  const r = Engine.solve(base());
+  assert.strictEqual(r.space.available, null);
+  assert.strictEqual(r.space.pass, null);
+  assert.ok(r.space.need > r.space.wd, '总长应大于 WD');
+});
+
+test('图示几何包含视场 / 景深 / 镜头与相机尺寸', () => {
+  const r = Engine.solve(base());
+  const g = r.geometry;
+  assert.ok(g, '缺 geometry');
+  assert.strictEqual(g.fovW, r.input.fovW);
+  assert.ok(g.dof > 0);
+  assert.ok(g.lensLen > 0 && g.camDepth > 0);
+  assert.ok(g.lightType);
+});
+
+console.log('\n[11] 边界');
 test('超出单相机能力 → feasible=false 并建议升级', () => {
   const r = Engine.solve(base({ fovW: 900, fovH: 700, precision: 0.01 }));
   assert.strictEqual(r.feasible, false);

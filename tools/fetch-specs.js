@@ -87,8 +87,10 @@ function parseCamera(m, it) {
     const v = parseFloat(s);
     return /ms/i.test(s) ? v * 1000 : /(sec|^s$)/i.test(s.replace(/^[\d.\s]+/, '')) ? v * 1e6 : v;
   });
+  const d = (String(m['外形尺寸'] || '').match(/[\d.]+/g) || []).slice(0, 3).map(Number);
   return {
     sensor: m['传感器型号'] || null,
+    dims: d.length === 3 ? d : null,
     dynamicRange: num(m['动态范围']),
     snr: num(m['信噪比']),
     exposureMinUs: expoNums.length ? Math.min.apply(null, expoNums) : null,
@@ -97,7 +99,8 @@ function parseCamera(m, it) {
     bitDepth: (String(m['像素格式'] || '').match(/(\d{1,2})\s*(?:bit|位)/i) || [])[1] * 1 || null,
     mount: m['镜头接口'] || null,
     power: num(m['典型功耗']),
-    weight: num(m['重量'])
+    weight: num(m['重量']),
+    dims: (String(m['外形尺寸'] || '').match(/[\d.]+/g) || []).slice(0, 3).map(Number)
   };
 }
 

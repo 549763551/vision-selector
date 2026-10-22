@@ -119,6 +119,7 @@
       heightDiff: num(i.heightDiff, 0),
       speed: num(i.speed, 0),
       cpm: num(i.cpm, 0),
+      space: num(i.space, 0),
       manualCamera: i.manualCamera || null,
       manualLens: i.manualLens || null,
       manualLight: i.manualLight || null
@@ -725,6 +726,103 @@
     };
   }
 
+  /* ============================ 精度预算 ============================ */
+
+  /**
+   * 实际可达精度 = RSS(像素量化, 亚像素, 畸变残差, 标定与装夹)
+   * 理论值只是"一个像素多大"，这里把工程误差也摊开。
+   */
+  function accuracyBudget(inp, lens, pxAcc, pxAccReq) {
+    var px = pxAcc;
+    var items = [];
+    items.push({ name: '像素量化', mm: px, note: '1 像素对应的实际尺寸' });
+    items.push({ name: '亚像素定位', mm: px * 0.3, note: '边缘/质心算法，按 0.3 像素估' });
+
+    var distMm;
+    if (lens.dist != null) {
+      distMm = (Math.abs(lens.dist) / 100) * (Math.max(inp.fovW, inp.fovH) / 2) * 0.2;
+      items.push({
+        name: '镜头畸变残差',
+        mm: distMm,
+        note: '光学畸变 ' + lens.dist + '%，标定后残差按 20% 估'
+      });
+    } else {
+      distMm = px * 0.5;
+      items.push({ name: '镜头畸变残差', mm: distMm, note: '无畸变数据，按 0.5 像素估' });
+    }
+    items.push({ name: '标定与装夹', mm: px * 0.5, note: '棋盘格标定 + 夹具重复性，按 0.5 像素估' });
+
+    var sq = 0;
+    for (var i = 0; i < items.length; i++) sq += items[i].mm * items[i].mm;
+    var total = Math.sqrt(sq);
+
+    return {
+      items: items,
+      total: total,
+      limit: pxAccReq,
+      ratio: total / pxAccReq,
+      pass: total <= pxAccReq
+    };
+  }
+
+  /* ============================ 安装空间 ============================ */
+
+  // 镜头长度手册未给，按系列取典型值（界面标注"估算"）
+  var LENS_LEN_EST = {
+    'M12 系列': 20,
+    'HF-E 系列': 45, 'HF-P 系列': 45,
+    'MF-E 系列': 50, 'MF-10MPE 系列': 50, 'MF-8MPS 系列': 50, 'MF 系列': 50,
+    'KF-E 系列': 55, 'KF-P 系列': 55, 'KF-P 抗振系列': 55, 'KF 系列': 55,
+    'AF 系列': 90, 'LF 系列': 120
+  };
+
+  function lensLength(lens) {
+    var base = LENS_LEN_EST[lens.series] || 50;
+    var adapter = (lens.mount === 'M42' || lens.mount === 'M58' || lens.mount === 'M72' || lens.mount === 'F') ? 12 : 0;
+    return base + adapter;
+  }
+
+  /** 工件表面 → 相机尾部 需要的总长度；可用空间为 0 时只展示不判定 */
+  function spaceCheck(inp, cam, lens) {
+    var lensLen = lensLength(lens);
+    var hasDims = cam.dims && cam.dims.length === 3;
+    var camDepth = hasDims ? cam.dims[2] : 45;
+    var cable = 25;
+    var need = inp.wd + lensLen + camDepth + cable;
+    return {
+      wd: inp.wd,
+      lensLen: lensLen,
+      camDepth: camDepth,
+      cable: cable,
+      need: need,
+      available: inp.space > 0 ? inp.space : null,
+      pass: inp.space > 0 ? need <= inp.space : null,
+      over: inp.space > 0 ? need - inp.space : null,
+      estimated: !hasDims
+    };
+  }
+
+  /* ============================ 图示几何 ============================ */
+
+  function buildGeometry(inp, cam, lens, light, dof, pxAcc) {
+    var angleByType = { bar_low: 15, ring_low: 15, ring_high: 60, ring: 45, coaxial: 0, backlight: 0, dome: 0 };
+    return {
+      fovW: inp.fovW,
+      fovH: inp.fovH,
+      wd: inp.wd,
+      dof: dof,
+      heightDiff: inp.heightDiff,
+      lensLen: lensLength(lens),
+      camDepth: cam.dims && cam.dims.length === 3 ? cam.dims[2] : 45,
+      sensorW: cam.sw,
+      sensorH: cam.sh,
+      mount: lens.mount,
+      lightType: light.type,
+      lightAngle: angleByType[light.type] == null ? 45 : angleByType[light.type],
+      pxAcc: pxAcc
+    };
+  }
+
   /* ============================ 主流程 ============================ */
 
   function solve(raw) {
@@ -865,6 +963,26 @@
     var airyUm = 2.44 * LAMBDA_UM * ap;
     var blurPx = airyUm / (pxSizeMM * 1000);
 
+    /* ---- 精度预算 / 安装空间 ---- */
+    var budget = accuracyBudget(inp, lens, pxAcc, pxAccReq);
+    var space = spaceCheck(inp, cam, lens);
+
+    if (space.pass === false) {
+      warnings.push({
+        level: 'warn',
+        text: '安装空间不足：需要约 ' + fmt(space.need) + ' mm（WD ' + fmt(space.wd) + ' + 镜头 ' +
+          space.lensLen + ' + 相机 ' + space.camDepth + ' + 线缆 ' + space.cable + '），可用只有 ' +
+          fmt(space.available) + ' mm，超出 ' + fmt(space.over) + ' mm。'
+      });
+    }
+    if (!budget.pass) {
+      warnings.push({
+        level: 'warn',
+        text: '精度预算合成 ±' + fmt(budget.total, 4) + ' mm，已超过要求的像素精度 ' +
+          fmt(budget.limit, 4) + ' mm（含畸变与标定误差），建议提高一档分辨率或加强标定。'
+      });
+    }
+
     /* ---- 风险提示 ---- */
     var margin = (pxAccReq - pxAcc) / pxAccReq;
     var fErr = Math.abs(lens.focal - pick.fReq) / pick.fReq;
@@ -949,6 +1067,7 @@
 
     // 同系列参数对比（换一档相机 / 换焦距 / 换光源尺寸时直接看）
     var siblings = buildSiblings(cam, lens, needW, needH, light);
+    var geometry = buildGeometry(inp, cam, lens, light, dof, pxAcc);
 
     /* ---- 匹配度 ---- */
     var score = 100;
@@ -1052,6 +1171,9 @@
       light: light,
       siblings: siblings,
       manual: manual,
+      budget: budget,
+      space: space,
+      geometry: geometry,
       lineScan: lineScan,
       telecentric: telecentric,
       calc: calc,
