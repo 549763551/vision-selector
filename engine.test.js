@@ -244,13 +244,22 @@ test('光源同系列：同子类同颜色，含当前 SKU', () => {
   });
 });
 
-test('同系列列表最多展示 12 条并给出总数', () => {
+test('同系列列表返回全部型号（不截断）', () => {
   const r = Engine.solve(base());
-  ['camera', 'lens', 'light'].forEach((k) => {
-    const s = r.siblings[k];
-    assert.ok(s.items.length <= 12, k + ' 展示 ' + s.items.length + ' 条');
-    assert.ok(s.total >= s.items.length, k + ' 总数异常');
-  });
+
+  const curCam = byModel(r.camera.model);
+  const wantCams = CAT.CAMERAS.filter(
+    (c) => c.series === curCam.series && c.iface === curCam.iface && c.color === curCam.color
+  ).length;
+  assert.strictEqual(r.siblings.camera.items.length, wantCams, '相机列表被截断');
+  assert.strictEqual(r.siblings.camera.total, wantCams);
+
+  const curLens = lensByModel(r.lens.model);
+  const wantLens = CAT.LENSES.filter((l) => l.series === curLens.series && l.mount === curLens.mount).length;
+  assert.strictEqual(r.siblings.lens.items.length, wantLens, '镜头列表被截断');
+
+  assert.ok(r.siblings.light.items.length >= 1, '光源列表为空');
+  assert.strictEqual(r.siblings.light.items.length, r.siblings.light.total);
 });
 
 console.log('\n[8] P0 完善项');

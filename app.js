@@ -271,10 +271,10 @@
         '</tr>';
     }).join('');
 
-    function blk(title, cnt, omitted, inner) {
+    function blk(title, cnt, inner) {
       return '<div class="sib-block"><h4>' + esc(title) +
-        '<span class="cnt">共 ' + cnt + ' 个' + (omitted ? '，显示邻近 ' + (cnt - omitted) + ' 个' : '') + '</span>' +
-        '</h4>' + inner + '</div>';
+        '<span class="cnt">共 ' + cnt + ' 个</span>' +
+        '</h4><div class="sib-scroll">' + inner + '</div></div>';
     }
 
     // 手动指定状态条
@@ -293,16 +293,26 @@
     return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">点型号即可手动指定</span></h2>' +
       bar +
       '<div class="sib-grid">' +
-        blk('相机　' + s.camera.label, s.camera.total, s.camera.omitted,
+        blk('相机　' + s.camera.label, s.camera.total,
           table([{ t: '型号' }, { t: '像素' }, { t: '分辨率' }, { t: '帧率' }, { t: '够用?', align: 'center' }], camRows)) +
-        blk('镜头　' + s.lens.label, s.lens.total, s.lens.omitted,
+        blk('镜头　' + s.lens.label, s.lens.total,
           table([{ t: '型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensRows)) +
-        blk('光源　' + s.light.label, s.light.total, s.light.omitted,
+        blk('光源　' + s.light.label, s.light.total,
           table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
       '</div>' +
       '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽。' +
-      '手动指定后若精度或视场不达标，风险区会给出提示。</div>' +
+      '型号已全部列出，表内可滚动浏览；手动指定后若精度或视场不达标，风险区会给出提示。</div>' +
       '</div>';
+  }
+
+  /** 把每个列表滚动到当前型号附近 */
+  function scrollSiblingsToCurrent() {
+    Array.prototype.forEach.call(document.querySelectorAll('#siblings .sib-scroll'), function (box) {
+      var cur = box.querySelector('tr.cur');
+      if (!cur) return;
+      var top = cur.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+      box.scrollTop = Math.max(0, top - box.clientHeight / 2 + cur.offsetHeight / 2);
+    });
   }
 
   /* ---------------- 渲染 ---------------- */
@@ -338,6 +348,7 @@
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
     $('suggest').innerHTML = suggestCard(r);
     $('siblings').innerHTML = siblingCard(r);
+    scrollSiblingsToCurrent();
 
     $('catalogNote').innerHTML =
       '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +

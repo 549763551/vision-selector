@@ -654,23 +654,13 @@
 
   /* ============================ 同系列参数对比 ============================ */
 
-  /** 长列表只保留当前型号附近的 max 条，避免页面被撑爆 */
-  function windowAround(items, curIndex, max) {
-    if (items.length <= max) return { items: items, omitted: 0 };
-    var half = Math.floor(max / 2);
-    var start = Math.max(0, Math.min(curIndex - half, items.length - max));
-    return { items: items.slice(start, start + max), omitted: items.length - max };
-  }
-
   function buildSiblings(cam, lens, needW, needH, light) {
     // 相机：同系列 + 同接口 + 同黑白彩色
     var camAll = CAT.CAMERAS.filter(function (c) {
       return c.series === cam.series && c.iface === cam.iface && c.color === cam.color;
     }).sort(function (a, b) { return a.w * a.h - b.w * b.h; });
 
-    var camIdx = 0;
-    var camItems = camAll.map(function (c, i) {
-      if (c.model === cam.model) camIdx = i;
+    var camItems = camAll.map(function (c) {
       return {
         model: c.model,
         w: c.w,
@@ -684,16 +674,13 @@
         meets: c.w >= needW && c.h >= needH
       };
     });
-    var camWin = windowAround(camItems, camIdx, 12);
 
     // 镜头：同系列 + 同卡口，按焦距排序
     var lensAll = CAT.LENSES.filter(function (l) {
       return l.series === lens.series && l.mount === lens.mount;
     }).sort(function (a, b) { return a.focal - b.focal; });
 
-    var lensIdx = 0;
-    var lensItems = lensAll.map(function (l, i) {
-      if (l.model === lens.model) lensIdx = i;
+    var lensItems = lensAll.map(function (l) {
       return {
         model: l.model,
         focal: l.focal,
@@ -705,7 +692,6 @@
         cur: l.model === lens.model
       };
     });
-    var lensWin = windowAround(lensItems, lensIdx, 12);
 
     // 光源：同子类 + 同颜色，按尺寸排序
     var ltype = LIGHT_TYPE_MAP[light.type] || 'ring';
@@ -716,31 +702,25 @@
       return (a.size[0] || 0) - (b.size[0] || 0) || (a.size[1] || 0) - (b.size[1] || 0);
     });
 
-    var lightIdx = 0;
-    var lightItems = lightAll.map(function (x, i) {
-      if (x.model === light.sku) lightIdx = i;
+    var lightItems = lightAll.map(function (x) {
       return { model: x.model, size: x.size, cur: x.model === light.sku };
     });
-    var lightWin = windowAround(lightItems, lightIdx, 12);
 
     return {
       camera: {
         label: cam.series + '　' + cam.iface + ' · ' + cam.color,
-        items: camWin.items,
-        total: camItems.length,
-        omitted: camWin.omitted
+        items: camItems,
+        total: camItems.length
       },
       lens: {
         label: lens.series + '　' + lens.mount + ' 口',
-        items: lensWin.items,
-        total: lensItems.length,
-        omitted: lensWin.omitted
+        items: lensItems,
+        total: lensItems.length
       },
       light: {
         label: LIGHT_TYPE_LABEL[ltype] || ltype,
-        items: lightWin.items,
-        total: lightItems.length,
-        omitted: lightWin.omitted
+        items: lightItems,
+        total: lightItems.length
       }
     };
   }
