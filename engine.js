@@ -777,6 +777,7 @@
   };
 
   function lensLength(lens) {
+    if (lens.len) return lens.len;              // 手册外形尺寸图的真实总长
     var base = LENS_LEN_EST[lens.series] || 50;
     var adapter = (lens.mount === 'M42' || lens.mount === 'M58' || lens.mount === 'M72' || lens.mount === 'F') ? 12 : 0;
     return base + adapter;
@@ -798,6 +799,7 @@
       available: inp.space > 0 ? inp.space : null,
       pass: inp.space > 0 ? need <= inp.space : null,
       over: inp.space > 0 ? need - inp.space : null,
+      lensLenReal: !!lens.len,
       estimated: !hasDims
     };
   }
@@ -1165,6 +1167,8 @@
         aperture: ap,
         dof: dof,
         mount: lens.mount === 'C' ? 'C' : lens.mount,
+        len: lens.len || null,
+        lenEst: lens.len ? null : lensLength(lens),
         blurPx: blurPx
       },
       exposure: { tMaxMs: tMaxMs },

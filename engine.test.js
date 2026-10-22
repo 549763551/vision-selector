@@ -369,6 +369,19 @@ test('未填可用空间时不判定，只给出总长', () => {
   assert.ok(r.space.need > r.space.wd, '总长应大于 WD');
 });
 
+test('手册尺寸图长度：型号库带真实总长，且用于安装空间', () => {
+  const withLen = CAT.LENSES.filter((l) => l.len);
+  assert.ok(withLen.length >= 20, '真实长度型号太少: ' + withLen.length);
+  const sample = CAT.LENSES.find((l) => l.model === 'MVL-HF0628M-6MPE');
+  assert.ok(sample && sample.len > 20 && sample.len < 80, 'HF-E 6mm 长度异常');
+
+  const r = Engine.solve(base());
+  if (r.lens.len) {
+    assert.strictEqual(r.space.lensLen, r.lens.len, '安装空间未使用真实长度');
+    assert.strictEqual(r.space.lensLenReal, true);
+  }
+});
+
 test('图示几何包含视场 / 景深 / 镜头与相机尺寸', () => {
   const r = Engine.solve(base());
   const g = r.geometry;

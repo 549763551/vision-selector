@@ -16,6 +16,7 @@ const textPath = process.argv[2];
 const refPath = process.argv[3];
 const lightPath = process.argv[4];
 const specPath = process.argv[5];
+const lenPath = process.argv[6];
 if (!textPath) {
   console.error('用法: node tools/parse-catalog.js <stdraw.txt> <webref.json> <lights.json> <specs.json>');
   process.exit(1);
@@ -24,6 +25,7 @@ if (!textPath) {
 const lines = fs.readFileSync(textPath, 'utf8').split(/\r?\n/).map((s) => s.trim());
 const webRef = refPath && fs.existsSync(refPath) ? JSON.parse(fs.readFileSync(refPath, 'utf8')) : {};
 const LIGHTS_RAW = lightPath && fs.existsSync(lightPath) ? JSON.parse(fs.readFileSync(lightPath, 'utf8')) : [];
+const LENS_LEN = lenPath && fs.existsSync(lenPath) ? JSON.parse(fs.readFileSync(lenPath, 'utf8')) : {};
 const SPECS = specPath && fs.existsSync(specPath)
   ? JSON.parse(fs.readFileSync(specPath, 'utf8'))
   : { cameras: {}, linescan: {}, lights: {}, controllers: {} };
@@ -299,8 +301,10 @@ for (const l of lines) {
 
   const ic = ang ? +(2 * focal * Math.tan((+ang[1] * Math.PI) / 360)).toFixed(2) : null;
 
+  const letterM = l.trim().match(/([A-H])$/);
   lenses.push({
     model: m[1],
+    letter: letterM ? letterM[1] : null,
     focal,
     fmin: +m[3],
     fmax: m[4] ? +m[4] : null,
@@ -324,8 +328,10 @@ for (const l of lines) {
   const ang = rest.match(/([\d.]+)°\s+([\d.]+)°\s+([\d.]+)°/);
   const focal = +m[2];
   const ic = ang ? +(2 * focal * Math.tan((+ang[1] * Math.PI) / 360)).toFixed(2) : null;
+  const letterM2 = l.trim().match(/([A-H])$/);
   lenses.push({
     model: m[1],
+    letter: letterM2 ? letterM2[1] : null,
     focal,
     fmin: +m[3],
     fmax: m[4] ? +m[4] : null,
@@ -372,6 +378,13 @@ const LIGHTS = LIGHTS_RAW.map((x) => ({
   size: x.size,
   name: x.name
 }));
+
+/* ============================== 合并手册尺寸图长度 ============================== */
+
+for (const l of lenses) {
+  const tbl = LENS_LEN[l.series];
+  if (tbl && l.letter && tbl[l.letter] != null) l.len = tbl[l.letter];
+}
 
 /* ============================== 合并官网详细参数 ============================== */
 

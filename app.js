@@ -179,6 +179,7 @@
       kv('景深', esc(num(l.dof, 2)) + ' mm') +
       kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
       kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
+      kv('镜头总长', esc(l.len ? l.len + ' mm（手册图）' : (l.lenEst ? '≈' + l.lenEst + ' mm' : '—'))) +
       kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
       '</div>';
   }
@@ -405,7 +406,8 @@
       '</div>' +
       '<div class="sib-note">相机厚度取自官方外形尺寸' +
       (sp.estimated ? '（该型号缺尺寸，按 45 mm 估）' : '') +
-      '；镜头长度按系列典型值估算；线缆与接插件预留 25 mm。</div>';
+      '；镜头长度' + (sp.lensLenReal ? '取自手册外形尺寸图' : '按系列典型值估算') +
+      '；线缆与接插件预留 25 mm。</div>';
 
     return s.join('') + spaceLine;
   }
