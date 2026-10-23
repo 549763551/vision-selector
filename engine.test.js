@@ -952,6 +952,19 @@ test('手动指定光源后按手动型号重新算备选', () => {
   assert.ok(r.lightAlternates.every((a) => a.model !== manualModel), '备选不含当前手动型号');
 });
 
+test('手动指定别族光源时，同系列表按实际型号分族并标出备选', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  // 默认推荐条形光（bar_low），手动改成环形光 → 面板应切到环形光源同族
+  const r = E3.solve(Object.assign(base(), { manualLight: 'PFM-HX10090CO40W' }));
+  assert.strictEqual(r.manual.light, true);
+  assert.strictEqual(r.siblings.light.label, '环形光源', '面板应按手动型号的子类分族，实际 ' + r.siblings.light.label);
+  const curRow = r.siblings.light.items.find((x) => x.cur);
+  assert.ok(curRow && curRow.model === 'PFM-HX10090CO40W', '当前型号应出现在表内');
+  assert.ok(r.warnings.some((w) => /照明方式与推荐不同/.test(w.text)), '应提示照明方式与推荐不同');
+  assert.ok(r.siblings.light.items.filter((x) => x.alt && !x.cur).length >= 1, '表内应有备选灯具');
+});
+
 console.log('\n' + '='.repeat(52));
 console.log(pass + ' 通过, ' + fail + ' 失败');
 if (fail > 0) {

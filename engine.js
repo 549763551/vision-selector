@@ -305,6 +305,7 @@
     light.skuNote = obj.note || '';
     light.skuSize = obj.size;
     light.skuColor = obj.color;
+    light.skuType = obj.type || null;          // 手动指定时可能与推荐照明方式不同，面板按实际型号分族
     light.power = obj.power == null ? null : obj.power;
     light.skuAlts = obj.alts || [];
     light.count = light.type === 'bar_low' ? 2 : 1;
@@ -613,6 +614,26 @@
     point: '点光源', flat_shadowless: '平面无影光源'
   };
 
+  /**
+   * 光源「同族」：同一照明方式下的细分子类（平行面光 / 中孔面光 / 高亮线光…）
+   * 在选型与备选里应互相可见，否则「海康平行背光」永远找不到「华睿普通背光」，
+   * 多品牌库就白并了。同族之间尺寸够用即可替换，只是光学特性有优劣，故排序时同子类优先。
+   */
+  var LIGHT_TYPE_FAMILY = {
+    ring: 'ring', ring_dome: 'ring',
+    bar: 'bar', bar_array: 'bar',
+    backlight: 'backlight', backlight_parallel: 'backlight',
+    backlight_hole: 'backlight', backlight_side: 'backlight',
+    dome: 'dome', flat_shadowless: 'dome',
+    line: 'line', line_high: 'line', line_focus: 'line', line_coax: 'line',
+    coaxial: 'coaxial', point: 'point'
+  };
+
+  function sameLightFamily(a, b) {
+    if (!a || !b) return false;
+    return (LIGHT_TYPE_FAMILY[a] || a) === (LIGHT_TYPE_FAMILY[b] || b);
+  }
+
   function lightSizeNeed(inp, type) {
     var longSide = Math.max(inp.fovW, inp.fovH);
     if (type === 'bar_low') return { d: Math.ceil(inp.fovW * 1.15), axis: 'length' };
@@ -637,23 +658,44 @@
       }
       return (x.size[0] || 0) / need.d;
     }
+    // 当前型号自身尺寸：备选要「同一档规格」，而不是「刚好够用的最小型号」。
+    // 当前型号常远大于视野所需（如 20×15 视野配 120×120 背光），
+    // 若只按 metric 衡量会把 100×100 判成超配砍掉，只留下 27×27 这种不像替换件的规格。
+    var cur = null;
+    for (var ci = 0; ci < list.length; ci++) {
+      if (list[ci].model === curModel && (list[ci].brand || '') === (curBrand || '')) { cur = list[ci]; break; }
+    }
+    function ratio(x) {
+      if (!cur || !cur.size || !cur.size.length) return 1;
+      if (need.axis === 'area') {
+        var ax = (x.size[0] || 0) * (x.size[1] || 0);
+        var bx = (cur.size[0] || 0) * (cur.size[1] || 0);
+        return bx ? ax / bx : 1;
+      }
+      return (cur.size[0] || 0) ? (x.size[0] || 0) / cur.size[0] : 1;
+    }
     var seen = {};
     var pool = list.filter(function (x) {
-      if (x.type !== ltype || x.color !== lcolor) return false;
+      if (!sameLightFamily(x.type, ltype) || x.color !== lcolor) return false;
       if (x.model === curModel && (x.brand || '') === (curBrand || '')) return false;
       if (metric(x) < 1) return false;                 // 备选也必须放得下视野
+      if (ratio(x) < 0.65) return false;               // 明显偏小，照不满视野
       var k = (x.brand || '') + '::' + x.model;
       if (seen[k]) return false;
       seen[k] = 1;
       return true;
     });
     if (!pool.length) return [];
-    // 先按「刚好够用」排序；同尺寸档位下按品牌名稳定排序
+    // 同子类优先（平行背光 > 中孔背光…），再按与当前规格最接近排序
     pool.sort(function (a, b) {
-      return metric(a) - metric(b) || (a.brand || '').localeCompare(b.brand || '');
+      var ta = a.type === ltype ? 0 : 1, tb = b.type === ltype ? 0 : 1;
+      if (ta !== tb) return ta - tb;
+      var da = Math.abs(ratio(a) - 1), db = Math.abs(ratio(b) - 1);
+      if (Math.abs(da - db) > 1e-9) return da - db;
+      return (a.brand || '').localeCompare(b.brand || '');
     });
-    // 尺寸超配 2.5 倍以上的只作兜底，避免「50 mm 视野推荐 642 mm 灯管」
-    var tight = pool.filter(function (x) { return metric(x) <= 2.5; });
+    // 规格超配 3 倍以上的只作兜底，避免「50 mm 视野推荐 642 mm 灯管」
+    var tight = pool.filter(function (x) { return ratio(x) <= 3; });
     if (!tight.length) tight = pool.slice(0, 6);
     // 品牌铺开：其他品牌各取最接近的一支 → 不足再补当前品牌的相邻档位
     var others = tight.filter(function (x) { return (x.brand || '') !== (curBrand || ''); });
@@ -670,7 +712,7 @@
     });
     return res.slice(0, cap).map(function (x) {
       return {
-        model: x.model, brand: x.brand || null, size: x.size,
+        model: x.model, brand: x.brand || null, size: x.size, type: x.type,
         power: x.power == null ? null : x.power, color: x.color
       };
     });
@@ -691,11 +733,18 @@
       if (cands.length) note = '标准系列无' + light.colorName + '，先按白光选型；特定波长建议非标定制或咨询厂商';
     }
     if (!cands.length) {
-      // 背光平行系列没有对应尺寸时退回普通面光
-      if (want === 'backlight_parallel') {
-        cands = list.filter(function (x) { return x.type === 'backlight' && (x.color === color || x.color === 'white'); });
-        if (cands.length) note = note || '平行面光无对应规格，退回普通面光源';
+      // 同族但细分不同：平行面光 ↔ 普通/中孔面光，高亮线光 ↔ 普通线光…
+      // 多品牌合并后各家子类划分不一致，这一步保证「有货就能选到」。
+      cands = list.filter(function (x) { return sameLightFamily(x.type, want) && x.color === color; });
+      if (cands.length) {
+        note = (want === 'backlight_parallel')
+          ? '平行面光无对应规格，退回普通面光源'
+          : '同系列无对应细分规格，改用同族「' + (LIGHT_TYPE_LABEL[cands[0].type] || cands[0].type) + '」';
       }
+    }
+    if (!cands.length) {
+      cands = list.filter(function (x) { return sameLightFamily(x.type, want) && x.color === 'white'; });
+      if (cands.length) note = '标准系列无' + light.colorName + '，先按白光选型；特定波长建议非标定制或咨询厂商';
     }
     if (!cands.length) return null;
 
@@ -982,19 +1031,27 @@
       };
     });
 
-    // 光源：同子类 + 同颜色，按尺寸排序
-    var ltype = LIGHT_TYPE_MAP[light.type] || 'ring';
+    // 光源：同族（含各品牌细分子类）+ 同颜色；当前型号置顶 → 同子类 → 小尺寸
+    var recType = LIGHT_TYPE_MAP[light.type] || 'ring';
+    var ltype = light.skuType || recType;   // 手动指定了别的照明方式时，按实际型号所在的子类列同族
     var lcolor = light.skuColor || light.color;
+    function isCur(x) {
+      return x.model === light.sku && (!light.skuBrand || (x.brand || '') === light.skuBrand);
+    }
     var lightAll = ((CAT && CAT.LIGHTS) || []).filter(function (x) {
-      return x.type === ltype && x.color === lcolor;
+      return sameLightFamily(x.type, ltype) && x.color === lcolor;
     }).sort(function (a, b) {
+      var ca = isCur(a) ? 0 : 1, cb = isCur(b) ? 0 : 1;
+      if (ca !== cb) return ca - cb;
+      var ta = a.type === ltype ? 0 : 1, tb = b.type === ltype ? 0 : 1;
+      if (ta !== tb) return ta - tb;
       return (a.size[0] || 0) - (b.size[0] || 0) || (a.size[1] || 0) - (b.size[1] || 0);
     });
 
     var lightItems = lightAll.map(function (x) {
       return {
-        model: x.model, size: x.size, power: x.power, brand: x.brand || null,
-        cur: x.model === light.sku && (!light.skuBrand || (x.brand || '') === light.skuBrand),
+        model: x.model, size: x.size, power: x.power, brand: x.brand || null, type: x.type,
+        cur: isCur(x),
         alt: !!(altLightKeys && altLightKeys[(x.brand || '') + '::' + x.model])
       };
     });
@@ -1422,6 +1479,13 @@
           warnings.push({
             level: 'info',
             text: '手动选择的光源颜色与推荐不一致（推荐' + light.colorName + '），请确认打光效果。'
+          });
+        }
+        if (!sameLightFamily(ml3.type, LIGHT_TYPE_MAP[light.type] || 'ring')) {
+          warnings.push({
+            level: 'info',
+            text: '手动选择的光源照明方式与推荐不同（推荐' + light.label + '），下方同系列表已按实际型号的「' +
+              (LIGHT_TYPE_LABEL[ml3.type] || ml3.type) + '」同族列出，请确认打光效果。'
           });
         }
       }
