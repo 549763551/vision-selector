@@ -51,6 +51,23 @@
   .brand-logo { display: block; height: 19px; width: auto; }
   .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
   .brand p { margin: 4px 0 0; font-size: 12.5px; color: #93a4bd; }
+  .brand-filter { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .brand-filter + .brand-filter { margin-left: 0; }
+  .brand-filter .bf-label { font-size: 12px; color: #7d8ca5; margin-right: 2px; }
+  .bf-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit; font-size: 12px; cursor: pointer;
+    padding: 5px 11px; border-radius: 999px;
+    background: rgba(255, 255, 255, .07); color: #d7e3f4;
+    border: 1px solid rgba(255, 255, 255, .16); transition: .15s;
+  }
+  .bf-chip .bf-logo { height: calc(14px * var(--logo-scale, 1)); width: auto; display: block; border-radius: 3px; flex: 0 0 auto; }
+  .bf-chip.on { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .bf-chip.off { opacity: .5; }
+  .bf-chip:hover { background: rgba(56, 189, 248, .30); border-color: rgba(56, 189, 248, .5); color: #fff; }
+  .card-brand-logo { height: calc(15px * var(--logo-scale, 1)); width: auto; margin-left: 8px; vertical-align: -2px; border-radius: 3px; flex: 0 0 auto; }
+  .bf-mini { font-size: 9px; margin-right: 3px; }
+  .bf-mini-name { display: inline-block; font-size: 9px; line-height: 1.4; color: #475569; margin-right: 4px; padding: 0 4px; border: 1px solid #e2e8f0; border-radius: 3px; background: #f8fafc; vertical-align: 1px; }
   .presets { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .presets > span { font-size: 12px; color: #7d8ca5; margin-right: 2px; }
   .presets button {
@@ -79,7 +96,7 @@
   .layout-wide.duo > .card { display: flex; flex-direction: column; }
   .layout-wide.duo > .card .actions { margin-top: auto; }
   #sibCol .card { margin-top: 0; }
-  #suggestWrap .card { margin-top: 0; }
+  #suggest .card { margin-top: 14px; }
   .sib-scroll {
     max-height: 300px; overflow: auto;
     border: 1px solid #eef2f7; border-radius: 9px;
@@ -261,6 +278,9 @@
   .ok-mark { color: #16a34a; font-weight: 700; }
   .bad-mark { color: #cbd5e1; }
   .sib-note { margin-top: 10px; font-size: 11px; color: #94a3b8; line-height: 1.7; }
+  .sib-sub { margin-top: 9px; border-top: 1px dashed #eef2f7; padding-top: 7px; }
+  .sib-sub-h { font-size: 11px; color: #475569; font-weight: 600; margin-bottom: 4px; }
+  .bf-mini-brand { font-size: 9px; color: #94a3b8; margin-left: 2px; }
   table.mini tbody tr[data-kind] { cursor: pointer; }
   table.mini tbody tr[data-kind]:hover td { background: #f2f8ff; }
   .sib-manual {
@@ -354,12 +374,13 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <span class="brand-chip"><img class="brand-logo" src="assets/hikrobot-logo.png" alt="HIKROBOT" /></span>
       <div>
         <h1>机器视觉智能选型助手</h1>
-        <p>型号库：海康机器人 HIKROBOT　·　输入检测需求 → 自动推导相机 / 镜头 / 光源方案</p>
+        <p>多品牌型号库　·　输入检测需求 → 自动推导相机 / 镜头 / 光源方案</p>
       </div>
     </div>
+    <div class="brand-filter" id="brandFilter"><span class="bf-label">相机品牌</span></div>
+    <div class="brand-filter" id="lensFilter"><span class="bf-label">镜头品牌</span></div>
     <div class="presets">
       <span>快速试用</span>
       <button data-preset="copper">铜线检测</button>
@@ -440,6 +461,13 @@
       <input type="number" id="space" min="0" step="10" value="0" title="工件表面到相机尾部的最大可用长度 mm" />
     </div>
 
+    <div class="field">
+      <label>优先线扫方案 <em>大幅面/高速场景</em></label>
+      <label class="check"><input type="checkbox" id="lineScanFirst" />
+        <span>勾选后同时给出线阵相机方案（适用于超长幅面、高速连续检测）</span>
+      </label>
+    </div>
+
     </div>
   </section>
 </div>
@@ -465,14 +493,12 @@
     </div>
 
     <div class="cards" id="cards"></div>
+
+    <!-- 扩展建议：紧随方案卡下方，不再独占一行 -->
+    <div id="suggest"></div>
   </section>
 
 </main>
-
-<!-- 扩展建议：独占一行 -->
-<div class="layout-wide" id="suggestWrap">
-  <div id="suggest"></div>
-</div>
 
 <!-- 精度预算 + 光路与安装示意：同一行 -->
 <div class="layout-wide duo">
@@ -515,7 +541,12 @@
   <div class="catalog-note" id="catalogNote"></div>
 </div>
 
+<script src="brands.js"></script>
 <script src="hikrobot-catalog.js"></script>
+<script src="huarui-catalog.js"></script>
+<script src="basler-catalog.js"></script>
+<script src="daheng-catalog.js"></script>
+<!-- 接入新品牌时，在此处追加其 catalog 脚本，并在 brands.js 注册即可 -->
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

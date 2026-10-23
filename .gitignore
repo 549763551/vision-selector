@@ -5,3 +5,13 @@ desktop.ini
 *.log
 *.tmp
 *.local
+
+# 手册原件与解析中间产物
+manuals/
+tools/_cache/
+
+# 项目数据（本地记忆/日志，不入库）
+.workbuddy/
+
+# 微信小程序子项目（独立仓库，不随主仓库发布）
+小程序项目/

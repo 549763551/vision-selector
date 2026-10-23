@@ -2,9 +2,116 @@
 (function () {
   'use strict';
 
-  var E = window.VisionEngine;
-  var CAT = window.HikrobotCatalog;
+  var BRANDS = window.BRANDS || {};
   var $ = function (id) { return document.getElementById(id); };
+
+  // 已加载且默认启用的品牌（脚本引入即视为可用）
+  var activeBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).slice();
+  // 镜头品牌：与相机分开筛选（仅纳入已入库镜头的品牌，初始全选）
+  var activeLensBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).filter(function (k) {
+    var C = window[BRANDS[k].global];
+    return C && (C.LENSES || []).length > 0;
+  });
+  if (!activeLensBrands.length) activeLensBrands = ['hikrobot'];
+
+  function brandMeta(b) {
+    if (!b) return null;
+    var ks = Object.keys(BRANDS);
+    for (var i = 0; i < ks.length; i++) {
+      var m = BRANDS[ks[i]];
+      if (!m) continue;
+      if (m.name === b || m.short === b || (m.short && b.indexOf(m.short) >= 0)) return m;
+    }
+    return null;
+  }
+
+  // 品牌小徽标：色点 + 简称文字（用于同系列/跨品牌表格行）
+  function brandMiniHtml(b) {
+    var m = brandMeta(b);
+    if (!m) return '';
+    return '<span class="bf-mini" style="color:' + esc(m.color) + '" title="' + esc(m.name) + '">●</span>' +
+      '<span class="bf-mini-name" title="' + esc(m.name) + '">' + esc(m.short) + '</span>';
+  }
+
+  // 把多个品牌型号库拼成一个目录：相机按「相机品牌」筛选，镜头按「镜头品牌」筛选，
+  // 其余类目（光源/线扫/远心/控制器）始终合并（当前仅海康提供，无筛选需求）
+  function buildMergedCatalog() {
+    var cam = [], linescan = [], lenses = [], tele = [], lights = [], ctrls = [];
+    (window.availableBrands ? window.availableBrands() : []).forEach(function (key) {
+      var C = window[BRANDS[key].global];
+      if (!C) return;
+      // 相机：仅纳入“已启用”品牌；镜头：仅纳入“已启用镜头品牌”
+      var camSrc = (activeBrands.indexOf(key) >= 0) ? (C.CAMERAS || []) : [];
+      camSrc.forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; cam.push(x); });
+      if (activeLensBrands.indexOf(key) >= 0) {
+        (C.LENSES || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lenses.push(x); });
+      }
+      (C.LINESCAN || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; linescan.push(x); });
+      (C.LIGHTS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lights.push(x); });
+      tele = tele.concat(C.TELECENTRIC || []);
+      (C.CONTROLLERS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; ctrls.push(x); });
+    });
+    return {
+      META: { source: '多品牌合并目录', brand: '多品牌', generated: '', cameras: cam.length },
+      CAMERAS: cam, LINESCAN: linescan, LENSES: lenses,
+      TELECENTRIC: tele, LIGHTS: lights, CONTROLLERS: ctrls
+    };
+  }
+
+  var CAT = buildMergedCatalog();
+  var E = (window.VisionEngineFactory || window.VisionEngine)(CAT);
+
+  function rebuildEngine() {
+    CAT = buildMergedCatalog();
+    E = (window.VisionEngineFactory || window.VisionEngine)(CAT);
+    render();
+  }
+
+  /* ---------------- 顶栏品牌筛选（相机 / 镜头分开） ---------------- */
+  function renderFilterBox(boxId, keys, active, label) {
+    var box = $(boxId);
+    if (!box) return;
+    var html = '<span class="bf-label">' + esc(label) + '</span>';
+    keys.forEach(function (k) {
+      var m = BRANDS[k];
+      if (!m) return;
+      var on = active.indexOf(k) >= 0;
+      html += '<button type="button" class="bf-chip ' + (on ? 'on' : 'off') + '" data-brand="' + esc(k) + '"' +
+        ' title="' + esc(m.name) + '：' + (on ? '已纳入，点击排除' : '已排除，点击纳入') + '">' +
+        '<img class="bf-logo" src="' + esc(m.logo) + '" alt="' + esc(m.short) + '" style="--logo-scale:' + (m.logoScale || 1) + '" />' + esc(m.short) +
+        '</button>';
+    });
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll('.bf-chip'), function (chip) {
+      chip.addEventListener('click', function () {
+        var k = chip.getAttribute('data-brand');
+        var idx = active.indexOf(k);
+        if (idx >= 0) {
+          if (active.length > 1) active.splice(idx, 1);
+        } else {
+          active.push(k);
+        }
+        renderFilterBox(boxId, keys, active, label);
+        rebuildEngine();
+      });
+    });
+  }
+
+  // 有镜头入库的品牌才出现在镜头筛选条
+  function lensBrandKeys() {
+    return (window.availableBrands ? window.availableBrands() : []).filter(function (k) {
+      var C = window[BRANDS[k].global];
+      return C && (C.LENSES || []).length > 0;
+    });
+  }
+
+  function renderBrandFilter() {
+    renderFilterBox('brandFilter', window.availableBrands ? window.availableBrands() : [], activeBrands, '相机品牌');
+  }
+
+  function renderLensFilter() {
+    renderFilterBox('lensFilter', lensBrandKeys(), activeLensBrands, '镜头品牌');
+  }
 
   /* ---------------- 预设场景 ---------------- */
   var PRESETS = {
@@ -19,7 +126,7 @@
   var DEFAULT = {
     fovW: 50, fovH: 40, precision: 0.1, task: 'defect', wd: 300,
     material: 'metal_shiny', colorTarget: 'none', needColor: false,
-    heightDiff: 1, speed: 0, cpm: 0, space: 0
+    heightDiff: 1, speed: 0, cpm: 0, space: 0, lineScanFirst: false
   };
 
   var SWATCH = {
@@ -104,6 +211,7 @@
       speed: readNum('speed'),
       cpm: readNum('cpm'),
       space: readNum('space'),
+      lineScanFirst: $('lineScanFirst').checked,
       manualCamera: manual.camera,
       manualLens: manual.lens,
       manualLight: manual.light
@@ -126,6 +234,7 @@
     $('speed').value = st.speed;
     $('cpm').value = st.cpm;
     $('space').value = st.space == null ? 0 : st.space;
+    $('lineScanFirst').checked = !!st.lineScanFirst;
     render();
   }
 
@@ -141,14 +250,25 @@
     return one(a) + ' ~ ' + one(b);
   }
 
+  // 靶面对角线英寸数：优先用型号库标注；缺失时由 sw/sh 推导（标注“约/估算”）
+  function sensorSizeTxt(c) {
+    if (c.size) return esc(c.size);
+    if (!(c.sw > 0 && c.sh > 0)) return '';
+    var inch = Math.sqrt(c.sw * c.sw + c.sh * c.sh) / 25.4;
+    return '<span title="型录未标注靶面，由 ' + c.sw + '×' + c.sh + ' mm 对角线推导">约 ' + num(inch, 2) + '"（估算）</span>';
+  }
+
   function camCard(r) {
     var c = r.camera;
+    var bmeta = brandMeta(c.brand);
+    var blogo = bmeta ? '<img class="card-brand-logo" src="' + esc(bmeta.logo) + '" alt="' + esc(bmeta.short) + '" style="--logo-scale:' + (bmeta.logoScale || 1) + '" />' : '';
     return '<div class="card cam">' +
-      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3><span class="tag">' + esc(c.color) + '</span></div>' +
+      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span></div>' +
       '<div class="hero">' + esc(c.model) + '</div>' +
-      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px　·　HIKROBOT</div>' +
-      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size ? '（' + esc(c.size) + '）' : '')) +
+      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px　·　' + esc(c.brand || '—') + '</div>' +
+      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size || (c.sw > 0 && c.sh > 0) ? '（' + sensorSizeTxt(c) + '）' : '')) +
       kv('像元尺寸', esc(c.pxUm) + ' µm') +
+      kv('传感器型号', esc(c.sensor || '—')) +
       kv('数据接口', esc(c.interface)) +
       kv('快门类型', esc(c.shutter)) +
       kv('动态范围', esc(c.dr == null ? '—' : c.dr + ' dB')) +
@@ -166,31 +286,50 @@
 
   function lensCard(r) {
     var l = r.lens;
+    var lmeta = brandMeta(l.brand);
+    var llogo = lmeta ? '<img class="card-brand-logo" src="' + esc(lmeta.logo) + '" alt="' + esc(lmeta.short) + '" style="--logo-scale:' + (lmeta.logoScale || 1) + '" />' : '';
     var icTxt = (l.ic == null ? '大靶面' : l.ic + ' mm') + (l.mp ? '　' + l.mp + 'MP' : '');
+    // 转接环：大口径相机经转接环配 C 口镜头
+    var camMount = r.camera ? r.camera.mount : '';
+    var adapterTxt = l.adapter
+      ? '<span class="tag" style="background:#fef3c7;color:#92400e" title="大口径相机经转接环安装 C 口镜头，接环约 12 mm 已计入安装空间">需 ' +
+        esc(camMount + '→' + l.mount) + ' 转接环</span>'
+      : '';
+    // 满足景深的最大光圈：F 数字越小进光量越大；apMaxOk=false 表示最小光圈景深仍不足
+    var apTxt = 'F' + l.aperture + (l.apMaxOk
+      ? '（景深允许的最大光圈，现场可再收一档保险）'
+      : '（已至最小光圈，景深仍不足）');
+    var lenTxt = l.len
+      ? l.len + ' mm（手册图）' + (l.adapter ? ' + 转接环 ≈12 mm' : '')
+      : (l.lenEst != null ? '≈' + l.lenEst + ' mm' + (l.adapter ? '（含转接环）' : '') : '—');
     return '<div class="card lens">' +
-      '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3><span class="tag">' + esc(l.mount) + ' 口</span></div>' +
+      '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3>' + llogo +
+      '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + '</div>' +
       '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
-      '<div class="hero-sub">' + esc(l.model) + '　·　HIKROBOT</div>' +
+      '<div class="hero-sub">' + esc(l.model) + '　·　' + esc(l.brand || '—') + '</div>' +
       kv('镜头系列', esc(l.series)) +
       kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
       kv('放大倍率', esc(n4(l.m)) + '×') +
       kv('像面 / 解析力', esc(icTxt)) +
       kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
       kv('景深', esc(num(l.dof, 2)) + ' mm') +
+      kv('满足景深的最大光圈', esc(apTxt)) +
       kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
       kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
-      kv('镜头总长', esc(l.len ? l.len + ' mm（手册图）' : (l.lenEst ? '≈' + l.lenEst + ' mm' : '—'))) +
+      kv('镜头总长', esc(lenTxt)) +
       kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
       '</div>';
   }
 
   function lightCard(r) {
     var g = r.light;
+    var gmeta = brandMeta(g.skuBrand);
+    var glogo = gmeta ? '<img class="card-brand-logo" src="' + esc(gmeta.logo) + '" alt="' + esc(gmeta.short) + '" style="--logo-scale:' + (gmeta.logoScale || 1) + '" />' : '';
     return '<div class="card light">' +
-      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3><span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
+      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
       '<div class="hero">' + esc(g.sku || g.seriesName) + '</div>' +
       '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' +
-        esc(g.series) + esc(g.suffix) + '　·　HIKROBOT</div>' +
+        esc(g.series) + esc(g.suffix) + '　·　' + esc(g.skuBrand || '—') + '</div>' +
       block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
       (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
       block('安装 / 打光角度', esc(g.angle)) +
@@ -248,8 +387,9 @@
     }
 
     var camRows = s.camera.items.map(function (x) {
-      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="camera" data-model="' + esc(x.model) + '" title="点击手动指定这台相机">' +
-        '<td class="mono">' + esc(x.model) + '</td>' +
+      var dmodel = (x.brand ? x.brand + '::' : '') + x.model;
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="camera" data-model="' + esc(dmodel) + '" title="点击手动指定这台相机">' +
+        '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + '</td>' +
         '<td>' + x.megs + 'MP</td>' +
         '<td>' + x.w + '×' + x.h + '</td>' +
         '<td>' + x.fps + ' fps</td>' +
@@ -258,8 +398,21 @@
     }).join('');
 
     var lensRows = s.lens.items.map(function (x) {
-      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="lens" data-model="' + esc(x.model) + '" title="点击手动指定这支镜头">' +
-        '<td class="mono">' + esc(x.model) + '</td>' +
+      var dmodel = (x.brand ? x.brand + '::' : '') + x.model;
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="lens" data-model="' + esc(dmodel) + '" title="点击手动指定这支镜头">' +
+        '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + '</td>' +
+        '<td>' + x.focal + ' mm</td>' +
+        '<td>' + (x.ic == null ? '—' : x.ic + ' mm') + '</td>' +
+        '<td>' + (x.minDist == null ? '—' : x.minDist + ' m') + '</td>' +
+        '<td>' + (x.dist == null ? '—' : num(x.dist, 2) + '%') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // 镜头跨品牌等价替换：同卡口 + 焦距接近 + 与当前相机光学匹配的其他品牌镜头
+    var lensCrossRows = (s.lens.crossBrand || []).map(function (x) {
+      var dmodel = (x.brand ? x.brand + '::' : '') + x.model;
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="lens" data-model="' + esc(dmodel) + '" title="点击手动指定这支（跨品牌）镜头">' +
+        '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + '</td>' +
         '<td>' + x.focal + ' mm</td>' +
         '<td>' + (x.ic == null ? '—' : x.ic + ' mm') + '</td>' +
         '<td>' + (x.minDist == null ? '—' : x.minDist + ' m') + '</td>' +
@@ -269,10 +422,33 @@
 
     var lightRows = s.light.items.map(function (x) {
       return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="light" data-model="' + esc(x.model) + '" title="点击手动指定这个光源">' +
-        '<td class="mono">' + esc(x.model) + '</td>' +
+        '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + '</td>' +
         '<td>' + (x.size && x.size.length ? x.size.join(' × ') + ' mm' : '—') + '</td>' +
         '</tr>';
     }).join('');
+
+    // 跨品牌等价替换：同分辨率 + 同接口 + 同彩色，不同品牌（点选即手动指定 品牌::型号）
+    var crossRows = (s.camera.crossBrand || []).map(function (x) {
+      var dmodel = (x.brand ? x.brand + '::' : '') + x.model;
+      return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="camera" data-model="' + esc(dmodel) + '" title="点击手动指定这台（跨品牌）相机">' +
+        '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + '</td>' +
+        '<td>' + x.megs + 'MP</td>' +
+        '<td>' + x.fps + ' fps</td>' +
+        '<td>' + (x.meets ? '<span class="ok-mark">✓</span>' : '<span class="bad-mark">—</span>') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var camBlockInner = table([{ t: '型号' }, { t: '像素' }, { t: '分辨率' }, { t: '帧率' }, { t: '够用?', align: 'center' }], camRows);
+    if (s.camera.crossTotal > 0) {
+      camBlockInner += '<div class="sib-sub"><div class="sib-sub-h">跨品牌等价替换（同分辨率 · 同接口 · 同彩色）</div>' +
+        table([{ t: '品牌 / 型号' }, { t: '像素' }, { t: '帧率' }, { t: '够用?', align: 'center' }], crossRows) + '</div>';
+    }
+
+    var lensBlockInner = table([{ t: '型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensRows);
+    if (s.lens.crossTotal > 0) {
+      lensBlockInner += '<div class="sib-sub"><div class="sib-sub-h">跨品牌等价替换（同卡口 · 焦距接近 · 适配当前相机）</div>' +
+        table([{ t: '品牌 / 型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensCrossRows) + '</div>';
+    }
 
     function blk(title, cnt, inner) {
       return '<div class="sib-block"><h4>' + esc(title) +
@@ -283,8 +459,8 @@
     // 手动指定状态条
     var m = r.manual || {};
     var pills = [];
-    if (m.camera) pills.push('相机 ' + esc(r.camera.model));
-    if (m.lens) pills.push('镜头 ' + esc(r.lens.model));
+    if (m.camera) pills.push('相机 ' + (r.camera.brand ? '[' + esc(r.camera.brand) + '] ' : '') + esc(r.camera.model));
+    if (m.lens) pills.push('镜头 ' + (r.lens.brand ? '[' + esc(r.lens.brand) + '] ' : '') + esc(r.lens.model));
     if (m.light) pills.push('光源 ' + esc(r.light.sku || ''));
     var bar = '<div class="sib-manual">' +
       (pills.length
@@ -293,15 +469,16 @@
         : '<span>点击下面任意型号可手动指定，再点一次取消；高亮行为当前方案。</span>') +
       '</div>';
 
+    // 相机块标题标注当前品牌（同系列面板内机型一般同品牌，跨品牌机型见下方“跨品牌等价替换”）
+    var camBrandShort = (brandMeta(r.camera.brand) || {}).short || '';
+
     return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">点型号即可手动指定</span></h2>' +
       bar +
       '<div class="sib-grid">' +
-        blk('相机　' + s.camera.label, s.camera.total,
-          table([{ t: '型号' }, { t: '像素' }, { t: '分辨率' }, { t: '帧率' }, { t: '够用?', align: 'center' }], camRows)) +
-        blk('镜头　' + s.lens.label, s.lens.total,
-          table([{ t: '型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensRows)) +
-        blk('光源　' + s.light.label, s.light.total,
-          table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
+      blk('相机　' + s.camera.label + (camBrandShort ? ' · ' + camBrandShort : ''), s.camera.total, camBlockInner) +
+      blk('镜头　' + s.lens.label, s.lens.total, lensBlockInner) +
+      blk('光源　' + s.light.label, s.light.total,
+        table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
       '</div>' +
       '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽。' +
       '型号已全部列出，表内可滚动浏览；手动指定后若精度或视场不达标，风险区会给出提示。</div>' +
@@ -407,6 +584,7 @@
       '<div class="sib-note">相机厚度取自官方外形尺寸' +
       (sp.estimated ? '（该型号缺尺寸，按 45 mm 估）' : '') +
       '；镜头长度' + (sp.lensLenReal ? '取自手册外形尺寸图' : '按系列典型值估算') +
+      (sp.adapter ? '（另加转接环 12 mm）' : '') +
       '；线缆与接插件预留 25 mm。</div>';
 
     return s.join('') + spaceLine;
@@ -449,14 +627,33 @@
     $('budget').innerHTML = budgetCard(r);
     $('diagram').innerHTML = diagramCard(r);
 
+    var byBrand = {};
+    CAT.CAMERAS.forEach(function (c) { var b = c.brand || '未知'; byBrand[b] = (byBrand[b] || 0) + 1; });
+    var bLogos = Object.keys(BRANDS).filter(function (k) {
+      return activeBrands.indexOf(k) >= 0 && window[BRANDS[k].global];
+    }).map(function (k) {
+      return '<img src="' + esc(BRANDS[k].logo) + '" alt="' + esc(BRANDS[k].short) + '" style="--logo-scale:' + (BRANDS[k].logoScale || 1) + ';height:calc(13px * var(--logo-scale,1));vertical-align:-1px;margin-right:6px" />';
+    }).join('');
+    var bCounts = Object.keys(byBrand).map(function (b) { return esc(b) + ' ' + byBrand[b] + ' 台'; }).join('、');
+    var lensByBrand = {};
+    CAT.LENSES.forEach(function (l) { var b = l.brand || '未知'; lensByBrand[b] = (lensByBrand[b] || 0) + 1; });
+    var lensTxt = Object.keys(lensByBrand).map(function (b) { return esc(b) + ' ' + lensByBrand[b] + ' 支'; }).join('、');
+    var lightByBrand = {};
+    ((CAT && CAT.LIGHTS) || []).forEach(function (l) { var b = l.brand || '未知'; lightByBrand[b] = (lightByBrand[b] || 0) + 1; });
+    var lightTxt = Object.keys(lightByBrand).map(function (b) { return esc(b) + ' ' + lightByBrand[b] + ' 款'; }).join('、');
+    // 数据健康度：靶面/传感器标注覆盖率（缺字段机型在方案卡按“估算”展示，不影响选型）
+    var nCam = CAT.CAMERAS.length || 1;
+    var sizeCov = CAT.CAMERAS.filter(function (c) { return c.size; }).length;
+    var sensorCov = CAT.CAMERAS.filter(function (c) { return c.sensor; }).length;
     $('catalogNote').innerHTML =
-      '<img src="assets/hikrobot-logo.png" alt="HIKROBOT" style="height:11px;vertical-align:-1px;margin-right:6px;opacity:.85" />' +
-      '型号库：<b>' + esc(CAT.META.brand) + '《' + esc(CAT.META.source) + '》</b>（生成于 ' + esc(CAT.META.generated) + '）　' +
-      '面阵 <b>' + CAT.CAMERAS.length + '</b> 台（含板级 ' + CAT.CAMERAS.filter(function (c) { return c.kind === 'board'; }).length + '）、' +
-      '线扫 <b>' + (CAT.LINESCAN || []).length + '</b> 台、FA/M12 镜头 <b>' + CAT.LENSES.length + '</b> 支、' +
-      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 个型号、' +
+      bLogos +
+      '已启用型号库：<b>' + bCounts + '</b>　' +
+      '面阵合计 <b>' + CAT.CAMERAS.length + '</b> 台（含板级 ' + CAT.CAMERAS.filter(function (c) { return c.kind === 'board'; }).length + '）、' +
+      '线扫 <b>' + (CAT.LINESCAN || []).length + '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支（' + lensTxt + '）、' +
+      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款（' + lightTxt + '）、' +
       '控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。<br>' +
-      '<span style="color:#94a3b8">本项目为非官方选型辅助工具，HIKROBOT 标识归海康机器人所有，仅用于标注数据来源。</span>';
+      '<span style="color:#94a3b8">靶面标注覆盖率 ' + Math.round(sizeCov / nCam * 100) + '%、传感器型号覆盖率 ' + Math.round(sensorCov / nCam * 100) +
+      '%（缺项按 sw/sh 推导显示“估算”，不影响选型计算）。本项目为非官方选型辅助工具；各品牌标识仅用于标注数据来源，归各自权利人所有。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +
@@ -488,17 +685,19 @@
     lines.push(r.summary);
     lines.push('');
     lines.push('· 任务：' + r.task.label + '（每特征 ' + r.task.k + ' 像素）');
-    lines.push('· 相机：' + c.model + '（' + c.series + '）');
+    lines.push('· 相机：' + (c.brand ? '[' + c.brand + '] ' : '') + c.model + '（' + c.series + '）');
     lines.push('　 ' + c.w + '×' + c.h + '，' + c.color + '，' + c.shutter + '，' + c.sw + '×' + c.sh + 'mm 靶面，像元 ' + c.pxUm + 'µm，' + c.mount + ' 口');
     lines.push('　 接口 ' + c.interface + '，最大 ' + c.maxFps + 'fps，所需带宽 ' + num(c.bandwidthMBps, 2) + 'MB/s');
     lines.push('　 动态范围 ' + (c.dr == null ? '—' : c.dr + 'dB') + '，信噪比 ' + (c.snr == null ? '—' : c.snr + 'dB') +
       '，曝光 ' + expoRange(c.expMinUs, c.expMaxUs) + '，' + (c.poe ? '支持 PoE' : '12V 供电'));
     lines.push('　 有效像素精度 ' + n4(c.pxAcc) + 'mm/px，可辨最小特征 ' + n4(c.capability) + 'mm');
-    lines.push('· 镜头：' + l.model + '（' + l.series + '）');
-    lines.push('　 ' + l.f + 'mm F' + l.aperture + '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
+    lines.push('· 镜头：' + (l.brand ? '[' + l.brand + '] ' : '') + l.model + '（' + l.series + '）');
+    lines.push('　 ' + l.f + 'mm F' + l.aperture + (l.apMaxOk ? '（满足景深的最大光圈）' : '（最小光圈，景深仍不足）') +
+      '，放大倍率 ' + n4(l.m) + '×，实际视场 ' +
       num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm');
-    lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口');
-    lines.push('· 光源：' + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
+    lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口' +
+      (l.adapter ? '（需 ' + r.camera.mount + '→' + l.mount + ' 转接环，约 12mm）' : ''));
+    lines.push('· 光源：' + (g.skuBrand ? '[' + g.skuBrand + '] ' : '') + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
     lines.push('　 型号构成：' + g.example);
     if (g.skuNote) lines.push('　 选型说明：' + g.skuNote);
     lines.push('　 安装：' + g.angle);
@@ -583,6 +782,8 @@
 
   /* ---------------- 绑定 ---------------- */
   function init() {
+    renderBrandFilter();
+    renderLensFilter();
     fillSelects();
 
     Array.prototype.forEach.call(document.querySelectorAll('input, select'), function (el) {
