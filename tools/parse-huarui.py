@@ -272,13 +272,31 @@ except Exception:
 for r in linescan_list:
     r["brand"] = "华睿"
 
+# ---- 光源 / 光源控制器：由 parse-huarui-lights.py 生成，读入合并 ----
+# 颜色按 A 方案拆分（型号尾 W/R/B → 逐色独立型号，红灯功率取 (R) 列，其余取 (G/B/W) 列）
+LIGHTS_JSON = "tools/_cache/huarui_lights.json"
+CTRLS_JSON = "tools/_cache/huarui_controllers.json"
+try:
+    lights_list = json.load(open(LIGHTS_JSON, encoding="utf-8"))
+except Exception:
+    lights_list = []
+try:
+    ctrls_list = json.load(open(CTRLS_JSON, encoding="utf-8"))
+except Exception:
+    ctrls_list = []
+for r in lights_list:
+    r["brand"] = "华睿"
+for r in ctrls_list:
+    r["brand"] = "华睿"
+
 # ---- 生成 UMD 目录 ----
 META = {"source": "机器视觉产品手册中文版V20260901", "brand": "华睿（大华机器视觉）",
-        "generated": "2026-10-23", "cameras": len(cams_list), "linescan": len(linescan_list)}
+        "generated": "2026-10-23", "cameras": len(cams_list), "linescan": len(linescan_list),
+        "lights": len(lights_list), "controllers": len(ctrls_list)}
 js = []
 js.append("/**")
-js.append(" * 华睿（大华机器视觉）相机型号库 —— 面阵 + 线阵")
-js.append(" * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）")
+js.append(" * 华睿（大华机器视觉）型号库 —— 面阵 + 线阵 + 光源 + 光源控制器")
+js.append(" * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）+ tools/parse-huarui-lights.py（光源/控制器）")
 js.append(" * 本文件由脚本生成，请勿手工编辑。")
 js.append(" */")
 js.append("(function (root, factory) {")
@@ -296,7 +314,15 @@ js.append("  var LINESCAN = [")
 for r in linescan_list:
     js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
 js.append("  ];")
-js.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN };")
+js.append("  var LIGHTS = [")
+for r in lights_list:
+    js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
+js.append("  ];")
+js.append("  var CONTROLLERS = [")
+for r in ctrls_list:
+    js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
+js.append("  ];")
+js.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };")
 js.append("});")
 open(OUT_JS, "w", encoding="utf-8").write("\n".join(js) + "\n")
 
@@ -309,6 +335,7 @@ print("total cameras:", len(cams_list))
 print("by iface:", dict(byif))
 print("by color:", dict(bycol))
 print("missing fields:", miss)
+print("linescan:", len(linescan_list), "| lights:", len(lights_list), "| controllers:", len(ctrls_list))
 print("by series:")
 for k, v in byser.most_common():
     print("  %-34s %d" % (k, v))

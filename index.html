@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>机器视觉智能选型助手</title>
+<title>机器视觉智能选型助手 · 相机 / 镜头 / 光源</title>
+<meta name="description" content="输入视野、精度、任务与材质，自动推导机器视觉相机 + 镜头 + 光源方案，并摊开每一步算术供复核。内置海康机器人、华睿、Basler、大恒四品牌 949 台面阵相机、156 支镜头、473 款光源（含华睿），支持跨品牌等价替换、转接环、备选方案与线扫/远心建议。纯前端单页，离线可用。" />
+<meta name="keywords" content="机器视觉,选型,工业相机,镜头,光源,海康机器人,华睿,Basler,大恒,线扫,远心镜头,视觉方案" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="机器视觉智能选型助手 · 相机 / 镜头 / 光源" />
+<meta property="og:description" content="填需求 → 出方案：四品牌 949 台相机、156 支镜头、473 款光源自动比选，每一步算术可复核。" />
+<meta property="og:url" content="https://549763551.github.io/vision-selector/" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -277,6 +283,11 @@
   table.mini tbody tr.cur td:first-child { box-shadow: inset 2px 0 0 #2563eb; }
   .ok-mark { color: #16a34a; font-weight: 700; }
   .bad-mark { color: #cbd5e1; }
+  .alt-mark {
+    display: inline-block; margin-left: 5px; padding: 0 5px; font-size: 9px; line-height: 14px;
+    color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 7px; font-weight: 600;
+    vertical-align: 1px; white-space: nowrap;
+  }
   .sib-note { margin-top: 10px; font-size: 11px; color: #94a3b8; line-height: 1.7; }
   .sib-sub { margin-top: 9px; border-top: 1px dashed #eef2f7; padding-top: 7px; }
   .sib-sub-h { font-size: 11px; color: #475569; font-weight: 600; margin-bottom: 4px; }

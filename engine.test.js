@@ -448,14 +448,25 @@ function mergeMulti(brands, lensBrands) {
   let linescan = [];
   if (brands.indexOf('hikrobot') >= 0) linescan = linescan.concat(HIK.LINESCAN);
   if (brands.indexOf('huarui') >= 0) linescan = linescan.concat(HUA.LINESCAN);
+  // 光源 / 控制器：海康 + 华睿（华睿型录含独立光源与光源控制器章节）
+  let lights = [];
+  if (brands.indexOf('hikrobot') >= 0)
+    lights = lights.concat(HIK.LIGHTS.map((x) => Object.assign({}, x, { brand: '海康机器人 HIKROBOT' })));
+  if (brands.indexOf('huarui') >= 0)
+    lights = lights.concat(HUA.LIGHTS.map((x) => Object.assign({}, x, { brand: '华睿' })));
+  let ctrls = [];
+  if (brands.indexOf('hikrobot') >= 0)
+    ctrls = ctrls.concat(HIK.CONTROLLERS.map((x) => Object.assign({}, x, { brand: '海康机器人 HIKROBOT' })));
+  if (brands.indexOf('huarui') >= 0)
+    ctrls = ctrls.concat(HUA.CONTROLLERS.map((x) => Object.assign({}, x, { brand: '华睿' })));
   return {
     META: { brand: '多品牌' },
     CAMERAS: cam,
     LINESCAN: linescan,
     LENSES: lenses,
     TELECENTRIC: HIK.TELECENTRIC,
-    LIGHTS: HIK.LIGHTS.map((x) => Object.assign({}, x, { brand: '海康机器人 HIKROBOT' })),
-    CONTROLLERS: HIK.CONTROLLERS
+    LIGHTS: lights,
+    CONTROLLERS: ctrls
   };
 }
 
@@ -840,6 +851,105 @@ test('自动推荐的匹配分 ≥ 库内任何其他可行单相机方案', () 
     assert.ok(r.score >= maxOther,
       '推荐 ' + r.camera.model + ' score=' + r.score + ' 低于 ' + other + ' score=' + maxOther);
   });
+});
+
+console.log('\n[15] 备选方案与「备选」标注');
+test('产出 ≤3 套备选方案，均为不同于最优的可行相机', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const r = E3.solve(base());
+  assert.ok(r.ok && r.feasible, '默认场景应可行');
+  assert.ok(Array.isArray(r.alternates), 'alternates 应为数组');
+  assert.ok(r.alternates.length <= 3, '最多 3 套备选，实际 ' + r.alternates.length);
+  const bestKey = (r.camera.brand || '') + '::' + r.camera.model;
+  const pxAccReq = 0.1 / 3; // base(): precision 0.1, task defect k=3
+  r.alternates.forEach((a) => {
+    assert.notStrictEqual(a.cameraKey, bestKey, '备选不应等于最优相机');
+    assert.ok(a.lensKey && a.lensKey.indexOf('::') >= 0, '备选应含「品牌::镜头」');
+    assert.ok(a.pxAcc <= pxAccReq + 1e-6, '备选应满足像素精度，实际 ' + a.pxAcc);
+  });
+});
+
+test('备选相机在同系列/跨品牌表被标 alt，最优相机不标', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const r = E3.solve(base());
+  if (!r.alternates.length) return; // 无备选则无可标注
+  const altKeys = r.alternates.map((a) => a.cameraKey);
+  const bestKey = (r.camera.brand || '') + '::' + r.camera.model;
+  const allCamRows = r.siblings.camera.items.concat(r.siblings.camera.crossBrand || []);
+  const bestRow = allCamRows.find((x) => (x.brand || '') + '::' + x.model === bestKey);
+  if (bestRow) assert.strictEqual(bestRow.alt, false, '最优相机不应标「备选」');
+  const altMarked = allCamRows.filter((x) => x.alt);
+  assert.ok(altMarked.length >= 1, '默认场景至少一个备选相机出现在面板并被标注');
+  altMarked.forEach((x) =>
+    assert.ok(altKeys.indexOf((x.brand || '') + '::' + x.model) >= 0, '标注的必须是备选相机，不能误标'));
+});
+
+test('手动指定相机后仍保留自动选型的备选（供对照）', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const auto = E3.solve(base());
+  const r = E3.solve(Object.assign(base(), { manualCamera: (auto.camera.brand || '') + '::' + auto.camera.model }));
+  assert.strictEqual(r.manual.camera, true, '应处于手动指定状态');
+  assert.strictEqual(r.alternates.length, auto.alternates.length, '手动指定不应清备空备选');
+});
+
+test('镜头备选：同相机、仍达标、与当前镜头不同，并出现在面板中被标注', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const r = E3.solve(base());
+  assert.ok(r.ok && r.feasible);
+  assert.ok(Array.isArray(r.lensAlternates), 'lensAlternates 应为数组');
+  assert.ok(r.lensAlternates.length >= 1, '默认场景应有至少一支备选镜头');
+  assert.ok(r.lensAlternates.length <= 3, '镜头备选最多 3 支');
+  const curKey = (r.lens.brand || '') + '::' + r.lens.model;
+  const pxAccReq = 0.1 / 3;
+  r.lensAlternates.forEach((a) => {
+    assert.notStrictEqual(a.lensKey, curKey, '备选镜头不应等于当前镜头');
+    assert.ok(a.focal < 300 * 0.95, '备选镜头焦距须小于工作距离');
+    assert.ok(a.pxAcc <= pxAccReq + 1e-6, '备选镜头自身也要满足像素精度，实际 ' + a.pxAcc);
+  });
+  // 面板标注：标 alt 的镜头必须来自备选集合，当前镜头不标
+  const keys = r.lensAlternates.map((a) => a.lensKey);
+  const rows = r.siblings.lens.items.concat(r.siblings.lens.crossBrand || []);
+  rows.filter((x) => x.alt && !x.cur).forEach((x) =>
+    assert.ok(keys.indexOf((x.brand || '') + '::' + x.model) >= 0, '标注的镜头必须在备选集合内'));
+  assert.ok(rows.filter((x) => x.alt && !x.cur).length >= 1, '默认场景至少一支备选镜头出现在面板');
+});
+
+test('光源备选：同子类同颜色、尺寸够用不过分超配，并在面板被标注', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const r = E3.solve(base());
+  assert.ok(r.ok);
+  assert.ok(Array.isArray(r.lightAlternates), 'lightAlternates 应为数组');
+  assert.ok(r.lightAlternates.length >= 1, '默认场景应有至少一款备选光源');
+  assert.ok(r.lightAlternates.length <= 3, '光源备选最多 3 款');
+  assert.ok(r.light.skuAlts && r.light.skuAlts.length === r.lightAlternates.length, '光源对象应带 skuAlts');
+  const cur = r.light.sku;
+  r.lightAlternates.forEach((a) => {
+    assert.notStrictEqual(a.model, cur, '备选光源不应是当前型号');
+    assert.ok(a.size && a.size[0] > 0, '备选光源应有尺寸');
+  });
+  // 面板标注
+  const keys = r.lightAlternates.map((a) => (a.brand || '') + '::' + a.model);
+  const marked = r.siblings.light.items.filter((x) => x.alt && !x.cur);
+  assert.ok(marked.length >= 1, '光源表应有被标注的备选行');
+  marked.forEach((x) => assert.ok(keys.indexOf((x.brand || '') + '::' + x.model) >= 0, '标注的光源必须在备选集合内'));
+  // 当前光源行不标备选
+  const curRows = r.siblings.light.items.filter((x) => x.cur);
+  curRows.forEach((x) => assert.ok(!x.alt, '当前光源不应标备选'));
+});
+
+test('手动指定光源后按手动型号重新算备选', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const manualModel = 'PFM-HX10090CO40W';
+  const r = E3.solve(Object.assign(base(), { manualLight: manualModel }));
+  assert.strictEqual(r.manual.light, true, '应处于手动光源状态');
+  assert.strictEqual(r.light.sku, manualModel);
+  assert.ok(r.lightAlternates.every((a) => a.model !== manualModel), '备选不含当前手动型号');
 });
 
 console.log('\n' + '='.repeat(52));

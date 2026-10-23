@@ -5,6 +5,7 @@ desktop.ini
 *.log
 *.tmp
 *.local
+*.bak
 
 # 手册原件与解析中间产物
 manuals/
@@ -15,3 +16,7 @@ tools/_cache/
 
 # 微信小程序子项目（独立仓库，不随主仓库发布）
 小程序项目/
+
+# 本地临时仿真 / 预览产物
+_preview/
+tools/sim-*.js
