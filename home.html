@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>机器视觉选型工具集 · 主页</title>
+<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询四品牌 1672 个产品的全参数。纯前端离线可用。" />
+<link rel="icon" href="assets/favicon.ico" />
+<style>
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e3e9f1;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
+      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .topbar {
+    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    color: #fff; padding: 26px 20px 30px;
+  }
+  .topbar-inner { max-width: 1080px; margin: 0 auto; }
+  .tb-title { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .tb-sub { margin-top: 8px; font-size: 13px; color: #93a4bd; line-height: 1.7; }
+  .tb-sub b { color: #fff; font-weight: 600; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 60px; }
+
+  /* 两个入口卡 */
+  .entries { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .entries { grid-template-columns: 1fr; } }
+  a.entry {
+    display: block; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
+    transition: all .15s;
+  }
+  a.entry:hover { border-color: #93c5fd; box-shadow: 0 10px 30px -18px rgba(37, 99, 235, .55); transform: translateY(-1px); }
+  .entry-head { display: flex; align-items: center; gap: 12px; }
+  .entry-ico {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 21px; color: #fff; flex: 0 0 auto;
+  }
+  .entry-ico.sel { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+  .entry-ico.lib { background: linear-gradient(135deg, #34d399, #059669); }
+  .entry h2 { margin: 0; font-size: 17px; }
+  .entry .go { margin-left: auto; color: var(--accent); font-size: 13px; white-space: nowrap; }
+  .entry p.desc { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.75; }
+  .entry ul { margin: 10px 0 0; padding: 0; list-style: none; }
+  .entry ul li { font-size: 12.5px; color: #475569; padding: 3px 0; }
+  .entry ul li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 7px; }
+
+  .sec-h { margin: 26px 0 12px; font-size: 15px; font-weight: 700; }
+  .sec-h small { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 8px; }
+
+  /* 数据速览 */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+  }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+  /* 品牌行 */
+  .brand-row {
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center;
+  }
+  .brand-item { display: flex; align-items: center; gap: 9px; }
+  .brand-item img { height: 16px; max-width: 110px; object-fit: contain; }
+  .brand-item small { font-size: 11.5px; color: var(--muted); }
+
+  /* 使用步骤 */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+    font-size: 12.5px; color: #475569; line-height: 1.7;
+  }
+  .step b { display: block; color: var(--ink); font-size: 13px; margin-bottom: 4px; }
+  .step .n {
+    display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700;
+    margin-right: 7px; vertical-align: -4px;
+  }
+
+  /* 资料下载 */
+  .docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  @media (max-width: 760px) { .docs { grid-template-columns: 1fr; } }
+  .docs a {
+    display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px;
+    font-size: 12.5px;
+  }
+  .docs a:hover { border-color: #93c5fd; color: var(--accent); }
+  .docs .pdf-ico { color: #dc2626; font-size: 15px; flex: 0 0 auto; }
+
+  footer { max-width: 1080px; margin: 0 auto; padding: 0 20px 46px; font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+  @media (max-width: 760px) {
+    .topbar { padding: 20px 14px 24px; }
+    .wrap { padding: 16px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="tb-title">机器视觉选型工具集</div>
+    <div class="tb-sub">
+      海康机器人 / 华睿 / Basler / 大恒图像 四品牌型号数据，<b>纯前端、离线可用</b>：双击打开即可，
+      所有计算与查询都在本地浏览器完成，数据不上传。
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="entries">
+    <a class="entry" href="index.html">
+      <div class="entry-head">
+        <span class="entry-ico sel">🎯</span>
+        <h2>选型助手</h2>
+        <span class="go">进入 →</span>
+      </div>
+      <p class="desc">输入视野、精度、检测任务、材质、节拍，自动推导一套可直接询价的「相机 + 镜头 + 光源」方案，并把每一步算术摊开供复核。</p>
+      <ul>
+        <li>四品牌自动比选，按匹配度选最优，支持手动指定</li>
+        <li>跨品牌等价替换、转接环、景深光圈建议</li>
+        <li>线扫 / 远心自动建议，精度预算与验算过程全展示</li>
+      </ul>
+    </a>
+    <a class="entry" href="library.html">
+      <div class="entry-head">
+        <span class="entry-ico lib">📚</span>
+        <h2>产品库</h2>
+        <span class="go">进入 →</span>
+      </div>
+      <p class="desc">全部型号的一站式查询：按类别、品牌、接口、卡口、焦距、颜色等筛选，点开看全参数，手机电脑都能用。</p>
+      <ul>
+        <li>面阵 / 线阵相机、镜头、远心、光源、控制器全覆盖</li>
+        <li>型号 / 系列 / 传感器关键词即时搜索</li>
+        <li>每个型号带示意图与数据来源标注</li>
+      </ul>
+    </a>
+  </div>
+
+  <h3 class="sec-h">数据速览 <small id="genNote"></small></h3>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="brand-row" id="brandRow"></div>
+
+  <h3 class="sec-h">怎么用</h3>
+  <div class="steps">
+    <div class="step"><b><span class="n">1</span>先试快速预设</b>在选型助手顶栏点「铜线检测 / 精密测量 / 二维码读取」等预设，看方案长什么样，再换成自己的参数。</div>
+    <div class="step"><b><span class="n">2</span>填检测需求出方案</b>视野、精度、任务、节拍按实际情况填；方案卡里每个型号都能点开看参数与备选。</div>
+    <div class="step"><b><span class="n">3</span>去产品库核对与比价</b>对方案里的型号拿不准时，到产品库搜型号或按条件筛选同类，对比后询价。</div>
+  </div>
+
+  <h3 class="sec-h">常用资料 <small>manuals/ 目录，点开即读</small></h3>
+  <div class="docs" id="docs"></div>
+</div>
+
+<footer id="foot"></footer>
+
+<script src="brands.js"></script>
+<script src="hikrobot-catalog.js"></script>
+<script src="huarui-catalog.js"></script>
+<script src="basler-catalog.js"></script>
+<script src="daheng-catalog.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog' };
+  var metas = {};
+  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0 };
+  var total = 0;
+  Object.keys(SRC).forEach(function (bk) {
+    var c = window[SRC[bk]];
+    if (!c) return;
+    metas[bk] = c.META || {};
+    n.cam += (c.CAMERAS || []).length;
+    n.line += (c.LINESCAN || []).length;
+    n.lens += (c.LENSES || []).length;
+    n.tele += (c.TELECENTRIC || []).length;
+    n.light += (c.LIGHTS || []).length;
+    n.ctrl += (c.CONTROLLERS || []).length;
+  });
+  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
+  function logo(k) { return (window.BRANDS[k] && window.BRANDS[k].logo) || null; }
+
+  document.getElementById('statsGrid').innerHTML = [
+    ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
+    ['远心镜头系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl]
+  ].map(function (p) {
+    return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
+  }).join('') + '<div class="stat"><b style="color:var(--accent)">' + total + '</b><span>型号总数</span></div>';
+
+  document.getElementById('brandRow').innerHTML = Object.keys(metas).map(function (bk) {
+    var m = metas[bk];
+    var cnt = (m.cameras || 0) + (m.linescan || 0) + (m.lenses || 0) + (m.lights || 0) + (m.controllers || 0);
+    return '<div class="brand-item">' +
+      (logo(bk) ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" />' : '<b>' + esc(short(bk)) + '</b>') +
+      '<small>' + cnt + ' 个型号' + (m.generated ? ' · ' + esc(m.generated) + ' 更新' : '') + '</small></div>';
+  }).join('');
+
+  var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();
+  if (latest) document.getElementById('genNote').textContent = '数据更新于 ' + latest;
+
+  document.getElementById('docs').innerHTML = [
+    ['机器视觉标准产品手册-2026.Q3.pdf', '海康标准产品手册（相机 / 镜头 / 光源）'],
+    ['机器视觉智能产品手册-2026.Q3.pdf', '海康智能产品手册（读码 / ID）'],
+    ['机器视觉产品手册中文版V20260901.pdf', '华睿（大华机器视觉）产品手册'],
+    ['大恒图像产品型录.pdf', '大恒图像相机型录'],
+    ['大恒镜头产品型录.pdf', '大恒 HN / HN-P 镜头型录'],
+    ['机器视觉3D产品手册26年Q3.pdf', '3D 视觉产品手册'],
+    ['机器视觉工控机产品手册-V.151.CN.26Q2.1(阅读版).pdf', '工控机产品手册']
+  ].map(function (p) {
+    return '<a href="manuals/' + encodeURIComponent(p[0]) + '"><span class="pdf-ico">📄</span><span><b>' + esc(p[1]) + '</b><br><span style="color:var(--muted);font-size:11.5px">' + esc(p[0]) + '</span></span></a>';
+  }).join('');
+
+  document.getElementById('foot').innerHTML =
+    '数据来源：各品牌官方型录与官网产品数据（详见产品库页脚）。参数以厂商官方最新资料为准。' +
+    '<br>本工具集为纯前端页面：home.html 主页 · index.html 选型助手 · library.html 产品库，可整目录拷贝离线使用。';
+})();
+</script>
+</body>
+</html>
