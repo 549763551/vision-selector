@@ -178,20 +178,26 @@
 
 <script src="brands.js"></script>
 <script src="hikrobot-catalog.js"></script>
+<script src="hikrobot-3d-catalog.js"></script>
+<script src="hikrobot-ipc-catalog.js"></script>
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
+<script src="basler-lens-catalog.js"></script>
+<script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
 <script>
 (function () {
   'use strict';
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog' };
   var metas = {};
-  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0 };
+  var allMetas = [];
+  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0 };
   var total = 0;
   Object.keys(SRC).forEach(function (bk) {
     var c = window[SRC[bk]];
     if (!c) return;
     metas[bk] = c.META || {};
+    if (c.META) allMetas.push({ brand: bk, meta: c.META });
     n.cam += (c.CAMERAS || []).length;
     n.line += (c.LINESCAN || []).length;
     n.lens += (c.LENSES || []).length;
@@ -199,7 +205,20 @@
     n.light += (c.LIGHTS || []).length;
     n.ctrl += (c.CONTROLLERS || []).length;
   });
-  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl;
+  // 附加库：海康 3D / 工控机；Basler 镜头 / 灯光
+  [[window.Hikrobot3DCatalog, 'hikrobot'], [window.HikrobotIpcCatalog, 'hikrobot'],
+   [window.BaslerLensCatalog, 'basler'], [window.BaslerLightCatalog, 'basler']].forEach(function (p) {
+    var c = p[0], bk = p[1];
+    if (!c) return;
+    if (c.META) allMetas.push({ brand: bk, meta: c.META });
+    n.prof += (c.PROFILERS || []).length + (c.SMART || []).length;
+    n.ipc += (c.CHASSIS || []).length + (c.BOARDS || []).length;
+    n.lens += (c.LENSES || []).length;
+    n.tele += (c.TELECENTRIC || []).length;
+    n.light += (c.LIGHTS || []).length;
+    n.ctrl += (c.CONTROLLERS || []).length;
+  });
+  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
@@ -207,17 +226,25 @@
 
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
-    ['远心镜头系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl]
+    ['远心镜头系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
+    ['3D 传感器', n.prof], ['工控机 / 主板', n.ipc]
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
   }).join('') + '<div class="stat"><b style="color:var(--accent)">' + total + '</b><span>型号总数</span></div>';
 
   document.getElementById('brandRow').innerHTML = Object.keys(metas).map(function (bk) {
     var m = metas[bk];
-    var cnt = (m.cameras || 0) + (m.linescan || 0) + (m.lenses || 0) + (m.lights || 0) + (m.controllers || 0);
+    var cnt = allMetas.filter(function (x) { return x.brand === bk; })
+      .reduce(function (s, x) {
+        return s + (x.meta.cameras || 0) + (x.meta.linescan || 0) + (x.meta.lenses || 0) +
+          (x.meta.telecentric || 0) + (x.meta.lights || 0) + (x.meta.controllers || 0) +
+          (x.meta.profilers || 0) + (x.meta.smart || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0);
+      }, 0);
+    var gen = allMetas.filter(function (x) { return x.brand === bk && x.meta.generated; })
+      .map(function (x) { return x.meta.generated; }).sort().pop();
     return '<div class="brand-item">' +
       (logo(bk) ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" />' : '<b>' + esc(short(bk)) + '</b>') +
-      '<small>' + cnt + ' 个型号' + (m.generated ? ' · ' + esc(m.generated) + ' 更新' : '') + '</small></div>';
+      '<small>' + cnt + ' 个型号' + (gen ? ' · ' + esc(gen) + ' 更新' : '') + '</small></div>';
   }).join('');
 
   var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();

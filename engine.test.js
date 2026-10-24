@@ -308,6 +308,22 @@ test('线扫方案给出光学参数与线光源型号', () => {
   assert.ok(r.lineScan.needRate > 0, '缺行频需求');
 });
 
+test('线扫方案接入直配线扫镜头（卡口同族 + 像面覆盖行宽 + 焦距不超理论值）', () => {
+  const r = Engine.solve(base({ fovW: 100, fovH: 80, precision: 0.02, task: 'defect', speed: 200 }));
+  const ls = r.lineScan;
+  assert.ok(ls, '缺线扫方案');
+  if (!ls.lens) return; // 库内无直配镜头时保持“需另选”提示，不算失败
+  const lensInCat = CAT.LENSES.find((x) => x.model === ls.lens.model);
+  assert.ok(lensInCat, '线扫镜头不在库中');
+  const fam = (m) => ({ 'C': 'C', 'M12': 'M12', 'F': 'F', 'M42': 'F', 'M42/F': 'F', 'M58': 'M58', 'M72': 'M72' })[m];
+  assert.strictEqual(fam(ls.mount), fam(lensInCat.mount), '线扫镜头必须直配卡口');
+  assert.ok(lensInCat.ic == null || lensInCat.ic >= ls.optics.sensorW / 2 - 1e-9, '像面必须覆盖行传感器宽的一半');
+  assert.ok(lensInCat.focal <= ls.optics.f + 1e-9, '焦距不能超理论焦距（否则视场不足）');
+  assert.ok(/线扫镜头选/.test(ls.optics.note), 'optics.note 应写明所选镜头');
+  // 实际行方向视场 = 像面宽 / 实际倍率
+  assert.ok(Math.abs(ls.lens.fovW - ls.optics.sensorW / ls.lens.m) < 1e-6, '行方向视场换算错误');
+});
+
 console.log('\n[9] 手动指定型号');
 test('手动指定相机后按该型号出方案', () => {
   const r = Engine.solve(base({ manualCamera: 'MV-CS050-10GM' }));

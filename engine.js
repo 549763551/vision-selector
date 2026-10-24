@@ -839,6 +839,50 @@
     var llGood = lineLights.filter(function (x) { return (x.size[0] || 0) >= inp.fovW * 1.15; });
     var lineLight = llGood[0] || lineLights[lineLights.length - 1] || null;
 
+    // 线扫镜头：直配卡口（线扫不做转接）；像面直径 ≥ 行传感器宽的一半（行方向是长边）；
+    // 解析力 ≥ 行像素数/1000 MP；焦距取不超过理论焦距的最大档，没有时取最接近档并提示
+    var needMp = pick.w / 1000;
+    function lsLensBase(l) {
+      return mountMatch(pick.mount, l.mount) === 1
+        && (l.ic == null || l.ic >= sensorW / 2)
+        && (l.mp == null || l.mp >= needMp * 0.9)
+        && l.focal < inp.wd * 0.95
+        && (l.minDist == null || l.minDist * 1000 <= inp.wd);
+    }
+    var lsLens = null, lsLensNote = '';
+    var poolFit = (CAT.LENSES || []).filter(lsLensBase).filter(function (l) { return l.focal <= f + 1e-9; });
+    if (poolFit.length) {
+      poolFit.sort(function (a, b) {
+        return b.focal - a.focal || (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
+      });
+      lsLens = poolFit[0];
+    } else {
+      var poolNear = (CAT.LENSES || []).filter(lsLensBase);
+      if (poolNear.length) {
+        poolNear.sort(function (a, b) {
+          return Math.abs(a.focal - f) - Math.abs(b.focal - f) ||
+            (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
+        });
+        lsLens = poolNear[0];
+        lsLensNote = '焦距档位偏离理论值，视场会相应变化';
+      }
+    }
+    var lsLensOut = null;
+    if (lsLens) {
+      var mAct = lsLens.focal / (inp.wd - lsLens.focal);
+      lsLensOut = {
+        model: lsLens.model,
+        brand: lsLens.brand || null,
+        focal: lsLens.focal,
+        mount: lsLens.mount,
+        ic: lsLens.ic,
+        mp: lsLens.mp,
+        m: mAct,
+        fovW: sensorW / mAct,
+        note: lsLensNote
+      };
+    }
+
     return {
       model: pick.model,
       w: pick.w,
@@ -855,14 +899,20 @@
         sensorW: sensorW,
         m: m,
         f: f,
-        note: '像面宽 ' + fmt(sensorW, 1) + ' mm，需 ' + fmt(m, 3) + '× 放大、焦距约 ' +
-          fmt(f, 1) + ' mm 的线扫镜头（手册未收录线扫镜头，需按像面宽度另选）'
+        note: lsLensOut
+          ? '像面宽 ' + fmt(sensorW, 1) + ' mm，需 ' + fmt(m, 3) + '× 放大、理论焦距 ' +
+            fmt(f, 1) + ' mm；线扫镜头选 ' + lsLensOut.model + '（' + lsLensOut.focal +
+            ' mm，直配 ' + lsLensOut.mount + ' 口，行方向视场 ' + fmt(lsLensOut.fovW, 1) + ' mm）' +
+            (lsLensOut.note ? '；' + lsLensOut.note : '')
+          : '像面宽 ' + fmt(sensorW, 1) + ' mm，需 ' + fmt(m, 3) + '× 放大、焦距约 ' +
+            fmt(f, 1) + ' mm 的线扫镜头（镜头库中无直配卡口且像面/解析力达标的型号，需按像面宽度另选）'
       },
       runPxAcc: runPxAcc,
       tMaxMs: tMaxMs,
       bandwidth: bandwidth,
       ifaceCap: cap,
       lineLight: lineLight ? { model: lineLight.model, size: lineLight.size, power: lineLight.power } : null,
+      lens: lsLensOut,
       note: '线扫是面阵精度不足时的标准解法：' +
         (needRate ? '所需行频约 ' + fmt(needRate, 1) + ' kHz（' + pick.lineRate + ' kHz 可满足）；' : '') +
         '沿运动方向每行前进 ' + (runPxAcc ? fmt(runPxAcc, 4) : '—') + ' mm/px；' +

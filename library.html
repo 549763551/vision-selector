@@ -136,6 +136,67 @@
   }
   .dim { color: var(--muted); }
   .muted-cell { color: #94a3b8; }
+
+  /* ---------- 对比 / 反查 / 等价 ---------- */
+  td.cmp-col, th.cmp-col { text-align: center; width: 44px; }
+  .cmp-box { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  .cmp-chip {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .cmp-chip input { width: 13px; height: 13px; accent-color: var(--accent); }
+  .cmp-tray {
+    display: none; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    background: #0f172a; color: #fff; border-radius: 999px; padding: 9px 10px 9px 18px;
+    font-size: 12.5px; z-index: 40; box-shadow: 0 12px 30px -12px rgba(15, 23, 42, .6);
+    align-items: center; gap: 10px; max-width: min(92vw, 680px);
+  }
+  .cmp-tray.show { display: flex; }
+  .cmp-tray .t-models { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; }
+  .cmp-tray button {
+    font-family: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
+  }
+  .cmp-tray .t-go { background: linear-gradient(180deg, #38bdf8, #2563eb); color: #fff; }
+  .cmp-tray .t-clear { background: rgba(255, 255, 255, .14); color: #e2e8f0; }
+  .fit-tag {
+    display: inline-block; font-size: 11px; border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+  }
+  .fit-tag.direct { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .fit-tag.adapter { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
+  .lf-banner {
+    flex: 1 1 100%; background: var(--accent-soft); border: 1px solid #bfdbfe; color: #1e40af;
+    border-radius: 10px; padding: 8px 12px; font-size: 12.5px; display: flex; align-items: center;
+    gap: 6px; flex-wrap: wrap;
+  }
+  .lf-banner b { font-weight: 700; }
+  .lf-banner .lf-close {
+    margin-left: auto; font-family: inherit; font-size: 11.5px; border: 1px solid #93c5fd;
+    background: #fff; color: var(--accent); border-radius: 8px; padding: 4px 10px; cursor: pointer;
+  }
+  .x-block { padding: 4px 18px 12px; }
+  .x-btn {
+    width: 100%; font-family: inherit; font-size: 13px; color: var(--accent); background: var(--accent-soft);
+    border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+  }
+  .x-btn:hover { background: #dbeafe; }
+  .x-title { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
+  .x-title .x-note { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .x-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .x-item {
+    display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
+    border: 1px solid var(--line); background: #fbfdff; border-radius: 10px; padding: 5px 9px 5px 5px;
+  }
+  .x-item:hover { border-color: #93c5fd; background: var(--accent-soft); }
+  .x-item svg { width: 30px; height: 30px; border-radius: 6px; }
+  .x-item .x-model { font-size: 12px; font-weight: 600; font-family: Consolas, "Courier New", monospace; }
+  .sheet-wide { max-width: 920px; }
+  .cmp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .cmp-table th, .cmp-table td {
+    border-bottom: 1px solid #f1f5f9; padding: 7px 10px; vertical-align: top; word-break: break-all;
+  }
+  .cmp-table thead th { position: sticky; top: 0; background: var(--panel); font-size: 12px; }
+  .cmp-table td.k { color: var(--muted); white-space: nowrap; width: 34%; }
+  .cmp-table td.diff { background: #fefce8; }
   td.art-cell { padding: 4px 6px 4px 8px; width: 52px; }
   td.art-cell svg, .card-art svg { display: block; border-radius: 8px; }
   td.art-cell svg { width: 44px; height: 44px; }
@@ -266,6 +327,8 @@
   </div>
 </div>
 
+<div class="cmp-tray" id="cmpTray"></div>
+
 <div class="mask" id="mask">
   <div class="sheet" id="sheet"></div>
 </div>
@@ -274,8 +337,12 @@
 
 <script src="brands.js"></script>
 <script src="hikrobot-catalog.js"></script>
+<script src="hikrobot-3d-catalog.js"></script>
+<script src="hikrobot-ipc-catalog.js"></script>
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
+<script src="basler-lens-catalog.js"></script>
+<script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
 <script>
 (function () {
@@ -290,19 +357,29 @@
     { key: 'tele',  name: '远心镜头', catName: '远心镜头' },
     { key: 'light', name: '光源',     catName: '光源' },
     { key: 'ctrl',  name: '光源控制器', catName: '光源控制器' },
+    { key: 'prof',  name: '3D 相机',  catName: '3D 传感器' },
+    { key: 'ipc',   name: '工控机',   catName: '工控机' },
     { key: 'all',   name: '全部',     catName: '全部类别' }
   ];
 
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog' };
+  // 附加库：海康 3D / 工控机；Basler 镜头 / 灯光（挂到对应品牌与类别）
+  var EXTRA_SRC = [
+    { global: 'Hikrobot3DCatalog', brand: 'hikrobot', arrays: { PROFILERS: 'prof', SMART: 'prof' } },
+    { global: 'HikrobotIpcCatalog', brand: 'hikrobot', arrays: { CHASSIS: 'ipc', BOARDS: 'ipc' } },
+    { global: 'BaslerLensCatalog', brand: 'basler', arrays: { LENSES: 'lens', TELECENTRIC: 'tele' } },
+    { global: 'BaslerLightCatalog', brand: 'basler', arrays: { LIGHTS: 'light', CONTROLLERS: 'ctrl' } }
+  ];
 
   var LIGHT_TYPE_LABEL = {
     backlight: '面光源（背光）', backlight_hole: '中孔面光源', backlight_parallel: '平行面光源',
     backlight_side: '侧导面光源', bar: '条形光源', bar_array: '组合条形光源', coaxial: '同轴光源',
     dome: '穹顶光源', flat_shadowless: '无影面光源', line: '线光源', line_coax: '同轴线光源',
-    line_focus: '聚光线光源', line_high: '高亮线光源', point: '点光源', ring: '环形光源', ring_dome: '环形无影光源'
+    line_focus: '聚光线光源', line_high: '高亮线光源', point: '点光源', ring: '环形光源', ring_dome: '环形无影光源',
+    darkfield: '暗场光源', flood: '泛光面光源'
   };
-  var COLOR_LABEL = { white: '白', red: '红', blue: '蓝', green: '绿', ir: '红外', uv: '紫外' };
-  var COLOR_CSS = { white: '#94a3b8', red: '#dc2626', blue: '#2563eb', green: '#16a34a', ir: '#7c3aed', uv: '#a21caf' };
+  var COLOR_LABEL = { white: '白', red: '红', blue: '蓝', green: '绿', ir: '红外', uv: '紫外', cyan: '青', yellow: '黄' };
+  var COLOR_CSS = { white: '#94a3b8', red: '#dc2626', blue: '#2563eb', green: '#16a34a', ir: '#7c3aed', uv: '#a21caf', cyan: '#0891b2', yellow: '#ca8a04' };
   var MOUNT_LABEL = { Bare: '板级无口', 'M42/F': 'M42/F', V38: 'V38（线扫口）' };
   var FORM_LABEL = { area: '面阵', board: '板级', '面阵': '面阵', '板级': '板级' };
 
@@ -323,18 +400,29 @@
   }
 
   var items = [];   // { cat, brand(key), d(原始对象) }
-  var metas = {};   // brand → META
+  var metas = {};   // brand → META（主库）
+  var allMetas = []; // {brand, meta} 全部已加载库的数据来源（页脚展示用）
 
   Object.keys(SRC).forEach(function (bk) {
     var c = window[SRC[bk]];
     if (!c) return;
     metas[bk] = c.META || {};
+    if (c.META) allMetas.push({ brand: bk, meta: c.META });
     (c.CAMERAS || []).forEach(function (d) { items.push({ cat: 'cam', brand: bk, d: d }); });
     (c.LINESCAN || []).forEach(function (d) { items.push({ cat: 'line', brand: bk, d: d }); });
     (c.LENSES || []).forEach(function (d) { items.push({ cat: 'lens', brand: bk, d: d }); });
     (c.TELECENTRIC || []).forEach(function (d) { items.push({ cat: 'tele', brand: bk, d: d }); });
     (c.LIGHTS || []).forEach(function (d) { items.push({ cat: 'light', brand: bk, d: d }); });
     (c.CONTROLLERS || []).forEach(function (d) { items.push({ cat: 'ctrl', brand: bk, d: d }); });
+  });
+  EXTRA_SRC.forEach(function (es) {
+    var c = window[es.global];
+    if (!c) return;
+    if (c.META) allMetas.push({ brand: es.brand, meta: c.META });
+    Object.keys(es.arrays).forEach(function (arrKey) {
+      var cat = es.arrays[arrKey];
+      (c[arrKey] || []).forEach(function (d) { items.push({ cat: cat, brand: es.brand, d: d }); });
+    });
   });
 
   var BRAND_BY_KEY = {};
@@ -406,8 +494,16 @@
       { h: '系列', cls: 'model', get: V(function (it) { return it.d.series; }), raw: true },
       { h: '品牌', brand: true },
       { h: '型号规则', get: V(function (it) { return it.d.model; }) },
-      { h: '倍率', cls: 'num', get: V(function (it) { return it.d.magMin != null ? it.d.magMin + '×–' + it.d.magMax + '×' : null; }) },
-      { h: '工作距离 mm', cls: 'num', get: V(function (it) { return it.d.wdMin != null ? it.d.wdMin + '–' + it.d.wdMax : null; }) },
+      { h: '倍率', cls: 'num', get: V(function (it) {
+        var d = it.d;
+        if (d.magMin == null) return null;
+        return d.magMin === d.magMax ? d.magMin + '×（固定）' : d.magMin + '×–' + d.magMax + '×';
+      }) },
+      { h: '工作距离 mm', cls: 'num', get: V(function (it) {
+        var d = it.d;
+        if (d.wdMin == null) return null;
+        return d.wdMin === d.wdMax ? String(d.wdMin) : d.wdMin + '–' + d.wdMax;
+      }) },
       { h: '靶面', get: V(function (it) { return it.d.fmt; }) },
       { h: '卡口', get: V(function (it) { return mountText(it.d.mount); }) },
       { h: '同轴', get: V(function (it) { return it.d.coax ? '支持' : null; }) }
@@ -429,8 +525,34 @@
       { h: '通道', cls: 'num', get: V(function (it) { return it.d.channels; }) },
       { h: '调光模式', get: V(function (it) { return it.d.mode; }) },
       { h: '频闪', get: V(function (it) { return it.d.strobe ? '支持' : null; }) }
+    ],
+    prof: [
+      { h: '', art: true },
+      { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
+      { h: '品牌', brand: true },
+      { h: '子类', get: V(function (it) { return profKind(it.d); }) },
+      { h: '视场 / 测量范围', get: V(function (it) { var d = it.d; return d.kind === 'profiler' ? (d.xRange && d.zRange ? d.xRange + ' × ' + d.zRange : null) : d.fov; }) },
+      { h: '参考距离 / 工作范围', get: V(function (it) { var d = it.d; return d.kind === 'profiler' ? d.ref : d.work; }) },
+      { h: '精度 / Z 分辨率', get: V(function (it) { var d = it.d; return d.kind === 'profiler' ? d.zRepeat : d.accuracy; }) },
+      { h: '帧率 / 行频', get: V(function (it) { var d = it.d; return d.kind === 'profiler' ? d.rate : d.fps; }) },
+      { h: '激光 / 接口', get: V(function (it) { var d = it.d; return d.kind === 'profiler' ? d.laser : d.iface; }) }
+    ],
+    ipc: [
+      { h: '', art: true },
+      { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
+      { h: '品牌', brand: true },
+      { h: '子类', get: V(function (it) { return it.d.series; }) },
+      { h: 'CPU / 适用主板', get: V(function (it) { return it.d.cpu || it.d.board; }) },
+      { h: '内存', get: V(function (it) { return it.d.ram; }) },
+      { h: '网口 / 扩展', get: V(function (it) { return it.d.lan || it.d.io; }) },
+      { h: '外形尺寸', get: V(function (it) { return it.d.form || it.d.size; }) }
     ]
   };
+
+  function profKind(d) {
+    if (d.kind === 'profiler') return '激光轮廓传感器';
+    return d.kind || '3D 相机';
+  }
 
   // 全部视图的「关键参数」列
   function keySpecText(it) {
@@ -441,6 +563,12 @@
     else if (it.cat === 'tele') { s.push(d.model); }
     else if (it.cat === 'light') { s.push(lightTypeText(d.type)); s.push(lightColorText(d.color)); s.push(fmtSize(d.size)); }
     else if (it.cat === 'ctrl') { s.push(d.channels + ' 通道'); s.push(d.mode); }
+    else if (it.cat === 'prof') {
+      s.push(profKind(d));
+      if (d.kind === 'profiler') { s.push(d.points + ' 点'); s.push(d.xRange && d.zRange ? d.xRange + ' × ' + d.zRange : null); s.push(d.zRepeat); }
+      else { s.push(d.fov); s.push(d.work); s.push(d.accuracy); }
+    }
+    else if (it.cat === 'ipc') { s.push(d.series); s.push(d.cpu || d.board); s.push(d.form || d.size); }
     return s.filter(Boolean).join(' · ');
   }
 
@@ -493,7 +621,7 @@
       ['支持靶面', function (d) { return d.fmt; }],
       ['像面直径', function (d) { return d.ic != null ? 'Ø ' + d.ic + ' mm' : null; }],
       ['支持像素', function (d) { return d.mp != null ? d.mp + ' MP' : null; }],
-      ['最小光圈系数（设计值）', function (d) { return d.dist != null ? String(d.dist) : null; }],
+      ['光学畸变', function (d) { return d.dist != null ? d.dist + '%' : null; }],
       ['最近工作距离', function (d) { return d.minDist != null ? d.minDist + ' m' : null; }],
       ['镜身长度', function (d) { return d.len != null ? d.len + ' mm' : null; }]
     ],
@@ -521,6 +649,50 @@
       ['通道数', function (d) { return d.channels; }],
       ['调光模式', function (d) { return d.mode; }],
       ['频闪', function (d) { return d.strobe != null ? (d.strobe ? '支持' : '不支持') : null; }]
+    ],
+    prof: [
+      ['型号', function (d) { return d.model; }],
+      ['子类', function (d) { return profKind(d); }],
+      ['产品系列', function (d) { return d.series; }],
+      ['单轮廓点数', function (d) { return d.points; }],
+      ['视场角 / 视场', function (d) { return d.fov; }],
+      ['X 测量范围', function (d) { return d.xRange; }],
+      ['Z 测量范围', function (d) { return d.zRange; }],
+      ['参考距离', function (d) { return d.ref; }],
+      ['工作范围', function (d) { return d.work; }],
+      ['Z 轴分辨率', function (d) { return d.zRes; }],
+      ['Z 轴重复精度', function (d) { return d.zRepeat; }],
+      ['检测精度', function (d) { return d.accuracy; }],
+      ['轮廓数据间隔', function (d) { return d.interval; }],
+      ['扫描帧率 / 行频', function (d) { return d.rate || d.fps; }],
+      ['激光波长', function (d) { return d.laser; }],
+      ['数据输出', function (d) { return d.output; }],
+      ['接口', function (d) { return d.iface; }],
+      ['硬件版本', function (d) { return d.ver; }]
+    ],
+    ipc: [
+      ['型号', function (d) { return d.model; }],
+      ['子类', function (d) { return d.series; }],
+      ['处理器', function (d) { return d.cpu; }],
+      ['芯片组', function (d) { return d.chipset; }],
+      ['内存', function (d) { return d.ram; }],
+      ['存储', function (d) { return d.storage; }],
+      ['操作系统', function (d) { return d.os; }],
+      ['网络接口', function (d) { return d.lan; }],
+      ['USB 接口', function (d) { return d.usb; }],
+      ['串口', function (d) { return d.com; }],
+      ['扩展接口', function (d) { return d.exp; }],
+      ['显示接口', function (d) { return d.display; }],
+      ['电源', function (d) { return d.power; }],
+      ['外形尺寸', function (d) { return d.form; }],
+      ['工作温度', function (d) { return d.temp; }],
+      ['机箱尺寸', function (d) { return d.size; }],
+      ['硬盘位', function (d) { return d.bays; }],
+      ['风扇位', function (d) { return d.fans; }],
+      ['适用主板', function (d) { return d.board; }],
+      ['I/O 扩展', function (d) { return d.io; }],
+      ['外置接口', function (d) { return d.ports; }],
+      ['适用电源', function (d) { return d.psu; }]
     ]
   };
 
@@ -533,7 +705,7 @@
   }
 
   /* ============ 2.5 产品示意图（内联 SVG，按真实参数绘制） ============ */
-  var LIGHT_GLOW = { white: '#f8fafc', red: '#ef4444', blue: '#3b82f6', green: '#22c55e', ir: '#8b5cf6', uv: '#c026d3' };
+  var LIGHT_GLOW = { white: '#f8fafc', red: '#ef4444', blue: '#3b82f6', green: '#22c55e', ir: '#8b5cf6', uv: '#c026d3', cyan: '#22d3ee', yellow: '#eab308' };
   function glowC(c) { return LIGHT_GLOW[c] || '#f8fafc'; }
   // 白色发光体在浅灰底上需要描边才可见
   function glowEdge(c) { return (c === 'white' || !LIGHT_GLOW[c]) ? '#94a3b8' : 'rgba(0,0,0,0.18)'; }
@@ -681,6 +853,48 @@
       badge(14, 38, brandC(bk)));
   }
 
+  // 3D 激光轮廓传感器：传感头 + 激光三角光束；结构光/双目：双镜头立体相机
+  function artProf(d, bk) {
+    if (d.kind === 'profiler') {
+      return artWrap(
+        '<path d="M 14 40 L 32 22 L 50 40 Z" fill="none" stroke="' + brandC(bk) + '" stroke-width="2"/>' +
+        '<rect x="24" y="16" width="16" height="10" rx="2" fill="' + ART_DARK + '"/>' +
+        '<line x1="32" y1="26" x2="32" y2="34" stroke="#ef4444" stroke-width="1.6"/>' +
+        '<path d="M 20 44 Q 32 38 44 44" stroke="#ef4444" stroke-width="2" fill="none"/>' +
+        '<line x1="14" y1="46" x2="50" y2="46" stroke="' + ART_EDGE + '" stroke-width="1.5"/>' +
+        badge(14, 52, brandC(bk)));
+    }
+    return artWrap(
+      '<rect x="14" y="20" width="36" height="26" rx="4" fill="' + ART_DARK + '"/>' +
+      '<circle cx="24" cy="33" r="6" fill="' + ART_DEEP + '" stroke="' + ART_EDGE + '" stroke-width="1.4"/>' +
+      '<circle cx="40" cy="33" r="6" fill="' + ART_DEEP + '" stroke="' + ART_EDGE + '" stroke-width="1.4"/>' +
+      '<circle cx="24" cy="33" r="2.4" fill="' + ART_GLASS + '"/>' +
+      '<circle cx="40" cy="33" r="2.4" fill="' + ART_GLASS + '"/>' +
+      '<circle cx="46" cy="24" r="1.5" fill="#22c55e"/>' +
+      badge(18, 15, brandC(bk)));
+  }
+
+  // 工控机：整机机箱（上架式带槽位）/ 主板（PCB）
+  function artIpc(d, bk) {
+    if (d.series === '工控主板') {
+      return artWrap(
+        '<rect x="14" y="12" width="36" height="40" rx="2.5" fill="#166534"/>' +
+        '<rect x="14" y="12" width="36" height="40" rx="2.5" fill="none" stroke="#14532d" stroke-width="1.5"/>' +
+        '<rect x="20" y="18" width="24" height="20" rx="2" fill="' + ART_DEEP + '"/>' +
+        '<rect x="26" y="24" width="12" height="8" rx="1" fill="' + ART_GLASS + '"/>' +
+        '<rect x="18" y="44" width="28" height="4" rx="1" fill="#0f172a"/>' +
+        '<circle cx="20" cy="47" r="1.6" fill="#fbbf24"/>' + badge(40, 13, brandC(bk)));
+    }
+    return artWrap(
+      '<rect x="18" y="10" width="28" height="44" rx="3" fill="' + ART_DEEP + '"/>' +
+      '<rect x="22" y="14" width="20" height="4" rx="1" fill="#475569"/>' +
+      '<rect x="22" y="21" width="20" height="12" rx="1" fill="#0b1220"/>' +
+      '<rect x="22" y="36" width="20" height="3" rx="1" fill="#475569"/>' +
+      '<rect x="22" y="41" width="20" height="3" rx="1" fill="#475569"/>' +
+      '<circle cx="41" cy="49" r="1.8" fill="#22c55e"/>' +
+      badge(22, 52, brandC(bk)));
+  }
+
   function artFor(it) {
     var d = it.d, bk = it.brand;
     try {
@@ -690,6 +904,8 @@
       if (it.cat === 'tele') return artTele(d, bk);
       if (it.cat === 'light') return artLight(d, bk);
       if (it.cat === 'ctrl') return artCtrl(d, bk);
+      if (it.cat === 'prof') return artProf(d, bk);
+      if (it.cat === 'ipc') return artIpc(d, bk);
     } catch (e) { /* 兜底：画品牌色块 */ }
     return artWrap('<rect x="16" y="16" width="32" height="32" rx="6" fill="' + brandC(bk) + '"/>');
   }
@@ -721,6 +937,13 @@
     ctrl: [
       { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } },
       { k: 'ch', t: '通道数 多→少', fn: function (a, b) { return (b.d.channels || 0) - (a.d.channels || 0); } }
+    ],
+    prof: [
+      { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } },
+      { k: 'points', t: '点数 多→少', fn: function (a, b) { return (b.d.points || 0) - (a.d.points || 0); } }
+    ],
+    ipc: [
+      { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } }
     ],
     all: [
       { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || a.cat.localeCompare(b.cat) || String(a.d.model).localeCompare(String(b.d.model)); } }
@@ -754,6 +977,12 @@
       { k: 'chMin', label: '通道数 ≥', num: true, val: function (it) { return it.d.channels; } },
       { k: 'strobe', label: '频闪', get: function (it) { return it.d.strobe ? '支持频闪' : null; } }
     ],
+    prof: [
+      { k: 'kind', label: '子类', get: function (it) { return profKind(it.d); } }
+    ],
+    ipc: [
+      { k: 'series', label: '子类', get: function (it) { return it.d.series; } }
+    ],
     all: []
   };
 
@@ -764,7 +993,9 @@
     brand: '',            // '' = 全部品牌
     sel: {},              // 各下拉筛选 { 'cam.iface': 'USB3', ... }
     sort: 'brand',
-    page: 1
+    page: 1,
+    lensFor: null,        // 适配镜头反查：{ model, mounts:Set, adapter:Set, minIc, minMp }
+    compare: []           // 横向对比：型号 item 引用，最多 4
   };
   var PAGE_SIZE = 50;
   var isMobile = window.matchMedia('(max-width: 860px)');
@@ -791,9 +1022,23 @@
 
   function currentItems() {
     var q = state.q.trim().toLowerCase();
+    var lf = state.lensFor;
     var list = items.filter(function (it) {
       if (state.cat !== 'all' && it.cat !== state.cat) return false;
       if (state.brand && it.brand !== state.brand) return false;
+      // 适配镜头反查（选型助手/相机详情跳转过来）：卡口 + 像面 + 解析力
+      if (lf && it.cat === 'lens') {
+        var mount = it.d.mount;
+        var direct = lf.mounts.indexOf(mount) >= 0;
+        var viaAdapter = !direct && lf.adapter && lf.adapter.indexOf(mount) >= 0;
+        if (!direct && !viaAdapter) return false;
+        if (lf.minIc != null && it.d.ic != null && it.d.ic < lf.minIc) return false;
+        if (lf.minMp != null && it.d.mp != null && it.d.mp < lf.minMp) return false;
+        if (lf.minMp != null && it.d.mp == null) return false; // 解析力未知的镜头不做反查推荐
+        it._fit = direct ? 'direct' : 'adapter';
+      } else if (lf) {
+        return false; // 反查模式下只看镜头
+      }
       var defs = FILTER_DEFS[state.cat] || [];
       for (var i = 0; i < defs.length; i++) {
         var def = defs[i], v = state.sel[selKey(def)];
@@ -810,10 +1055,35 @@
       if (q && searchText(it).indexOf(q) < 0) return false;
       return true;
     });
+    if (lf && state.cat === 'lens') {
+      list.sort(function (a, b) {
+        return (a._fit === b._fit ? 0 : a._fit === 'direct' ? -1 : 1) ||
+          (a.d.focal || 0) - (b.d.focal || 0) || String(a.d.model).localeCompare(String(b.d.model));
+      });
+      return list;
+    }
     var sorts = SORTS[state.cat] || SORTS.all;
     var fn = sorts.filter(function (s) { return s.k === state.sort; })[0] || sorts[0];
     var arr = list.slice().sort(fn.fn);
     return arr;
+  }
+
+  // 由相机算「适配镜头」条件：卡口直配 +（大口径可转接 C 口）、像面覆盖靶面对角线、解析力 ≥ 相机像素
+  function lensFitFor(camItem) {
+    var d = camItem.d;
+    var sw = d.sw != null ? d.sw : (d.w && d.pxUm ? d.w * d.pxUm / 1000 : null);
+    var sh = d.sh != null ? d.sh : (d.h && d.pxUm ? d.h * d.pxUm / 1000 : null);
+    var diag = (sw > 0 && sh > 0) ? Math.sqrt(sw * sw + sh * sh) : null;
+    var mp = d.w && d.h ? d.w * d.h / 1e6 : null;
+    var LARGE = ['F', 'M42', 'M58', 'M72'];
+    return {
+      model: d.model,
+      mounts: [d.mount],
+      adapter: LARGE.indexOf(d.mount) >= 0 ? ['C'] : null,
+      minIc: diag != null ? Math.ceil(diag * 10) / 10 : null,
+      minMp: mp != null ? Math.floor(mp * 10) / 10 : null,
+      sw: sw, sh: sh, mp: mp
+    };
   }
 
   function brandTagHtml(bk) {
@@ -837,7 +1107,16 @@
 
   function renderFilters() {
     var defs = FILTER_DEFS[state.cat] || [];
-    var html = '<div class="f-group"><label>品牌</label><div class="f-chips" id="brandChips">';
+    var lfBanner = '';
+    if (state.lensFor && state.cat === 'lens') {
+      var lf = state.lensFor;
+      lfBanner = '<div class="lf-banner">🔎 <b>适配镜头反查</b>：' + esc(lf.model) +
+        '　卡口 ' + esc(lf.mounts.join(' / ')) + (lf.adapter ? ' + 转接 C 口' : '') +
+        (lf.minIc != null ? '　像面 ≥ ' + lf.minIc + ' mm' : '') +
+        (lf.minMp != null ? '　解析 ≥ ' + lf.minMp + ' MP' : '') +
+        '<button class="lf-close" id="lfClear">取消反查</button></div>';
+    }
+    var html = lfBanner + '<div class="f-group"><label>品牌</label><div class="f-chips" id="brandChips">';
     var brandKeys = (window.BRAND_KEYS || Object.keys(window.BRANDS || {}));
     html += '<button class="chip' + (state.brand === '' ? ' on' : '') + '" data-brand="">全部</button>';
     brandKeys.forEach(function (bk) {
@@ -877,14 +1156,29 @@
     $filters.innerHTML = html;
   }
 
+  function cmpInList(it) {
+    return state.compare.indexOf(it) >= 0 ? ' checked' : '';
+  }
+
   function renderTable(list, pageSlice) {
     var cols = COLS[state.cat] || COLS.all;
-    $thead.innerHTML = cols.map(function (c) {
+    if (state.lensFor && state.cat === 'lens') {
+      cols = cols.concat([{ h: '适配方式', get: function (it) { return it._fit === 'direct' ? '直连' : '转接环'; }, fit: true }]);
+    }
+    $thead.innerHTML = '<th class="cmp-col">对比</th>' + cols.map(function (c) {
       return '<th' + (c.cls === 'num' ? ' class="num"' : '') + '>' + esc(c.h) + '</th>';
     }).join('');
     $tbody.innerHTML = pageSlice.map(function (it) {
-      return '<tr data-idx="' + list.indexOf(it) + '">' + cols.map(function (c) {
+      return '<tr data-idx="' + list.indexOf(it) + '">' +
+        '<td class="cmp-col"><input type="checkbox" class="cmp-box" data-idx="' + list.indexOf(it) + '"' + cmpInList(it) +
+          ' title="加入横向对比（最多 4 个）" /></td>' +
+        cols.map(function (c) {
         if (c.art) return '<td class="art-cell">' + artFor(it) + '</td>';
+        if (c.fit) {
+          return '<td>' + (it._fit === 'direct'
+            ? '<span class="fit-tag direct">直连</span>'
+            : '<span class="fit-tag adapter">需转接环</span>') + '</td>';
+        }
         if (c.brand) return '<td>' + brandTagHtml(it.brand) + '</td>';
         if (c.color) { var t = c.get(it); return '<td>' + (t ? colorDotHtml(t) : '<span class="muted-cell">—</span>') + '</td>'; }
         var v = c.get(it);
@@ -899,10 +1193,14 @@
     $cards.innerHTML = pageSlice.map(function (it) {
       var model = it.d.model || it.d.series || '';
       var specs = cardSpecs(it);
+      var fitTag = (state.lensFor && it.cat === 'lens')
+        ? '<span class="fit-tag ' + (it._fit === 'direct' ? 'direct">直连' : 'adapter">需转接环') + '</span>' : '';
       return '<div class="card" data-idx="' + list.indexOf(it) + '">' +
         '<div class="card-flex"><div class="card-art">' + artFor(it) + '</div>' +
         '<div class="card-main">' +
-        '<div class="card-head"><span class="card-model">' + esc(model) + '</span>' + brandTagHtml(it.brand) + '</div>' +
+        '<div class="card-head"><span class="card-model">' + esc(model) + '</span>' + brandTagHtml(it.brand) + fitTag +
+        '<label class="cmp-chip"><input type="checkbox" class="cmp-box" data-idx="' + list.indexOf(it) + '"' + cmpInList(it) + ' />对比</label>' +
+        '</div>' +
         '<div class="card-specs">' + specs.map(function (p) {
           return '<span class="spec"><span class="k">' + esc(p[0]) + '</span>' +
             '<span class="v">' + (p[1] != null && p[1] !== '' ? esc(p[1]) : '—') + '</span></span>';
@@ -942,6 +1240,29 @@
       ['通道', d.channels != null ? d.channels + ' 通道' : '—'], ['频闪', d.strobe ? '支持' : '—'],
       ['调光', d.mode || '—']
     ];
+    if (it.cat === 'prof') {
+      if (d.kind === 'profiler') return [
+        ['子类', profKind(d)], ['单轮廓点数', d.points != null ? d.points + ' 点' : '—'],
+        ['测量范围 X×Z', d.xRange && d.zRange ? d.xRange + ' × ' + d.zRange : '—'],
+        ['参考距离', d.ref || '—'], ['Z 分辨率', d.zRes || '—'],
+        ['Z 重复精度', d.zRepeat || '—'], ['行频', d.rate || '—'], ['激光', d.laser || '—']
+      ];
+      return [
+        ['子类', profKind(d)], ['视场', d.fov || '—'], ['工作范围', d.work || '—'],
+        ['精度', d.accuracy || '—'], ['帧率', d.fps || '—'], ['接口', d.iface || '—']
+      ];
+    }
+    if (it.cat === 'ipc') {
+      if (d.series === '工控主板') return [
+        ['子类', d.series], ['芯片组', d.chipset || '—'], ['处理器', d.cpu || '—'],
+        ['内存', d.ram || '—'], ['网口', d.lan || '—'], ['扩展', d.exp || '—'],
+        ['尺寸', d.form || '—']
+      ];
+      return [
+        ['子类', d.series], ['适用主板', d.board || '—'], ['扩展槽位', d.io || '—'],
+        ['硬盘位', d.bays || '—'], ['机箱尺寸', d.size || '—']
+      ];
+    }
     return [];
   }
 
@@ -977,6 +1298,7 @@
   function switchCat(cat) {
     state.cat = cat;
     state.page = 1;
+    if (cat !== 'lens' && state.lensFor) state.lensFor = null; // 反查模式只在镜头页生效
     var sorts = SORTS[cat] || SORTS.all;
     state.sort = sorts[0].k;
     renderAll();
@@ -1004,10 +1326,71 @@
         (meta.generated ? '<span>数据来源：' + esc(meta.source || '') + '（' + esc(meta.generated) + '）</span>' : '') +
       '</div></div>' +
       '<div class="sheet-art">' + artFor(it) + '</div>' +
-      '<table class="kv-table">' + rows + '</table>';
+      '<table class="kv-table">' + rows + '</table>' + extraBlocks(it);
     $mask.classList.add('show');
     document.getElementById('sheetClose').addEventListener('click', closeDetail);
+    bindDetailExtras(it);
   }
+
+  // 详情弹层附加块：相机的「适配镜头反查」入口 + 相机/镜头的跨品牌等价列表
+  function extraBlocks(it) {
+    var html = '';
+    if (it.cat === 'cam') {
+      html += '<div class="x-block"><button class="x-btn" id="xLensFit">🔎 查看适配镜头（卡口 + 像面 + 解析力反查）</button></div>';
+    }
+    var eq = crossBrandEquiv(it);
+    if (eq.length) {
+      html += '<div class="x-block"><div class="x-title">跨品牌等价型号（' + eq.length + '）' +
+        '<span class="x-note">' + (it.cat === 'cam' ? '同分辨率 + 接口 + 彩色' : '同卡口 + 焦距 ±12%') + '</span></div>' +
+        '<div class="x-list">' + eq.map(function (x) {
+          var idx = items.indexOf(x);
+          return '<button class="x-item" data-open="' + idx + '">' + artFor(x) +
+            '<span class="x-model">' + esc(x.d.model) + '</span>' + brandTagHtml(x.brand) + '</button>';
+        }).join('') + '</div></div>';
+    }
+    return html;
+  }
+
+  // 跨品牌等价：相机 = 同 w/h + 接口 + 彩色；镜头 = 同卡口 + 焦距 ±12%
+  function crossBrandEquiv(it) {
+    if (it.cat === 'cam') {
+      var d = it.d;
+      return items.filter(function (x) {
+        return x !== it && x.cat === 'cam' && x.d.w === d.w && x.d.h === d.h &&
+          x.d.iface === d.iface && x.d.color === d.color;
+      });
+    }
+    if (it.cat === 'lens' && it.d.focal) {
+      return items.filter(function (x) {
+        return x !== it && x.cat === 'lens' && x.d.mount === it.d.mount && x.d.focal &&
+          Math.abs(x.d.focal - it.d.focal) / it.d.focal <= 0.12;
+      });
+    }
+    return [];
+  }
+
+  function bindDetailExtras(it) {
+    var btn = document.getElementById('xLensFit');
+    if (btn) btn.addEventListener('click', function () {
+      state.lensFor = lensFitFor(it);
+      state.q = '';
+      $search.value = '';
+      $searchBox.classList.remove('has-val');
+      state.sel = {};
+      state.brand = '';
+      state.page = 1;
+      closeDetail();
+      switchCat('lens');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    [...document.querySelectorAll('.x-item')].forEach(function (b) {
+      b.addEventListener('click', function () {
+        var target = items[parseInt(b.getAttribute('data-open'), 10)];
+        if (target) openDetail(target);
+      });
+    });
+  }
+
   function closeDetail() { $mask.classList.remove('show'); }
   $mask.addEventListener('click', function (e) { if (e.target === $mask) closeDetail(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetail(); });
@@ -1029,9 +1412,16 @@
     if (e.target.id === 'resetBtn') {
       state.brand = '';
       state.sel = {};
+      state.lensFor = null;
       state.page = 1;
       var sorts = SORTS[state.cat] || SORTS.all;
       state.sort = sorts[0].k;
+      renderAll();
+      return;
+    }
+    if (e.target.id === 'lfClear') {
+      state.lensFor = null;
+      state.page = 1;
       renderAll();
     }
   });
@@ -1078,15 +1468,6 @@
     $search.focus();
   });
 
-  function rowClick(e) {
-    var el = e.target.closest('[data-idx]');
-    if (!el) return;
-    var it = filtered[parseInt(el.getAttribute('data-idx'), 10)];
-    if (it) openDetail(it);
-  }
-  $tbody.addEventListener('click', rowClick);
-  $cards.addEventListener('click', rowClick);
-
   $pgPrev.addEventListener('click', function () { if (state.page > 1) { state.page--; render(); } });
   $pgNext.addEventListener('click', function () {
     var tp = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -1095,19 +1476,104 @@
   if (isMobile.addEventListener) isMobile.addEventListener('change', render);
   else isMobile.addListener(render);
 
+  function rowClick(e) {
+    if (e.target.closest('.cmp-box, .cmp-chip')) return; // 对比勾选不触发详情
+    var el = e.target.closest('[data-idx]');
+    if (!el) return;
+    var it = filtered[parseInt(el.getAttribute('data-idx'), 10)];
+    if (it) openDetail(it);
+  }
+  $tbody.addEventListener('click', rowClick);
+  $cards.addEventListener('click', rowClick);
+
+  /* ---- 横向对比 ---- */
+  function toggleCompare(idx) {
+    var it = filtered[parseInt(idx, 10)];
+    if (!it) return;
+    var i = state.compare.indexOf(it);
+    if (i >= 0) state.compare.splice(i, 1);
+    else if (state.compare.length >= 4) return; // 最多 4 个
+    else if (state.compare.length && state.compare[0].cat !== it.cat) return; // 仅同类可比
+    else state.compare.push(it);
+    renderCompareTray();
+    render();
+  }
+  function cmpCat() { return state.compare.length ? state.compare[0].cat : null; }
+
+  function renderCompareTray() {
+    var tray = document.getElementById('cmpTray');
+    if (!state.compare.length) { tray.className = 'cmp-tray'; tray.innerHTML = ''; return; }
+    var catName = (CATS.filter(function (x) { return x.key === cmpCat(); })[0] || {}).catName || '';
+    tray.className = 'cmp-tray show';
+    tray.innerHTML =
+      '<span>对比 ' + state.compare.length + '/4 · ' + esc(catName) + '</span>' +
+      '<span class="t-models">' + esc(state.compare.map(function (x) { return x.d.model || x.d.series; }).join('、')) + '</span>' +
+      (state.compare.length >= 2 ? '<button class="t-go" id="cmpGo">开始对比</button>' : '') +
+      '<button class="t-clear" id="cmpClear">清空</button>';
+    document.getElementById('cmpGo') && document.getElementById('cmpGo').addEventListener('click', openCompare);
+    document.getElementById('cmpClear').addEventListener('click', function () {
+      state.compare = [];
+      renderCompareTray();
+      render();
+    });
+  }
+
+  function openCompare() {
+    var its = state.compare;
+    if (its.length < 2) return;
+    var cat = its[0].cat;
+    var catInfo = CATS.filter(function (x) { return x.key === cat; })[0];
+    var fields = DETAIL[cat] || [];
+    var vals = its.map(function (it) {
+      return fields.map(function (p) {
+        var v = p[1](it.d);
+        return (v === null || v === undefined || v === '') ? '—' : String(v);
+      });
+    });
+    var headRow = '<tr><td class="k"></td>' + its.map(function (it) {
+      return '<th><div class="card-model" style="font-size:12.5px">' + esc(it.d.model || it.d.series || '') + '</div>' +
+        '<div style="margin-top:4px">' + brandTagHtml(it.brand) + '</div></th>';
+    }).join('') + '</tr>';
+    var body = fields.map(function (p, fi) {
+      var diff = its.length > 1 && vals.some(function (v) { return v[fi] !== vals[0][fi]; });
+      return '<tr><td class="k">' + esc(p[0]) + '</td>' + vals.map(function (v) {
+        return '<td' + (diff ? ' class="diff"' : '') + '>' + esc(v[fi]) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    $sheet.className = 'sheet sheet-wide';
+    $sheet.innerHTML =
+      '<div class="sheet-head"><div class="row1">' +
+        '<span class="cat-tag">横向对比 · ' + esc(catInfo ? catInfo.catName : '') + ' · ' + its.length + ' 个</span>' +
+        '<button class="sheet-close" id="sheetClose">✕</button>' +
+      '</div>' +
+      '<div class="sheet-meta"><span>黄色底 = 参数不同的行</span></div></div>' +
+      '<div style="overflow-x:auto"><table class="cmp-table"><thead>' + headRow + '</thead><tbody>' + body + '</tbody></table></div>';
+    $mask.classList.add('show');
+    document.getElementById('sheetClose').addEventListener('click', function () {
+      closeDetail();
+      $sheet.className = 'sheet';
+    });
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target.classList && e.target.classList.contains('cmp-box')) {
+      toggleCompare(e.target.getAttribute('data-idx'));
+    }
+  });
+
   /* ============ 7. 顶部统计与页脚 ============ */
   (function initStats() {
     var total = items.length;
     var cam = items.filter(function (x) { return x.cat === 'cam'; }).length;
     var lens = items.filter(function (x) { return x.cat === 'lens'; }).length;
     var light = items.filter(function (x) { return x.cat === 'light'; }).length;
+    var prof = items.filter(function (x) { return x.cat === 'prof'; }).length;
+    var ipc = items.filter(function (x) { return x.cat === 'ipc'; }).length;
     document.getElementById('stats').innerHTML =
       '共收录 <b>' + total + '</b> 个型号：面阵相机 <b>' + cam + '</b> · 镜头 <b>' + lens + '</b> · 光源 <b>' + light +
-      '</b> 等，来自海康机器人 / 华睿 / Basler / 大恒图像 四品牌官方型录与官网数据。';
+      '</b> · 3D 传感器 <b>' + prof + '</b> · 工控机 <b>' + ipc + '</b> 等，来自海康机器人 / 华睿 / Basler / 大恒图像 官方型录与官网数据。';
     var footLines = [];
-    Object.keys(metas).forEach(function (bk) {
-      var m = metas[bk];
-      footLines.push(brandShort(bk) + '：' + (m.source || '') + (m.generated ? '（更新于 ' + m.generated + '）' : ''));
+    allMetas.forEach(function (m) {
+      footLines.push(brandShort(m.brand) + '：' + (m.meta.source || '') + (m.meta.generated ? '（更新于 ' + m.meta.generated + '）' : ''));
     });
     document.getElementById('foot').innerHTML =
       '<b>数据来源</b><br>' + footLines.map(esc).join('<br>') +
@@ -1115,6 +1581,28 @@
   })();
 
   renderAll();
+
+  /* ============ 8. URL 参数入口：?cat=cam&q=型号 → 自动定位并弹出详情 ============ */
+  (function initFromUrl() {
+    try {
+      var sp = new URLSearchParams(location.search);
+      var q = sp.get('q'), cat = sp.get('cat');
+      if (cat && CATS.some(function (c) { return c.key === cat; }) && cat !== state.cat) {
+        state.cat = cat;
+        state.sort = (SORTS[cat] || SORTS.all)[0].k;
+      }
+      if (q) {
+        state.q = q;
+        $search.value = q;
+        $searchBox.classList.add('has-val');
+        renderAll();
+        var exact = filtered.filter(function (it) { return (it.d.model || '') === q; });
+        if (exact.length) openDetail(exact[0]);
+      } else if (cat) {
+        renderAll();
+      }
+    } catch (e) { /* URL 解析失败不影响正常使用 */ }
+  })();
 })();
 </script>
 </body>

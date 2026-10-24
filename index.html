@@ -211,6 +211,12 @@
   .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
   .card-head h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .4px; }
   .card-head .tag { margin-left: auto; }
+  .lib-link {
+    font-size: 11px; text-decoration: none; color: var(--accent);
+    border: 1px solid #dbeafe; background: #eff6ff; border-radius: 999px;
+    padding: 2px 9px; white-space: nowrap;
+  }
+  .lib-link:hover { background: #dbeafe; }
   .ico {
     width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
     display: grid; place-items: center; font-size: 15px;
@@ -565,6 +571,7 @@
 <script src="hikrobot-catalog.js"></script>
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
+<script src="basler-lens-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
 <!-- 接入新品牌时，在此处追加其 catalog 脚本，并在 brands.js 注册即可 -->
 <script src="engine.js"></script>

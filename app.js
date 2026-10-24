@@ -10,7 +10,9 @@
   // 镜头品牌：与相机分开筛选（仅纳入已入库镜头的品牌，初始全选）
   var activeLensBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).filter(function (k) {
     var C = window[BRANDS[k].global];
-    return C && (C.LENSES || []).length > 0;
+    if (C && (C.LENSES || []).length > 0) return true;
+    if (k === 'basler' && window.BaslerLensCatalog && (window.BaslerLensCatalog.LENSES || []).length > 0) return true;
+    return false;
   });
   if (!activeLensBrands.length) activeLensBrands = ['hikrobot'];
 
@@ -51,6 +53,11 @@
       tele = tele.concat(C.TELECENTRIC || []);
       (C.CONTROLLERS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; ctrls.push(x); });
     });
+    // Basler 镜头/远心独立库：勾选「Basler 镜头品牌」时参与镜头与远心比选
+    if (activeLensBrands.indexOf('basler') >= 0 && window.BaslerLensCatalog) {
+      (window.BaslerLensCatalog.LENSES || []).forEach(function (x) { x.brand = x.brand || 'Basler'; lenses.push(x); });
+      tele = tele.concat(window.BaslerLensCatalog.TELECENTRIC || []);
+    }
     return {
       META: { source: '多品牌合并目录', brand: '多品牌', generated: '', cameras: cam.length },
       CAMERAS: cam, LINESCAN: linescan, LENSES: lenses,
@@ -97,11 +104,13 @@
     });
   }
 
-  // 有镜头入库的品牌才出现在镜头筛选条
+  // 有镜头入库的品牌才出现在镜头筛选条（Basler 镜头在独立库 basler-lens-catalog.js）
   function lensBrandKeys() {
     return (window.availableBrands ? window.availableBrands() : []).filter(function (k) {
       var C = window[BRANDS[k].global];
-      return C && (C.LENSES || []).length > 0;
+      if (C && (C.LENSES || []).length > 0) return true;
+      if (k === 'basler' && window.BaslerLensCatalog && (window.BaslerLensCatalog.LENSES || []).length > 0) return true;
+      return false;
     });
   }
 
@@ -239,6 +248,13 @@
   }
 
   /* ---------------- 卡片渲染 ---------------- */
+  // 「在产品库查看」链接：带型号与类别跳产品库，产品库会自动搜索并弹出详情
+  function libLink(cat, model) {
+    if (!model) return '';
+    return '<a class="lib-link" href="library.html?cat=' + encodeURIComponent(cat) +
+      '&q=' + encodeURIComponent(model) + '" title="在产品库中查看全参数与备选">产品库 ↗</a>';
+  }
+
   function expoRange(a, b) {
     function one(us) {
       if (us == null) return '—';
@@ -263,7 +279,7 @@
     var bmeta = brandMeta(c.brand);
     var blogo = bmeta ? '<img class="card-brand-logo" src="' + esc(bmeta.logo) + '" alt="' + esc(bmeta.short) + '" style="--logo-scale:' + (bmeta.logoScale || 1) + '" />' : '';
     return '<div class="card cam">' +
-      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span></div>' +
+      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span>' + libLink('cam', c.model) + '</div>' +
       '<div class="hero">' + esc(c.model) + '</div>' +
       '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px　·　' + esc(c.brand || '—') + '</div>' +
       kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size || (c.sw > 0 && c.sh > 0) ? '（' + sensorSizeTxt(c) + '）' : '')) +
@@ -304,7 +320,7 @@
       : (l.lenEst != null ? '≈' + l.lenEst + ' mm' + (l.adapter ? '（含转接环）' : '') : '—');
     return '<div class="card lens">' +
       '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3>' + llogo +
-      '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + '</div>' +
+      '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + libLink('lens', l.model) + '</div>' +
       '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
       '<div class="hero-sub">' + esc(l.model) + '　·　' + esc(l.brand || '—') + '</div>' +
       kv('镜头系列', esc(l.series)) +
@@ -331,7 +347,7 @@
     var gmeta = brandMeta(g.skuBrand);
     var glogo = gmeta ? '<img class="card-brand-logo" src="' + esc(gmeta.logo) + '" alt="' + esc(gmeta.short) + '" style="--logo-scale:' + (gmeta.logoScale || 1) + '" />' : '';
     return '<div class="card light">' +
-      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
+      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span>' + libLink('light', g.sku) + '</div>' +
       '<div class="hero">' + esc(g.sku || g.seriesName) + '</div>' +
       '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' +
         esc(g.series) + esc(g.suffix) + '　·　' + esc(g.skuBrand || '—') + '</div>' +
@@ -344,7 +360,7 @@
         esc(g.power == null ? '—' : g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W')) +
       block('控制器型号', esc(g.controllerModel
         ? g.controllerModel + '（' + g.controllerChannels + ' 通道）'
-        : '—')) +
+        : '—') + libLink('ctrl', g.controllerModel)) +
       block('控制方式', esc(g.controller)) +
       (g.skuAlts && g.skuAlts.length
         ? block('备选型号', g.skuAlts.map(function (x) {
@@ -367,6 +383,12 @@
         '<b>' + esc(ls.model) + '</b>　' + ls.w + ' 像素　' + ls.lineRate + ' kHz　' + esc(ls.iface) +
         '　' + esc(ls.color) +
         '<br>光学：倍率 ' + num(optics.m, 3) + '×，焦距 ≈ ' + num(optics.f, 1) + ' mm（像面宽 ' + num(optics.sensorW, 1) + ' mm）' +
+        (ls.lens
+          ? '<br>线扫镜头：<b>' + esc((ls.lens.brand ? '[' + ls.lens.brand + '] ' : '') + ls.lens.model) + '</b>　' +
+            esc(ls.lens.focal) + ' mm　' + esc(ls.lens.mount) + ' 口直配　行方向视场 ' + num(ls.lens.fovW, 1) + ' mm' +
+            (ls.lens.note ? '<span style="color:#b45309">（' + esc(ls.lens.note) + '）</span>' : '') +
+            '　' + libLink('lens', ls.lens.model)
+          : '<br>线扫镜头：镜头库中无直配达标型号，需按像面宽度另选') +
         '<br>行频需求 ' + num(ls.needRate, 1) + ' kHz　带宽约 ' + num(ls.bandwidth, 0) + ' MB/s（接口上限 ' + ls.ifaceCap + '）' +
         '<br>线光源：' + (ls.lineLight ? esc(ls.lineLight.model) + '　' + (ls.lineLight.size || []).join(' × ') +
           ' mm　' + (ls.lineLight.power || '—') + ' W' : '—') +
@@ -737,6 +759,10 @@
       lines.push('');
       lines.push('· 扩展建议（线扫）：' + ls.model + '　' + ls.w + ' 像素　' + ls.lineRate + 'kHz　' + ls.iface);
       lines.push('　 光学：倍率 ' + n4(ls.optics.m) + '×，焦距 ≈ ' + num(ls.optics.f, 1) + 'mm（像面宽 ' + num(ls.optics.sensorW, 1) + 'mm）');
+      if (ls.lens) lines.push('　 线扫镜头：' + (ls.lens.brand ? '[' + ls.lens.brand + '] ' : '') + ls.lens.model +
+        '（' + ls.lens.focal + 'mm ' + ls.lens.mount + ' 口直配，行方向视场 ' + num(ls.lens.fovW, 1) + 'mm）' +
+        (ls.lens.note ? ' ' + ls.lens.note : ''));
+      else lines.push('　 线扫镜头：库中无直配达标型号，需按像面宽度另选');
       lines.push('　 行频需求 ' + num(ls.needRate, 1) + 'kHz，带宽约 ' + num(ls.bandwidth, 0) + 'MB/s（上限 ' + ls.ifaceCap + '）');
       if (ls.lineLight) lines.push('　 线光源：' + ls.lineLight.model + '　' + (ls.lineLight.size || []).join('×') + 'mm');
       lines.push('　 ' + ls.note);
