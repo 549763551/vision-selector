@@ -58,10 +58,18 @@
       (window.BaslerLensCatalog.LENSES || []).forEach(function (x) { x.brand = x.brand || 'Basler'; lenses.push(x); });
       tele = tele.concat(window.BaslerLensCatalog.TELECENTRIC || []);
     }
+    // 海康 3D 传感器（MV-DP 轮廓等）：供「高度 / 3D 轮廓测量」任务的建议
+    var profilers = [];
+    if (window.Hikrobot3DCatalog) {
+      (window.Hikrobot3DCatalog.PROFILERS || []).forEach(function (x) {
+        if (!x.brand) x.brand = BRANDS.hikrobot.name;
+        profilers.push(x);
+      });
+    }
     return {
       META: { source: '多品牌合并目录', brand: '多品牌', generated: '', cameras: cam.length },
       CAMERAS: cam, LINESCAN: linescan, LENSES: lenses,
-      TELECENTRIC: tele, LIGHTS: lights, CONTROLLERS: ctrls
+      TELECENTRIC: tele, LIGHTS: lights, CONTROLLERS: ctrls, PROFILERS: profilers
     };
   }
 
@@ -376,6 +384,16 @@
 
   function suggestCard(r) {
     var items = [];
+    if (r.profile3D) {
+      var d3 = r.profile3D;
+      items.push(block('3D 轮廓测量方案（高度 / 平面度 / 段差）',
+        '<b>' + esc(d3.model) + '</b>　' + d3.points + ' 点/轮廓　X ' + esc(d3.xRange) + '　Z ' + esc(d3.zRange) +
+        '<br>参考距离 ' + esc(d3.ref) + '　Z 重复精度 ' + esc(d3.zRepeat) + '（要求 ≤ ' + num(d3.zReqUm, 1) + ' µm）' +
+        '　行频 ' + esc(d3.rate) + '　激光 ' + esc(d3.laser) +
+        '　' + libLink('prof', d3.model) +
+        '<br><span style="color:#64748b">' + esc(d3.note) + '</span>' +
+        (d3.ok ? '' : '<br><span style="color:#b45309">⚠ 参考距离与当前 WD 不完全匹配，见说明</span>')));
+    }
     if (r.lineScan) {
       var ls = r.lineScan;
       var optics = ls.optics || {};
@@ -707,9 +725,50 @@
     $('risks').innerHTML = risks;
     var warns = r.warnings.filter(function (w) { return w.level === 'warn'; }).length;
     $('riskCount').textContent = warns > 0 ? warns + ' 项需注意' : '全部通过';
+
+    // 移动端（仿小程序）：更新表单摘要 / 折叠方案卡 / 刷新分段高亮
+    var fs = [];
+    fs.push('视野 ' + r.input.fovW + '×' + r.input.fovH + 'mm');
+    fs.push('精度 ' + r.input.precision + 'mm');
+    fs.push(r.task.label);
+    fs.push('WD ' + r.input.wd + 'mm');
+    if (r.input.needColor) fs.push('彩色');
+    if (r.input.speed > 0) fs.push(r.input.speed + 'mm/s');
+    if (r.input.lineScanFirst) fs.push('优先线扫');
+    $('fsTxt').textContent = fs.join(' · ');
+    foldCards();
+    updateSegbar();
   }
 
   /* ---------------- 复制方案 ---------------- */
+  /* 移动端（仿小程序）：分段导航锚点 / 滚动高亮 / 方案卡折叠后处理（render 与 init 共用） */
+  var SEGS = { form: '#sec-form', sol: '[data-anchor="sol"]', sib: '[data-anchor="sib"]', calc: '[data-anchor="calc"]', risk: '[data-anchor="risk"]' };
+  function updateSegbar() {
+    if (!window.matchMedia('(max-width: 760px)').matches) return;
+    var best = null, bestTop = -1e9;
+    Object.keys(SEGS).forEach(function (k) {
+      var el = document.querySelector(SEGS[k]);
+      if (!el) return;
+      var top = el.getBoundingClientRect().top;
+      if (top <= 60 && top > bestTop) { bestTop = top; best = k; }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.seg'), function (s) {
+      s.classList.toggle('on', s.getAttribute('data-seg') === best);
+    });
+  }
+  function foldCards() {
+    Array.prototype.forEach.call(document.querySelectorAll('#cards .card'), function (card) {
+      if (card.querySelector('.sol-toggle')) return;
+      var kvs = card.querySelectorAll('.kv'), blocks = card.querySelectorAll('.kv-block');
+      if (kvs.length + blocks.length < 8) return;
+      Array.prototype.forEach.call(kvs, function (kv, i) { if (i >= 6) kv.classList.add('kv-extra'); });
+      Array.prototype.forEach.call(blocks, function (b, j) { if (j >= 3) b.classList.add('kv-extra'); });
+      var t = document.createElement('div');
+      t.className = 'sol-toggle';
+      t.textContent = '展开全部参数 ▾';
+      card.appendChild(t);
+    });
+  }
   function buildText() {
     var r = E.solve(readInput());
     if (!r.ok) return '【机器视觉选型】输入有误：' + r.error;
@@ -767,6 +826,13 @@
       if (ls.lineLight) lines.push('　 线光源：' + ls.lineLight.model + '　' + (ls.lineLight.size || []).join('×') + 'mm');
       lines.push('　 ' + ls.note);
     }
+    if (r.profile3D) {
+      var d3c = r.profile3D;
+      lines.push('');
+      lines.push('· 扩展建议（3D 轮廓）：' + d3c.model + '　' + d3c.points + ' 点/轮廓　X ' + d3c.xRange + '　Z ' + d3c.zRange);
+      lines.push('　 参考距离 ' + d3c.ref + '，Z 重复精度 ' + d3c.zRepeat + '（要求 ≤ ' + num(d3c.zReqUm, 1) + 'µm），行频 ' + d3c.rate + '，激光 ' + d3c.laser);
+      lines.push('　 ' + d3c.note);
+    }
     if (r.telecentric) {
       var t = r.telecentric;
       lines.push('');
@@ -792,6 +858,15 @@
 
   function copyText() {
     var txt = buildText();
+    // 移动端：弹底部抽屉展示方案文本（长按可选中复制），桌面保持直接写剪贴板
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      var pm = document.getElementById('pMask');
+      if (pm) {
+        document.getElementById('pText').textContent = txt;
+        pm.classList.add('show');
+        return;
+      }
+    }
     var btn = $('copyBtn');
     var done = function () {
       btn.textContent = '已复制 ✓';
@@ -850,6 +925,57 @@
 
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
     $('copyBtn').addEventListener('click', copyText);
+
+    /* ---------------- 仿小程序移动端交互 ---------------- */
+    var mqMobile = window.matchMedia('(max-width: 760px)');
+
+    // 1) 表单摘要条：点「✎ 修改需求」展开 / 收起（仅移动端可见，桌面不受影响）
+    $('fsBtn').addEventListener('click', function () {
+      var card = document.querySelector('.req-card');
+      var open = card.classList.toggle('form-open');
+      this.textContent = open ? '✓ 收起表单' : '✎ 修改需求';
+      if (!open) window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // 2) 吸顶分段导航：点击平滑滚动（高亮逻辑在模块级 updateSegbar）
+    $('segbar').addEventListener('click', function (e) {
+      var seg = e.target.closest('.seg');
+      if (!seg) return;
+      var el = document.querySelector(SEGS[seg.getAttribute('data-seg')]);
+      if (!el) return;
+      var top = el.getBoundingClientRect().top + window.pageYOffset - 44;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', updateSegbar, { passive: true });
+    if (mqMobile.addEventListener) mqMobile.addEventListener('change', function () { render(); });
+
+    // 3) 方案卡折叠交互（后处理在模块级 foldCards，render 尾部调用）
+    $('cards').addEventListener('click', function (e) {
+      var t = e.target.closest('.sol-toggle');
+      if (!t) return;
+      var card = t.closest('.card');
+      var open = card.classList.toggle('sol-open');
+      t.textContent = open ? '收起全部参数 ▴' : '展开全部参数 ▾';
+    });
+
+    // 4) 方案文本抽屉（移动端替代直接复制）：展示文本 + 复制按钮
+    function openPlanDrawer() {
+      $('pText').textContent = buildText();
+      $('pMask').classList.add('show');
+    }
+    $('pClose').addEventListener('click', function () { $('pMask').classList.remove('show'); });
+    $('pMask').addEventListener('click', function (e) { if (e.target === $('pMask')) $('pMask').classList.remove('show'); });
+    $('pCopy').addEventListener('click', function () {
+      var txt = $('pText').textContent;
+      var btn = $('pCopy');
+      var done = function () {
+        btn.textContent = '已复制 ✓';
+        setTimeout(function () { btn.textContent = '复制全部'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
+      } else fallbackCopy(txt, done);
+    });
 
     // 同系列表格：点型号 = 手动指定，再点一次 = 取消
     $('siblings').addEventListener('click', function (e) {

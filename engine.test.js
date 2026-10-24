@@ -434,12 +434,14 @@ const fs = require('fs');
 function loadGlobal(f) { vm.runInThisContext(fs.readFileSync(f, 'utf8'), { filename: f }); }
 loadGlobal('./brands.js');
 loadGlobal('./hikrobot-catalog.js');
+loadGlobal('./hikrobot-3d-catalog.js');
 loadGlobal('./huarui-catalog.js');
 loadGlobal('./basler-catalog.js');
 loadGlobal('./daheng-catalog.js');
 loadGlobal('./engine.js');
 const EngineFactory = global.VisionEngineFactory;
 const HIK = global.HikrobotCatalog;
+const HIK3D = global.Hikrobot3DCatalog;
 const HUA = global.HuaruiCatalog;
 const BAS = global.BaslerCatalog;
 const DAH = global.DahengCatalog;
@@ -979,6 +981,29 @@ test('手动指定别族光源时，同系列表按实际型号分族并标出�
   assert.ok(curRow && curRow.model === 'PFM-HX10090CO40W', '当前型号应出现在表内');
   assert.ok(r.warnings.some((w) => /照明方式与推荐不同/.test(w.text)), '应提示照明方式与推荐不同');
   assert.ok(r.siblings.light.items.filter((x) => x.alt && !x.cur).length >= 1, '表内应有备选灯具');
+});
+
+console.log('\n[14] 3D 轮廓测量建议（高度 / 平面度任务）');
+const CAT3D = Object.assign({}, HIK, { PROFILERS: HIK3D.PROFILERS });
+const E3D = EngineFactory(CAT3D);
+test('height 任务给出 3D 轮廓传感器建议且约束全部满足', () => {
+  // 视野 60mm、精度 0.01mm(10µm)、WD 62mm（贴近 DP1060 参考距离 62? 实际 ref=35 或 62 系列）
+  const r = E3D.solve(base({ task: 'height', fovW: 60, fovH: 20, precision: 0.01, wd: 190, heightDiff: 2 }));
+  assert.ok(r.profile3D, '缺 3D 建议');
+  const p = r.profile3D;
+  const rec = HIK3D.PROFILERS.find((x) => x.model === p.model);
+  assert.ok(rec, '推荐型号不在 3D 库中');
+  const xm = parseFloat(rec.xRange), rp = parseFloat(rec.zRepeat);
+  assert.ok(xm >= 60, 'X 测量范围应 ≥ 视野宽');
+  assert.ok(rp <= 10, 'Z 重复精度应 ≤ 要求 10µm');
+});
+test('非 height 任务不产生 3D 建议', () => {
+  const r = E3D.solve(base({ task: 'defect' }));
+  assert.strictEqual(r.profile3D, null);
+});
+test('库内无 3D 目录时 height 任务不报错且建议为空', () => {
+  const r = EngineFactory(HIK).solve(base({ task: 'height' }));
+  assert.strictEqual(r.profile3D, null);
 });
 
 console.log('\n' + '='.repeat(52));

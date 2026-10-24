@@ -359,6 +359,52 @@
   .space-line { font-size: 12px; color: #475569; margin-top: 4px; }
   .space-line .tag { margin-left: 6px; }
 
+  /* ---------- 仿小程序移动端组件（桌面全部隐藏，≤760px 生效；尺寸按 1rpx=0.5px 从小程序换算） ---------- */
+  .segbar {
+    position: sticky; top: 0; z-index: 30;
+    display: none; gap: 5px;
+    background: rgba(238, 242, 247, .97);
+    padding: 7px 1px 6px; border-bottom: 1px solid var(--line);
+  }
+  .seg {
+    flex: 1; text-align: center; font-size: 11px; color: var(--muted);
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 0; white-space: nowrap; cursor: pointer; text-decoration: none;
+  }
+  .seg.on { background: linear-gradient(180deg, #38bdf8, #2563eb); border-color: transparent; color: #fff; font-weight: 600; }
+  .form-summary { display: none; }
+  .form-summary .fs-txt { flex: 1 1 auto; min-width: 0; font-size: 11.5px; color: #1e40af; word-break: break-all; }
+  .form-summary .fs-btn {
+    flex: 0 0 auto; font-family: inherit; font-size: 11px; color: var(--accent); background: #fff;
+    border: 1px solid #93c5fd; border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  }
+  .sol-toggle { display: none; }
+  .p-mask {
+    display: none; position: fixed; inset: 0; z-index: 900;
+    background: rgba(11, 18, 32, .55); align-items: flex-end;
+  }
+  .p-mask.show { display: flex; }
+  .p-sheet {
+    width: 100%; min-width: 0; height: 78vh; display: flex; flex-direction: column;
+    margin-bottom: calc(56px + env(safe-area-inset-bottom));
+    background: #fff; border-radius: 14px 14px 0 0; padding: 13px 12px calc(11px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .p-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex: 0 0 auto; }
+  .p-title { font-size: 15px; font-weight: 700; }
+  .p-tip { font-size: 10.5px; color: #94a3b8; }
+  .p-body {
+    flex: 1 1 0; min-height: 0; min-width: 0; background: #f8fafc; border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 11px; box-sizing: border-box; overflow-y: auto;
+  }
+  .p-text {
+    margin: 0; display: block; font-size: 12px; line-height: 1.75; color: #334155;
+    white-space: pre-wrap; word-break: normal; overflow-wrap: break-word;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .p-foot { flex: 0 0 auto; display: flex; gap: 8px; margin-top: 10px; }
+  .p-foot .btn { flex: 1; }
+
   @media (max-width: 760px) {
     .topbar { padding: 12px 12px; }
     .topbar-inner { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -382,6 +428,24 @@
     table.mini { font-size: 11px; }
     .sib-note, .catalog-note { font-size: 11px; }
     .summary { font-size: 12px; }
+
+    /* ---- 仿小程序移动端：吸顶分段 / 表单收起摘要 / 方案卡折叠 ---- */
+    .segbar { display: flex; }
+    /* 表单默认收起为一行摘要；.form-open 展开表单并隐藏摘要 */
+    .req-card .form-summary { display: flex; align-items: center; gap: 7px; background: var(--accent-soft); border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 12px; }
+    .req-card.form-open .form-summary { display: none; }
+    .req-card:not(.form-open) .req-grid,
+    .req-card:not(.form-open) .actions-row { display: none; }
+    /* 方案卡折叠：后处理给超出的 kv/kv-block 加 .kv-extra（nth-of-type 对 div 混排不可靠） */
+    .sol-toggle { display: block; margin-top: 4px; padding-top: 8px; border-top: 1px dashed #eef2f7; text-align: center; font-size: 11px; color: var(--accent); cursor: pointer; }
+    .card:not(.sol-open) .kv-extra { display: none; }
+    .card.sol-open .sol-toggle { border-top: 0; }
+    /* kv 行触控加大（对齐小程序 24rpx/12px 行高） */
+    .kv { padding: 7px 0; font-size: 12.5px; }
+    .hero { font-size: 17px; }
+    .hero-sub { font-size: 11.5px; }
+    /* 底部留出抽屉安全区 */
+    body { padding-bottom: 0; }
   }
 
   @media (max-width: 1020px) {
@@ -419,12 +483,26 @@
   </div>
 </header>
 
+<!-- ==================== 移动端吸顶分段导航（仿小程序 segbar） ==================== -->
+<nav class="segbar" id="segbar">
+  <a class="seg" data-seg="form">需求</a>
+  <a class="seg" data-seg="sol">方案</a>
+  <a class="seg" data-seg="sib">同系列</a>
+  <a class="seg" data-seg="calc">验算</a>
+  <a class="seg" data-seg="risk">风险</a>
+</nav>
+
 <!-- ==================== 检测需求：独占一行 ==================== -->
 <div class="layout-wide">
-  <section class="card req-card">
+  <section class="card req-card" id="sec-form">
     <h2 class="sec">检测需求 <span class="hint">本地计算，无需联网</span>
       <button class="btn" id="resetBtn">恢复默认</button>
     </h2>
+    <!-- 移动端：计算后自动收起为一行摘要，点「修改需求」展开（仿小程序） -->
+    <div class="form-summary" id="formSummary">
+      <span class="fs-txt" id="fsTxt">—</span>
+      <button class="fs-btn" id="fsBtn">✎ 修改需求</button>
+    </div>
     <div class="req-grid">
 
     <div class="field fov-cell">
@@ -501,12 +579,12 @@
 <main class="layout">
 
   <!-- ==================== 左：同系列参数 ==================== -->
-  <section id="sibCol">
+  <section id="sibCol" data-anchor="sib">
     <div id="siblings"></div>
   </section>
 
   <!-- ==================== 右：方案输出 ==================== -->
-  <section>
+  <section data-anchor="sol">
     <div class="card score-card" id="scoreCard">
       <div class="score-top">
         <div class="score-num" id="scoreNum">--<small>/100</small></div>
@@ -540,7 +618,7 @@
 
 <!-- 验算过程 + 风险与建议：同一行 -->
 <div class="layout-wide duo">
-  <div class="card">
+  <div class="card" data-anchor="calc">
     <h2 class="sec">验算过程 <span class="hint">每一格都能手算复核</span></h2>
     <table>
       <thead>
@@ -554,7 +632,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" data-anchor="risk">
     <h2 class="sec">风险与建议 <span class="hint" id="riskCount"></span></h2>
     <div id="risks"></div>
     <div class="actions">
@@ -567,8 +645,21 @@
   <div class="catalog-note" id="catalogNote"></div>
 </div>
 
+<!-- 移动端方案文本抽屉（仿小程序 p-sheet：底部弹出、长按可选中复制） -->
+<div class="p-mask" id="pMask">
+  <div class="p-sheet">
+    <div class="p-head"><span class="p-title">方案文本</span><span class="p-tip">长按文字可全选复制</span></div>
+    <div class="p-body"><pre class="p-text" id="pText"></pre></div>
+    <div class="p-foot">
+      <button class="btn" id="pClose">关闭</button>
+      <button class="btn primary" id="pCopy">复制全部</button>
+    </div>
+  </div>
+</div>
+
 <script src="brands.js"></script>
 <script src="hikrobot-catalog.js"></script>
+<script src="hikrobot-3d-catalog.js"></script>
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
 <script src="basler-lens-catalog.js"></script>

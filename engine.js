@@ -30,7 +30,8 @@
     presence:        { label: '有无 / 装配确认', k: 2.5 },
     align:           { label: '定位引导（抓取 / 对位）', k: 4 },
     ocr:             { label: '字符 / 条码读取', k: 4 },
-    color:           { label: '颜色 / 材质区分', k: 2 }
+    color:           { label: '颜色 / 材质区分', k: 2 },
+    height:          { label: '高度 / 3D 轮廓测量', k: 4, hint: 'Z 向尺寸 / 平面度 / 段差，走 3D 轮廓传感器建议' }
   };
 
   var MATERIALS = {
@@ -977,6 +978,73 @@
     };
   }
 
+  /* ============================ 3D 轮廓传感器建议 ============================ */
+  // 解析 "0.56µm" / "62mm" 这类规格字符串为数字
+  function parseSpecNum(s) {
+    if (s == null) return null;
+    var m = String(s).match(/([\d.]+)/);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  /**
+   * 「高度 / 3D 轮廓测量」任务：从 3D 传感器库（MV-DP 激光轮廓传感器）里选
+   * X 测量范围 ≥ 视野宽、Z 测量范围 ≥ 高度变化、Z 重复精度 ≤ 要求精度、参考距离匹配 WD 的最小够用型号。
+   */
+  function suggestProfile3D(inp) {
+    var list = (CAT && CAT.PROFILERS) || [];
+    if (!list.length) return null;
+
+    var zReqUm = inp.precision * 1000;              // 要求的 Z 精度（µm）
+    var zNeedMm = Math.max(inp.heightDiff * 2, 1);  // Z 测量范围需求（含余量，最少 1mm）
+
+    function cand(p) {
+      var xm = parseSpecNum(p.xRange), zm = parseSpecNum(p.zRange);
+      var rp = parseSpecNum(p.zRepeat), rf = parseSpecNum(p.ref);
+      return { p: p, xm: xm, zm: zm, rp: rp, rf: rf };
+    }
+    var all = list.map(cand);
+    var ok = all.filter(function (c) {
+      return c.xm != null && c.xm >= inp.fovW * 1.05 &&
+        c.zm != null && c.zm >= zNeedMm &&
+        c.rp != null && c.rp <= zReqUm &&
+        c.rf != null && Math.abs(c.rf - inp.wd) / c.rf <= 0.3;
+    });
+    var relaxed = false;
+    if (!ok.length) {
+      // WD 不匹配常是主要原因：放宽距离约束再试一次
+      ok = all.filter(function (c) {
+        return c.xm != null && c.xm >= inp.fovW * 1.05 &&
+          c.zm != null && c.zm >= zNeedMm &&
+          c.rp != null && c.rp <= zReqUm;
+      });
+      relaxed = true;
+    }
+    if (!ok.length) return null;
+    // 最小够用：X 范围小 → 点数少 → 参考距离接近
+    ok.sort(function (a, b) {
+      return a.xm - b.xm || (a.p.points || 0) - (b.p.points || 0) ||
+        Math.abs(a.rf - inp.wd) - Math.abs(b.rf - inp.wd);
+    });
+    var c = ok[0], p = c.p;
+    return {
+      model: p.model,
+      brand: p.brand || null,
+      points: p.points,
+      xRange: p.xRange, zRange: p.zRange, ref: p.ref,
+      zRes: p.zRes, zRepeat: p.zRepeat, interval: p.interval,
+      rate: p.rate, laser: p.laser,
+      zReqUm: zReqUm, zNeedMm: zNeedMm,
+      ok: !relaxed,
+      note: '按「X ≥ 视野宽 ' + fmt(inp.fovW, 0) + ' mm、Z 范围 ≥ ' + fmt(zNeedMm, 1) + ' mm、重复精度 ≤ ' +
+        fmt(zReqUm, 1) + ' µm」选最小够用型号' +
+        (relaxed
+          ? '；注意：无型号的参考距离与当前 WD ' + fmt(inp.wd, 0) + ' mm 匹配（该型号参考距离 ' + p.ref +
+            '，近远端各有 ±30% 行程），安装距离需按手册调整'
+          : '；参考距离 ' + p.ref + ' 与当前 WD 匹配') +
+        '。需编码器触发逐行采集；Z 精度受标定与振动影响，现场以实测为准。'
+    };
+  }
+
   /* ============================ 同系列参数对比 ============================ */
 
   function buildSiblings(cam, lens, needW, needH, light, inp, fReq, altCamKeys, altLensKeys, altLightKeys) {
@@ -1602,6 +1670,8 @@
       (inp.task === 'precise_measure' || !dofOK) && cam.mount !== 'Bare'
         ? suggestTelecentric(inp, cam, m0)
         : null;
+    // 3D 轮廓测量任务：从 3D 传感器库（MV-DP 等）直接给方案建议
+    var profile3D = inp.task === 'height' ? suggestProfile3D(inp) : null;
 
     return {
       ok: true,
@@ -1698,6 +1768,7 @@
       space: space,
       geometry: geometry,
       lineScan: lineScan,
+      profile3D: profile3D,
       telecentric: telecentric,
       calc: calc,
       warnings: warnings,

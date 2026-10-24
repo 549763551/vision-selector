@@ -152,6 +152,9 @@
     align-items: center; gap: 10px; max-width: min(92vw, 680px);
   }
   .cmp-tray.show { display: flex; }
+  .inquiry-tray { bottom: 70px; background: #14532d; }
+  .inquiry-tray .t-go { background: #22c55e; }
+  .inquiry-tray .t-clear { background: rgba(255, 255, 255, .14); }
   .cmp-tray .t-models { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; }
   .cmp-tray button {
     font-family: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
@@ -189,6 +192,19 @@
   .x-item:hover { border-color: #93c5fd; background: var(--accent-soft); }
   .x-item svg { width: 30px; height: 30px; border-radius: 6px; }
   .x-item .x-model { font-size: 12px; font-weight: 600; font-family: Consolas, "Courier New", monospace; }
+  .inq-add {
+    margin-left: auto; font-family: inherit; font-size: 11.5px; cursor: pointer;
+    color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 999px; padding: 4px 12px;
+    white-space: nowrap;
+  }
+  .inq-add.on { background: #dcfce7; border-color: #86efac; font-weight: 600; }
+  .x-mini {
+    font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
+    color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
+  }
+  .x-mini:hover { border-color: #93c5fd; }
+  .x-mini.danger { color: #dc2626; border-color: #fecaca; }
+  .x-mini.danger:hover { background: #fef2f2; }
   .sheet-wide { max-width: 920px; }
   .cmp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .cmp-table th, .cmp-table td {
@@ -328,6 +344,7 @@
 </div>
 
 <div class="cmp-tray" id="cmpTray"></div>
+<div class="cmp-tray inquiry-tray" id="inqTray"></div>
 
 <div class="mask" id="mask">
   <div class="sheet" id="sheet"></div>
@@ -1319,6 +1336,7 @@
       '<div class="sheet-head"><div class="row1">' +
         (logo ? '<img class="sheet-logo" src="' + esc(logo) + '" alt="' + esc(brandShort(it.brand)) + '" />' : '') +
         '<span class="cat-tag">' + esc(catInfo ? catInfo.catName : '') + '</span>' +
+        '<button class="inq-add" id="inqAdd">' + (inquiryHas(d.model || d.series || '') ? '✓ 已在清单' : '＋ 询价清单') + '</button>' +
         '<button class="sheet-close" id="sheetClose">✕</button>' +
       '</div>' +
       '<div class="sheet-model">' + esc(d.model || d.series || '') + '</div>' +
@@ -1329,14 +1347,44 @@
       '<table class="kv-table">' + rows + '</table>' + extraBlocks(it);
     $mask.classList.add('show');
     document.getElementById('sheetClose').addEventListener('click', closeDetail);
+    var addBtn = document.getElementById('inqAdd');
+    if (addBtn) addBtn.addEventListener('click', function () {
+      var model2 = it.d.model || it.d.series || '';
+      if (inquiryHas(model2)) {
+        inquiryRemove(model2);
+        addBtn.textContent = '＋ 询价清单';
+        addBtn.classList.remove('on');
+      } else {
+        inquiryAdd({ m: model2, b: it.brand, c: it.cat });
+        addBtn.textContent = '✓ 已在清单';
+        addBtn.classList.add('on');
+      }
+      renderInquiryTray();
+    });
     bindDetailExtras(it);
   }
 
-  // 详情弹层附加块：相机的「适配镜头反查」入口 + 相机/镜头的跨品牌等价列表
+  // 详情弹层附加块：相机的「适配镜头反查」入口 + 相机/镜头的跨品牌等价列表 + 光源的适配控制器
   function extraBlocks(it) {
     var html = '';
     if (it.cat === 'cam') {
       html += '<div class="x-block"><button class="x-btn" id="xLensFit">🔎 查看适配镜头（卡口 + 像面 + 解析力反查）</button></div>';
+    }
+    if (it.cat === 'light') {
+      // 适配控制器：同品牌优先全部列出，无同品牌再跨品牌
+      var sameBrand = items.filter(function (x) { return x.cat === 'ctrl' && x.brand === it.brand; });
+      var others = items.filter(function (x) { return x.cat === 'ctrl' && x.brand !== it.brand; });
+      var ctrls = sameBrand.length ? sameBrand : others;
+      if (ctrls.length) {
+        html += '<div class="x-block"><div class="x-title">适配控制器（' + (sameBrand.length ? '同品牌' : '同品牌无，跨品牌') + ' ' + ctrls.length + ' 款）' +
+          '<span class="x-note">电压与通道匹配优先同品牌</span></div>' +
+          '<div class="x-list">' + ctrls.map(function (x) {
+            var idx = items.indexOf(x);
+            return '<button class="x-item" data-open="' + idx + '">' + artFor(x) +
+              '<span class="x-model">' + esc(x.d.model) + '</span>' +
+              '<span class="fit-tag direct">' + (x.d.channels || '?') + ' 通道' + (x.d.strobe ? ' · 频闪' : '') + '</span></button>';
+          }).join('') + '</div></div>';
+      }
     }
     var eq = crossBrandEquiv(it);
     if (eq.length) {
@@ -1560,6 +1608,119 @@
     }
   });
 
+  /* ---- 询价清单（localStorage 持久化，仅本机） ---- */
+  var INQ_KEY = 'vs-inquiry-list';
+  function inquiryLoad() {
+    try { return JSON.parse(localStorage.getItem(INQ_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function inquirySave(list) {
+    try { localStorage.setItem(INQ_KEY, JSON.stringify(list)); } catch (e) { /* 隐私模式等场景忽略 */ }
+  }
+  function inquiryHas(model) { return inquiryLoad().some(function (x) { return x.m === model; }); }
+  function inquiryAdd(rec) {
+    var list = inquiryLoad();
+    if (!list.some(function (x) { return x.m === rec.m; })) { list.push(rec); inquirySave(list); }
+  }
+  function inquiryRemove(model) {
+    inquirySave(inquiryLoad().filter(function (x) { return x.m !== model; }));
+  }
+  function inquiryItem(rec) {
+    // 由 {m,b,c} 找回完整 item（型号可能重复出现在多库，按品牌优先匹配）
+    var cands = items.filter(function (x) { return (x.d.model || x.d.series) === rec.m; });
+    return cands.filter(function (x) { return x.brand === rec.b; })[0] || cands[0] || null;
+  }
+  function renderInquiryTray() {
+    var tray = document.getElementById('inqTray');
+    var list = inquiryLoad();
+    if (!list.length) { tray.className = 'cmp-tray inquiry-tray'; tray.innerHTML = ''; return; }
+    tray.className = 'cmp-tray inquiry-tray show';
+    tray.innerHTML =
+      '<span>🧾 询价清单 ' + list.length + ' 项</span>' +
+      '<button class="t-go" id="inqOpen">查看</button>';
+    document.getElementById('inqOpen').addEventListener('click', openInquiryPanel);
+  }
+  function openInquiryPanel() {
+    var list = inquiryLoad();
+    if (!list.length) return;
+    var rows = list.map(function (rec, i) {
+      var it = inquiryItem(rec);
+      var catName = (CATS.filter(function (x) { return x.key === rec.c; })[0] || {}).catName || '';
+      var specs = it ? keySpecText(it) : '';
+      return '<tr><td class="k">' + esc(catName) + '</td>' +
+        '<td><b>' + esc(rec.m) + '</b>　' + brandTagHtml(rec.b) +
+        (specs ? '<br><span style="color:var(--muted);font-size:11.5px">' + esc(specs) + '</span>' : '') + '</td>' +
+        '<td style="white-space:nowrap;text-align:right">' +
+        (it ? '<button class="x-mini" data-open-item="' + i + '">详情</button>' : '') +
+        '<button class="x-mini danger" data-rm="' + i + '">移除</button></td></tr>';
+    }).join('');
+    $sheet.className = 'sheet sheet-wide';
+    $sheet.innerHTML =
+      '<div class="sheet-head"><div class="row1">' +
+        '<span class="cat-tag">询价清单 · ' + list.length + ' 项</span>' +
+        '<button class="sheet-close" id="sheetClose">✕</button>' +
+      '</div>' +
+      '<div class="sheet-meta"><span>保存在本机浏览器（localStorage），换设备不跟随</span></div></div>' +
+      '<div style="overflow-x:auto"><table class="cmp-table"><thead><tr><td class="k">类别</td><th>型号</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="x-block" style="display:flex;gap:10px">' +
+        '<button class="x-btn" id="inqCopy" style="flex:1">复制清单文本</button>' +
+        '<button class="x-btn" id="inqClear" style="flex:0 0 auto;color:#dc2626;border-color:#fecaca;background:#fef2f2">清空</button>' +
+      '</div>';
+    $mask.classList.add('show');
+    document.getElementById('sheetClose').addEventListener('click', function () {
+      closeDetail(); $sheet.className = 'sheet';
+    });
+    Array.prototype.forEach.call($sheet.querySelectorAll('[data-rm]'), function (b) {
+      b.addEventListener('click', function () {
+        var list2 = inquiryLoad();
+        list2.splice(parseInt(b.getAttribute('data-rm'), 10), 1);
+        inquirySave(list2);
+        renderInquiryTray();
+        if (list2.length) openInquiryPanel(); else { closeDetail(); $sheet.className = 'sheet'; }
+      });
+    });
+    Array.prototype.forEach.call($sheet.querySelectorAll('[data-open-item]'), function (b) {
+      b.addEventListener('click', function () {
+        var rec = inquiryLoad()[parseInt(b.getAttribute('data-open-item'), 10)];
+        var it = rec && inquiryItem(rec);
+        if (it) { $sheet.className = 'sheet'; openDetail(it); }
+      });
+    });
+    document.getElementById('inqClear').addEventListener('click', function () {
+      inquirySave([]);
+      renderInquiryTray();
+      closeDetail(); $sheet.className = 'sheet';
+    });
+    document.getElementById('inqCopy').addEventListener('click', function () {
+      var lines = ['询价清单（机器视觉选型工具集 · ' + new Date().toLocaleDateString('zh-CN') + '）', ''];
+      inquiryLoad().forEach(function (rec) {
+        var it = inquiryItem(rec);
+        var catName = (CATS.filter(function (x) { return x.key === rec.c; })[0] || {}).catName || '';
+        lines.push('· [' + catName + '] ' + rec.m + '（' + brandShort(rec.b) + '）' + (it && keySpecText(it) ? ' — ' + keySpecText(it) : ''));
+      });
+      lines.push('', '共 ' + inquiryLoad().length + ' 项；参数以厂商最新资料为准。');
+      var txt = lines.join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          var b = document.getElementById('inqCopy');
+          b.textContent = '✓ 已复制';
+          setTimeout(function () { b.textContent = '复制清单文本'; }, 1500);
+        }, function () { window.prompt('复制下面的清单文本：', txt); });
+      } else {
+        window.prompt('复制下面的清单文本：', txt);
+      }
+    });
+  }
+
+  /* ---- 键盘翻页：列表页按 ←/→ 翻页（输入框聚焦或弹层打开时忽略） ---- */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if ($mask.classList.contains('show')) return;
+    var t = e.target;
+    if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+    if (e.key === 'ArrowLeft' && !$pgPrev.disabled) { state.page--; render(); }
+    if (e.key === 'ArrowRight' && !$pgNext.disabled) { state.page++; render(); }
+  });
+
   /* ============ 7. 顶部统计与页脚 ============ */
   (function initStats() {
     var total = items.length;
@@ -1581,6 +1742,8 @@
   })();
 
   renderAll();
+
+  renderInquiryTray();
 
   /* ============ 8. URL 参数入口：?cat=cam&q=型号 → 自动定位并弹出详情 ============ */
   (function initFromUrl() {
