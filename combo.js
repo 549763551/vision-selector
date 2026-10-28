@@ -115,6 +115,37 @@
     try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
   }
 
+  /* 收藏：产品库「☆ 收藏」写入，这里在选择器里直接列出（共用 vs-fav） */
+  var FAV_KEY = 'vs-fav';
+  var FAV_SLOT = { cam: 'camera', lens: 'lens', light: 'light' };
+  function favList() {
+    var v = load(FAV_KEY);
+    return Array.isArray(v) ? v : [];
+  }
+  function favKeyOf(key) {
+    var p = String(key || '').split('::');
+    var b = p.length > 1 ? p[0] : '';
+    var m = p.length > 1 ? p[1] : p[0];
+    return (brandKey(b) || '') + '::' + m;
+  }
+  function isFav(d) {
+    var k = favKeyOf(keyOf(d));
+    return favList().some(function (x) { return favKeyOf((x.b || '') + '::' + x.m) === k; });
+  }
+  function favModels(kind) {
+    var out = [], seen = {};
+    favList().forEach(function (x) {
+      if (FAV_SLOT[x.c] !== kind) return;
+      var d = findIn(kind, (x.b || '') + '::' + x.m);
+      if (!d) return;
+      var k = keyOf(d);
+      if (seen[k]) return;
+      seen[k] = 1;
+      out.push(d);
+    });
+    return out;
+  }
+
   var LIGHT_LABEL = {
     ring: '环形光', ring_dome: '环形无影光', bar: '条形光', bar_array: '组合条形光',
     backlight: '面光源', backlight_parallel: '平行面光源', backlight_hole: '中孔面光源', backlight_side: '侧导面光源',
@@ -230,13 +261,29 @@
   }
 
   /* ---------------- 选择器 ---------------- */
+  function pickItemHtml(kind, d) {
+    var key = keyOf(d);
+    return '<button type="button" class="cmpick-item' + (sel[kind] === key ? ' on' : '') + '"' +
+      ' data-pick-kind="' + kind + '" data-pick-key="' + esc(key) + '">' +
+      '<span class="ck-head">' + brandLogo(d.brand, 'ck-logo') +
+        '<b title="' + esc(d.brand || '') + '">' + esc(brandShort(d.brand)) + '</b>' + esc(d.model) +
+        (isFav(d) ? '<span class="ck-fav" title="已收藏">★</span>' : '') + '</span>' +
+      '<span>' + esc(SLOTS[kind].spec(d)) + '</span></button>';
+  }
+
   function renderList(kind) {
     var slot = SLOTS[kind];
     var box = $(slot.list);
     var term = String($(slot.input).value || '').trim().toLowerCase();
     if (!term) {
-      results[kind] = [];
-      box.innerHTML = '<div class="cmpick-empty">输入型号 / 品牌 / 参数关键词开始搜索</div>';
+      // 未输入关键词时先列收藏，产品库收藏过的型号可以直接点选
+      var favs = favModels(kind);
+      results[kind] = favs;
+      box.innerHTML = favs.length
+        ? '<div class="cmpick-hint">★ 收藏（点击直接填入）</div>' +
+          favs.map(function (d) { return pickItemHtml(kind, d); }).join('')
+        : '<div class="cmpick-empty">输入型号 / 品牌 / 参数关键词开始搜索' +
+          '<div class="sub">在产品库点「☆ 收藏」的型号，会直接列在这里</div></div>';
       box.classList.add('open');
       return;
     }
@@ -249,14 +296,7 @@
     }
     results[kind] = out;
     box.innerHTML = out.length
-      ? out.map(function (d) {
-          var key = keyOf(d);
-          return '<button type="button" class="cmpick-item' + (sel[kind] === key ? ' on' : '') + '"' +
-            ' data-pick-kind="' + kind + '" data-pick-key="' + esc(key) + '">' +
-            '<span class="ck-head">' + brandLogo(d.brand, 'ck-logo') +
-              '<b title="' + esc(d.brand || '') + '">' + esc(brandShort(d.brand)) + '</b>' + esc(d.model) + '</span>' +
-            '<span>' + esc(slot.spec(d)) + '</span></button>';
-        }).join('')
+      ? out.map(function (d) { return pickItemHtml(kind, d); }).join('')
       : '<div class="cmpick-empty">没有匹配型号，换个关键词试试</div>';
     box.classList.add('open');
   }

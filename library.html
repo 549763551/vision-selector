@@ -227,6 +227,18 @@
   .combo-add { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
   .combo-add.on { background: #dbeafe; border-color: #93c5fd; font-weight: 600; color: #1e40af; }
   .combo-add + .inq-add { margin-left: 0; }
+  /* 收藏：列表星标 + 详情按钮，收藏后搭配页选择器可直接选 */
+  td.fav-col, th.fav-col { text-align: center; width: 30px; padding-left: 4px; padding-right: 0; }
+  .fav-btn {
+    font-family: inherit; font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle;
+    border: 0; background: transparent; color: #cbd5e1; padding: 3px 2px; border-radius: 6px;
+  }
+  .fav-btn:hover { color: #f59e0b; background: #fffbeb; }
+  .fav-btn.on { color: #f59e0b; }
+  .card-fav { flex: 0 0 auto; }
+  .fav-add { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+  .fav-add:hover { background: #fef3c7; border-color: #fcd34d; }
+  .fav-add.on { background: #fef3c7; border-color: #fcd34d; font-weight: 600; }
   .x-mini {
     font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
     color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
@@ -412,6 +424,7 @@
     { key: 'ctrl',  name: '光源控制器', catName: '光源控制器' },
     { key: 'prof',  name: '3D 相机',  catName: '3D 传感器' },
     { key: 'ipc',   name: '工控机',   catName: '工控机' },
+    { key: 'fav',   name: '★ 收藏',   catName: '收藏' },
     { key: 'all',   name: '全部',     catName: '全部类别' }
   ];
 
@@ -1082,7 +1095,9 @@
     var q = state.q.trim().toLowerCase();
     var lf = state.lensFor;
     var list = items.filter(function (it) {
-      if (state.cat !== 'all' && it.cat !== state.cat) return false;
+      if (state.cat === 'fav') {
+        if (!favHas(it)) return false;
+      } else if (state.cat !== 'all' && it.cat !== state.cat) return false;
       if (state.brand && it.brand !== state.brand) return false;
       // 适配镜头反查（选型助手/相机详情跳转过来）：卡口 + 像面 + 解析力
       if (lf && it.cat === 'lens') {
@@ -1218,16 +1233,24 @@
     return state.compare.indexOf(it) >= 0 ? ' checked' : '';
   }
 
+  function favBtnHtml(it, idx, extra) {
+    var on = favHas(it);
+    return '<button class="fav-btn' + (extra ? ' ' + extra : '') + (on ? ' on' : '') + '" data-fav="' + idx + '"' +
+      ' title="' + (on ? '取消收藏' : '收藏（可在自定义搭配页直接选取）') + '" aria-pressed="' + on + '">' +
+      (on ? '★' : '☆') + '</button>';
+  }
+
   function renderTable(list, pageSlice) {
     var cols = COLS[state.cat] || COLS.all;
     if (state.lensFor && state.cat === 'lens') {
       cols = cols.concat([{ h: '适配方式', get: function (it) { return it._fit === 'direct' ? '直连' : '转接环'; }, fit: true }]);
     }
-    $thead.innerHTML = '<th class="cmp-col">对比</th>' + cols.map(function (c) {
+    $thead.innerHTML = '<th class="fav-col" title="收藏">☆</th><th class="cmp-col">对比</th>' + cols.map(function (c) {
       return '<th' + (c.cls === 'num' ? ' class="num"' : '') + '>' + esc(c.h) + '</th>';
     }).join('');
     $tbody.innerHTML = pageSlice.map(function (it) {
       return '<tr data-idx="' + list.indexOf(it) + '">' +
+        '<td class="fav-col">' + favBtnHtml(it, list.indexOf(it)) + '</td>' +
         '<td class="cmp-col"><input type="checkbox" class="cmp-box" data-idx="' + list.indexOf(it) + '"' + cmpInList(it) +
           ' title="加入横向对比（最多 4 个）" /></td>' +
         cols.map(function (c) {
@@ -1257,6 +1280,7 @@
         '<div class="card-flex"><div class="card-art">' + artFor(it) + '</div>' +
         '<div class="card-main">' +
         '<div class="card-head"><span class="card-model">' + esc(model) + '</span>' + brandTagHtml(it.brand) + fitTag +
+        favBtnHtml(it, list.indexOf(it), 'card-fav') +
         '<label class="cmp-chip"><input type="checkbox" class="cmp-box" data-idx="' + list.indexOf(it) + '"' + cmpInList(it) + ' />对比</label>' +
         '</div>' +
         '<div class="card-specs">' + specs.map(function (p) {
@@ -1335,7 +1359,9 @@
     renderTable(filtered, slice);
     renderCards(slice, filtered);
 
-    $result.innerHTML = '共 <b>' + filtered.length + '</b> 条结果' +
+    $result.innerHTML = (state.cat === 'fav' && !favLoad().length)
+      ? '还没有收藏：点列表行首（手机在型号旁）的 <b>☆</b> 或在详情里点「☆ 收藏」，收藏后会出现在自定义搭配页的选择器里。'
+      : '共 <b>' + filtered.length + '</b> 条结果' +
       (state.q ? '（关键词「' + esc(state.q.trim()) + '」）' : '') +
       (isMobile.matches ? '，点卡片看全参数' : '，点行查看全参数');
 
@@ -1346,7 +1372,7 @@
 
   function renderAll() {
     // 类别计数（只按类别，不受筛选影响，便于导航）
-    var counts = { all: items.length };
+    var counts = { all: items.length, fav: favLoad().length };
     items.forEach(function (it) { counts[it.cat] = (counts[it.cat] || 0) + 1; });
     renderTabs(counts);
     renderFilters();
@@ -1381,6 +1407,8 @@
           ? '<button class="inq-add combo-add' + (comboSame(it) ? ' on' : '') + '" id="comboAdd">' +
             (comboSame(it) ? '✓ 已在搭配台' : '＋ 加入搭配') + '</button>'
           : '') +
+        '<button class="inq-add fav-add' + (favHas(it) ? ' on' : '') + '" id="favAdd">' +
+          (favHas(it) ? '★ 已收藏' : '☆ 收藏') + '</button>' +
         '<button class="inq-add" id="inqAdd">' + (inquiryHas(d.model || d.series || '') ? '✓ 已在清单' : '＋ 询价清单') + '</button>' +
         '<button class="sheet-close" id="sheetClose">✕</button>' +
       '</div>' +
@@ -1411,6 +1439,13 @@
       var on = comboToggle(it);
       comboBtn.textContent = on ? '✓ 已在搭配台' : '＋ 加入搭配';
       comboBtn.classList.toggle('on', on);
+    });
+    var favBtn = document.getElementById('favAdd');
+    if (favBtn) favBtn.addEventListener('click', function () {
+      var on = favToggle(it);
+      favBtn.textContent = on ? '★ 已收藏' : '☆ 收藏';
+      favBtn.classList.toggle('on', on);
+      renderAll();
     });
     bindDetailExtras(it);
   }
@@ -1576,12 +1611,22 @@
   else isMobile.addListener(render);
 
   function rowClick(e) {
-    if (e.target.closest('.cmp-box, .cmp-chip')) return; // 对比勾选不触发详情
+    if (e.target.closest('.cmp-box, .cmp-chip, .fav-btn')) return; // 对比勾选 / 收藏不触发详情
     var el = e.target.closest('[data-idx]');
     if (!el) return;
     var it = filtered[parseInt(el.getAttribute('data-idx'), 10)];
     if (it) openDetail(it);
   }
+  function favClick(e) {
+    var b = e.target.closest('[data-fav]');
+    if (!b) return;
+    var it = filtered[parseInt(b.getAttribute('data-fav'), 10)];
+    if (!it) return;
+    favToggle(it);
+    renderAll();
+  }
+  $tbody.addEventListener('click', favClick);
+  $cards.addEventListener('click', favClick);
   $tbody.addEventListener('click', rowClick);
   $cards.addEventListener('click', rowClick);
 
@@ -1733,6 +1778,30 @@
       comboSave({});
       renderComboTray();
     });
+  }
+
+  /* ---- 收藏（与自定义搭配页共用 vs-fav，搭配页选择器里直接列出） ---- */
+  var FAV_KEY = 'vs-fav';
+  function favLoad() {
+    try { var v = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function favSave(list) {
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch (e) { /* 隐私模式等场景忽略 */ }
+  }
+  function favKeyOf(it) {
+    return (comboBrandKey(it.brand) || '') + '::' + comboModel(it);
+  }
+  function favHas(it) {
+    var k = favKeyOf(it);
+    return favLoad().some(function (x) { return (x.b || '') + '::' + x.m === k; });
+  }
+  function favToggle(it) {
+    var k = favKeyOf(it), list = favLoad(), on = true;
+    var rest = list.filter(function (x) { return (x.b || '') + '::' + x.m !== k; });
+    if (rest.length === list.length) rest.push({ b: comboBrandKey(it.brand), m: comboModel(it), c: it.cat });
+    else on = false;
+    favSave(rest);
+    return on;
   }
 
   /* ---- 询价清单（localStorage 持久化，仅本机） ---- */
