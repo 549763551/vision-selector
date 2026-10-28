@@ -325,6 +325,8 @@
     if (pool.length) {
       light.controllerModel = pool[0].model;
       light.controllerChannels = pool[0].channels;
+      light.controllerMode = pool[0].mode || null;
+      light.controllerStrobe = !!pool[0].strobe;
     }
   }
 
@@ -1286,6 +1288,323 @@
     };
   }
 
+  /* ============================ 现场设置建议 ============================ */
+
+  // 接口 → 线缆类型；触发线统一按工业相机常见的 6-pin Hirose
+  var IFACE_CABLE = {
+    GigE: 'Cat6 屏蔽网线（≤100 m）',
+    '10GigE': 'Cat6a / 光纤（配 10G 网卡）',
+    USB3: 'USB3 屏蔽线（≤3 m，超长用有源延长）',
+    CameraLink: 'CameraLink 线 + 采集卡',
+    CoaXPress: '同轴线 + CoaXPress 采集卡',
+    XoFLink: '光纤线 + 采集卡',
+    XoCLink: '同轴线 + 采集卡'
+  };
+
+  // 照明方式 → 现场安装件
+  var LIGHT_MOUNT = {
+    ring: '环形光转接环（按镜头前端外径选）',
+    ring_dome: '环形无影光转接环',
+    ring_low: '低角度环形光支架',
+    ring_high: '高角度环形光支架',
+    bar: '条形光角度可调支架（2 条对称布置）',
+    bar_array: '组合条形光支架',
+    backlight: '背光支架 / 底背光安装板',
+    backlight_parallel: '平行背光支架',
+    backlight_hole: '中孔背光支架',
+    backlight_side: '侧导背光安装槽',
+    dome: '穹顶光支架',
+    coaxial: '同轴光转接（按镜头接口）',
+    line: '线光源支架（含散热间距）',
+    line_high: '线光源支架（含散热间距）',
+    line_focus: '聚光线光源支架',
+    line_coax: '同轴线光源支架',
+    flat_shadowless: '平面无影光支架',
+    point: '点光源支架 / 万向节'
+  };
+
+  /**
+   * 现场可直接照着设的起始值：光圈档位、曝光/增益、触发方式、光源调光与频闪。
+   * 不引入照度模型——曝光给「可设上限 + 起始值」，最终以现场直方图为准。
+   */
+  function siteSetup(inp, cam, lens, light, ap, dof, blurPx, cc, m, pxSizeMM, tMaxMs, fps) {
+    /* ---- 光圈：当前已是「满足景深的最大光圈」，再看能否再收一档 ---- */
+    var stops = APERTURES.filter(function (f) {
+      return f > ap + 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+    });
+    var stop = stops.length ? stops[0] : null;
+    var stopDof = stop ? (2 * stop * cc * (1 + m)) / (m * m) : null;
+    var stopBlur = stop ? (2.44 * LAMBDA_UM * stop) / (pxSizeMM * 1000) : null;
+    var canStopDown = !!(stop && stopBlur <= 2.5);
+    var dofOK = dof >= inp.heightDiff;
+    var apertureNote;
+    if (!dofOK) {
+      apertureNote = '已收到该镜头最小光圈 F' + ap + '，景深 ' + fmt(dof) + ' mm 仍小于高度变化 ' +
+        fmt(inp.heightDiff) + ' mm，建议换远心镜头或减小高度差';
+    } else if (blurPx > 2.5) {
+      apertureNote = 'F' + ap + ' 下衍射 ' + fmt(blurPx) + ' px 已超过 2.5 px，建议开大光圈（景深会变小）或换大像元相机';
+    } else if (!stop) {
+      apertureNote = '已是该镜头可用的最小光圈（F' + ap + '），衍射 ' + fmt(blurPx) + ' px';
+    } else if (canStopDown) {
+      apertureNote = '需要更大景深可收至 F' + stop + '（景深 ' + fmt(stopDof) + ' mm，衍射 ' + fmt(stopBlur) + ' px）';
+    } else {
+      apertureNote = '不宜再收小：F' + stop + ' 时衍射 ' + fmt(stopBlur) + ' px 已超过 2.5 px';
+    }
+
+    /* ---- 曝光：运动时受「模糊 ≤ 1 像素」限制；静态给常用起始值 ---- */
+    var moving = inp.speed > 0;
+    var startMs = moving ? Math.max(0.001, tMaxMs * 0.6) : 2;
+    if (cam.expMinUs != null) startMs = Math.max(startMs, cam.expMinUs / 1000);
+    if (cam.expMaxUs != null) startMs = Math.min(startMs, cam.expMaxUs / 1000);
+    if (moving) startMs = Math.min(startMs, tMaxMs);
+    var expNote;
+    if (moving) {
+      expNote = '按运动模糊 ≤ 1 像素倒推；先调照度/曝光到灰度 70–80%，不要靠增益提亮';
+      if (cam.expMinUs != null && tMaxMs * 1000 < cam.expMinUs) {
+        expNote = '上限 ' + fmt(tMaxMs * 1000, 0) + ' µs 已低于该相机最短曝光 ' + cam.expMinUs + ' µs，需降速或换机型';
+      }
+    } else {
+      expNote = '静态拍摄先按 ' + fmt(startMs, 1) + ' ms 试拍，按直方图把灰度调到 70–80% 后固定';
+    }
+
+    /* ---- 触发：有速度/节拍时硬触发，否则软触发/连续 ---- */
+    var trigger = {
+      mode: moving ? '硬触发（光电 / 编码器）' : '软触发或连续采集',
+      freqHz: fps,
+      note: moving
+        ? '触发频率按 ' + fps + ' Hz；光源与触发同步（频闪），曝光 ≤ ' + fmt(tMaxMs, 3) + ' ms'
+        : (inp.cpm > 0
+          ? '按节拍 ' + inp.cpm + ' 件/分 ≈ ' + fmt(inp.cpm / 60, 2) + ' Hz 出图'
+          : '静态可按 ' + fps + ' Hz 连续采集，或外部信号软触发')
+    };
+
+    /* ---- 光源：调光起步 + 频闪要求 ---- */
+    var needStrobe = (isFinite(tMaxMs) && tMaxMs < 1) || inp.speed > 300;
+    var lightInfo = null;
+    if (light) {
+      var strobeOk = !!light.controllerStrobe;
+      lightInfo = {
+        controller: light.controllerModel || null,
+        channels: light.controllerChannels || null,
+        mode: light.controllerMode || (strobeOk ? '频闪 / 调光控制器' : '数字调光控制器'),
+        strobe: strobeOk,
+        needStrobe: needStrobe,
+        note: needStrobe
+          ? (strobeOk
+            ? '用频闪模式，脉冲宽度 = 曝光时间，与相机触发同步'
+            : '当前控制器无频闪，曝光仅 ' + fmt(tMaxMs, 3) + ' ms，需换频闪控制器或提高照度')
+          : (light.count > 1
+            ? '先 50% 起步，' + light.count + ' 只分别接通道，按直方图补齐均匀性'
+            : '先 50% 起步，按直方图调整；避免过曝削顶')
+      };
+    }
+
+    return {
+      aperture: { value: ap, dof: dof, blurPx: blurPx, canStopDown: canStopDown, stop: stop, stopDof: stopDof, stopBlur: stopBlur, note: apertureNote },
+      exposure: { upperMs: isFinite(tMaxMs) ? tMaxMs : null, startMs: startMs, gainDb: 0, minUs: cam.expMinUs == null ? null : cam.expMinUs, maxUs: cam.expMaxUs == null ? null : cam.expMaxUs, note: expNote },
+      trigger: trigger,
+      light: lightInfo
+    };
+  }
+
+  /* ============================ 安装与配套 ============================ */
+
+  function installKit(inp, cam, lens, light, space, adapter) {
+    var bracket = 40;      // 支架 / 云台占位
+    var clearance = 10;    // 调焦与安装余量
+    var needAll = space.need + bracket + clearance;
+    var items = [];
+
+    items.push({
+      name: '尺寸链',
+      value: 'WD ' + fmt(space.wd, 0) + ' + 镜头 ' + fmt(space.lensLen, 0) + (adapter ? '（含转接环）' : '') +
+        ' + 相机 ' + fmt(space.camDepth, 0) + ' + 线缆/接插件 ' + fmt(space.cable, 0) +
+        ' + 支架/云台 ' + bracket + ' + 调整余量 ' + clearance + ' ≈ ' + fmt(needAll, 0) + ' mm',
+      note: space.available != null
+        ? (space.available >= needAll
+          ? '可用 ' + fmt(space.available, 0) + ' mm，放得下（余 ' + fmt(space.available - needAll, 0) + ' mm）'
+          : '可用 ' + fmt(space.available, 0) + ' mm，仍差 ' + fmt(needAll - space.available, 0) + ' mm')
+        : '未填可用安装空间，按上面尺寸链预留'
+    });
+    items.push({
+      name: '数据线',
+      value: IFACE_CABLE[cam.iface] || (cam.iface + ' 专用线缆'),
+      note: cam.poe ? '相机支持 PoE，可省独立电源线' : (cam.powerW != null ? '另备 ' + cam.powerW + ' W 电源' : '')
+    });
+    items.push({
+      name: '触发 / IO 线',
+      value: '6-pin Hirose 触发 / IO 线（相机端）',
+      note: inp.speed > 0 ? '接光电开关或编码器；频率按上方触发建议' : '软触发时可先不接'
+    });
+    items.push({
+      name: '镜头附件',
+      value: lens.mount + ' 口镜头' + (adapter ? ' + ' + cam.mount + '→' + lens.mount + ' 转接环（约 ' + ADAPTER_RING_LEN + ' mm）' : '（直连，无需转接）'),
+      note: '滤镜螺纹型录未提供，按镜头器物前端口径确认'
+    });
+    if (light) {
+      var ltype = light.skuType || light.type;
+      items.push({
+        name: '光源安装',
+        value: LIGHT_MOUNT[ltype] || '光源支架',
+        note: (light.count || 1) + ' 只' + (light.totalPower ? '，合计 ' + light.totalPower + ' W' : '') +
+          (light.sku ? '（' + light.sku + '）' : '')
+      });
+      if (light.controllerModel) {
+        items.push({
+          name: '光源控制器',
+          value: light.controllerModel + (light.controllerChannels ? '（' + light.controllerChannels + ' 通道）' : ''),
+          note: '按光源数量占用通道，建议留 1 路备用'
+        });
+      }
+    }
+    var power = (cam.powerW || 0) + (light && light.totalPower ? light.totalPower : 0);
+    if (power > 0) {
+      items.push({
+        name: '供电功率',
+        value: '约 ' + fmt(power, 1) + ' W',
+        note: '电源按 ≥ 1.5 倍预留（≈ ' + fmt(power * 1.5, 1) + ' W）'
+      });
+    }
+
+    return {
+      bracket: bracket,
+      clearance: clearance,
+      needAll: needAll,
+      available: space.available,
+      pass: space.available != null ? space.available >= needAll : null,
+      items: items
+    };
+  }
+
+  /* ============================ 验收与复核 ============================ */
+
+  function acceptanceChecklist(inp, cam, lens, light, pxAcc, budget, space, tMaxMs, fps, blurPx, margin) {
+    var px = pxAcc;
+    var items = [
+      {
+        name: '重复性',
+        target: '≤ ±' + fmt(px * 0.3, 4) + ' mm（0.3 像素，3σ）',
+        method: '同一标准件在位重复测量 30 次，取 3σ'
+      },
+      {
+        name: '测量偏差',
+        target: '≤ ±' + fmt(px * 0.5, 4) + ' mm（0.5 像素）',
+        method: '量块 / 棋盘格 / 标准圆 5 点实测，与真值比对'
+      },
+      {
+        name: '图像对比度',
+        target: '特征与背景灰度差 ≥ 30（建议 ≥ 60）',
+        method: '调光后取特征与背景 ROI，比较直方图均值'
+      },
+      {
+        name: '节拍',
+        target: inp.cpm > 0
+          ? inp.cpm + ' 件/分'
+          : '≥ ' + fps + ' fps（' + fmt(1000 / fps, 1) + ' ms/件）',
+        method: '连续 100 件计时，含触发、曝光与传输'
+      },
+      {
+        name: '环境',
+        target: '温度波动 ≤ ±5 ℃，遮环境光，支架减振',
+        method: '开机预热 30 min 后复测；关灯 / 开灯各测一组'
+      }
+    ];
+    var focus = [];
+    if (margin >= 0 && margin < 0.15) focus.push('精度余量仅 ' + Math.round(margin * 100) + '%，重点看重复性与标定');
+    if (budget && budget.ratio > 0.8) focus.push('精度预算已占 ' + Math.round(budget.ratio * 100) + '%，先做标准件复核再验收');
+    if (isFinite(tMaxMs) && tMaxMs < 1) focus.push('曝光上限仅 ' + fmt(tMaxMs, 3) + ' ms，重点验证频闪同步与亮度');
+    if (blurPx > 2) focus.push('衍射 ' + fmt(blurPx, 2) + ' px 接近 2.5 px 上限，不要再收小光圈');
+    if (space && space.pass === false) focus.push('安装空间不足，先解决机械干涉再谈精度');
+    if (focus.length > 4) focus = focus.slice(0, 4);
+    return { items: items, focus: focus };
+  }
+
+  /* ============================ 选型依据（与次优对比） ============================ */
+
+  /**
+   * 与次优方案的逐项对比。ctx 由 solve 算好传入，避免此处重复推导帧率/带宽。
+   */
+  function buildRationale(cam, lens, alt, ctx) {
+    var aCam = alt.cam;
+    var aLens = alt.lens;
+    var camPx = cam.w * cam.h;
+    var altPx = aCam.w * aCam.h;
+    var altMargin = (ctx.pxAccReq - alt.pxAcc) / ctx.pxAccReq;
+    var rankA = IFACE_RANK[cam.iface] == null ? 9 : IFACE_RANK[cam.iface];
+    var rankB = IFACE_RANK[aCam.iface] == null ? 9 : IFACE_RANK[aCam.iface];
+
+    // 三条判定：win 本方案占优 / lose 次优占优 / tie 持平（给容差，避免 0.1% 的差异被说成优势）
+    var cmp = function (mine, theirs, tol) {
+      if (Math.abs(mine - theirs) <= (tol || 0)) return 'tie';
+      return mine > theirs ? 'win' : 'lose';
+    };
+    var pxCmp = cmp(altPx, camPx, altPx * 0.02);
+    var accCmp = cmp(alt.pxAcc, ctx.pxAcc, alt.pxAcc * 0.005);
+    var marginCmp = cmp(ctx.margin, altMargin, 0.01);
+    var ifaceCmp = cmp(rankB, rankA, 0);
+    var lensCmp = ctx.adapter === alt.adapter ? 'tie' : (ctx.adapter ? 'lose' : 'win');
+
+    var rows = [
+      { k: '匹配度', a: ctx.score + ' 分', b: ctx.altScore + ' 分', cmp: cmp(ctx.score, ctx.altScore, 0) },
+      { k: '相机', a: cam.model + '（' + fmt(camPx / 1e6, 1) + ' MP）', b: aCam.model + '（' + fmt(altPx / 1e6, 1) + ' MP）', cmp: pxCmp },
+      { k: '像素精度', a: fmt(ctx.pxAcc, 4) + ' mm/px', b: fmt(alt.pxAcc, 4) + ' mm/px', cmp: accCmp },
+      { k: '精度余量', a: pctStr(ctx.margin), b: pctStr(altMargin), cmp: marginCmp },
+      {
+        k: '接口 / 带宽',
+        a: cam.iface + ' · ' + fmt(ctx.bandwidth, 0) + ' MB/s',
+        b: aCam.iface + ' · ' + fmt(ctx.altBandwidth, 0) + ' MB/s',
+        cmp: ifaceCmp
+      },
+      {
+        k: '镜头',
+        a: lens.model + (ctx.adapter ? '（需转接）' : '（直连）'),
+        b: aLens.model + (alt.adapter ? '（需转接）' : '（直连）'),
+        cmp: lensCmp
+      }
+    ];
+
+    var lead = [], lag = [], eq = [];
+    if (cmp(ctx.score, ctx.altScore, 0) === 'win') lead.push('匹配分高 ' + (ctx.score - ctx.altScore) + ' 分');
+    else if (cmp(ctx.score, ctx.altScore, 0) === 'lose') lag.push('匹配分低 ' + (ctx.altScore - ctx.score) + ' 分');
+    else eq.push('匹配分');
+
+    if (pxCmp === 'win') lead.push('像素少 ' + Math.round((1 - camPx / altPx) * 100) + '%（' + fmt(camPx / 1e6, 1) + ' vs ' + fmt(altPx / 1e6, 1) + ' MP），数据量与成本更省');
+    else if (pxCmp === 'lose') lag.push('像素多 ' + Math.round((camPx / altPx - 1) * 100) + '%（' + fmt(camPx / 1e6, 1) + ' vs ' + fmt(altPx / 1e6, 1) + ' MP），精度余量更大');
+    else eq.push('分辨率');
+
+    if (accCmp === 'win') lead.push('像素精度好（' + fmt(ctx.pxAcc, 4) + ' vs ' + fmt(alt.pxAcc, 4) + ' mm/px）');
+    else if (accCmp === 'lose') lag.push('像素精度略低（' + fmt(ctx.pxAcc, 4) + ' vs ' + fmt(alt.pxAcc, 4) + ' mm/px），但仍在需求内');
+    else eq.push('像素精度');
+
+    if (lensCmp === 'lose') lag.push('需转接环（次优可直连）');
+    else if (lensCmp === 'win') lead.push('镜头直连（次优需转接环）');
+    else eq.push('镜头安装');
+
+    if (ifaceCmp === 'win') lead.push('接口更常用（' + cam.iface + ' vs ' + aCam.iface + '）');
+    else if (ifaceCmp === 'lose') lag.push('接口带宽更高但线缆/采集卡更贵（' + cam.iface + ' vs ' + aCam.iface + '）');
+    else eq.push('接口');
+
+    var parts = [];
+    if (lead.length) parts.push('占优：' + lead.join('；'));
+    if (lag.length) parts.push('让步：' + lag.join('；'));
+    if (!lead.length && !lag.length) {
+      parts.push('两者在「' + eq.join('、') + '」上完全相同，属于可互换型号，按供货与价格二选一即可');
+    } else if (eq.length) {
+      parts.push('持平：' + eq.join('、'));
+    }
+
+    var altName = (aCam.brand ? '[' + aCam.brand + '] ' : '') + aCam.model;
+    return {
+      rows: rows,
+      altCamera: altName,
+      altLens: (aLens.brand ? '[' + aLens.brand + '] ' : '') + aLens.model,
+      altScore: ctx.altScore,
+      altPxAcc: alt.pxAcc,
+      interchangeable: !lead.length && !lag.length,
+      summary: '对比次优（' + altName + '）：' + parts.join('；') + '。'
+    };
+  }
+
   /* ============================ 图示几何 ============================ */
 
   function buildGeometry(inp, cam, lens, light, dof, pxAcc) {
@@ -1307,6 +1626,577 @@
       lightAngle: angleByType[light.type] == null ? 45 : angleByType[light.type],
       pxAcc: pxAcc
     };
+  }
+
+  /* ============================ 匹配度评分 ============================ */
+
+  /**
+   * 匹配度 = 100 分逐项扣分（solve 与 evaluateCombo 共用同一套规则）。
+   * 返回 { score, items }，items 记录每一项扣了多少分、为什么，供界面展开「评分构成」。
+   */
+  function scoreOf(m) {
+    var items = [];
+    function d(label, penalty, detail) {
+      items.push({ label: label, penalty: penalty, detail: detail || '' });
+    }
+    if (!m.feasible) d('硬性条件不满足', 45, m.feasibleWhy || '精度 / 视场 / 卡口等硬性约束未通过');
+    if (m.margin < 0.15) d('精度余量不足', 12, '余量 ' + Math.round(Math.max(0, m.margin) * 100) + '%，建议提高一档分辨率');
+    if (!m.dofOK) d('景深不足', 15, '景深 ' + fmt(m.dof) + ' mm < 高度变化 ' + fmt(m.heightDiff) + ' mm');
+    if (m.blurPx > 2.5) d('衍射限制', 8, 'F' + m.ap + ' 下衍射弥散约 ' + fmt(m.blurPx) + ' 像素');
+    if (m.tMaxMs < 1) d('曝光上限过短', 6, '最长 ' + fmt(m.tMaxMs) + ' ms，需频闪光源 + 触发同步');
+    if (m.fErr > 0.15) d('焦距档位偏离', 8, '最接近焦距与理论值差 ' + Math.round(m.fErr * 100) + '%');
+    if (m.fovOver > 0.2) d('视场过剩', 6, '实际视场比需求大 ' + Math.round(m.fovOver * 100) + '%，像素被摊薄');
+    if (m.fps > m.camFps) d('帧率不足', 10, '需要 ' + m.fps + ' fps，相机最高 ' + m.camFps + ' fps');
+    if (m.bandwidth > m.ifaceCap) d('带宽超限', 10, fmt(m.bandwidth) + ' MB/s 超过 ' + m.camIface + ' 约 ' + m.ifaceCap + ' MB/s');
+    if (m.adapter) d('需转接环', 3, 'C 口镜头经转接环装大口径机身，法兰距与像面余量需确认');
+
+    var total = 0;
+    items.forEach(function (x) { total += x.penalty; });
+    return { score: Math.max(5, Math.min(100, Math.round(100 - total))), items: items };
+  }
+
+  /**
+   * 用与 solve 完全相同的口径给「备选整机」算分与带宽（仅用于选型依据对比）。
+   * candScore 为选优阶段的服务，光圈按最宽档估衍射，会高估备选分；
+   * 这里必须用实际停档后的光圈，否则两边对比是两套尺子。
+   */
+  function candidateMetrics(inp, cand, pxAccReq) {
+    var cam = cand.cam, lens = cand.lens;
+    var m = cand.m, pxAcc = cand.pxAcc;
+    var pxSizeMM = cam.sh / cam.h;
+    var bitDepth = cam.color === '彩色' ? 16 : 8;
+
+    var fps;
+    if (inp.speed > 0) fps = Math.max(1, Math.ceil((inp.speed / cand.fovH) * 1.2));
+    else fps = Math.min(15, cam.fps);
+    if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
+    var bandwidth = (cam.w * cam.h * fps * bitDepth) / 8 / 1e6;
+    var ifaceCap = IFACE_BW[cam.iface] || 350;
+    var tMaxMs = inp.speed > 0 ? (pxAcc / inp.speed) * 1000 : Infinity;
+
+    var c = 2 * pxSizeMM;
+    var apFloor = Math.max(4, lens.fmin || 2.8);
+    var ladder = APERTURES.filter(function (f) {
+      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+    });
+    if (!ladder.length) ladder = [(lens.fmin || 2.8)];
+    var ap = ladder[0];
+    var dof = 0;
+    var dofOK = false;
+    for (var q = 0; q < ladder.length; q++) {
+      var F = ladder[q];
+      var d = (2 * F * c * (1 + m)) / (m * m);
+      ap = F;
+      dof = d;
+      if (d >= inp.heightDiff) { dofOK = true; break; }
+    }
+    var blurPx = (2.44 * LAMBDA_UM * ap) / (pxSizeMM * 1000);
+    var fErr = Math.abs(lens.focal - cand.fReq) / cand.fReq;
+    var fovOver = Math.max((cand.fovW - inp.fovW) / inp.fovW, (cand.fovH - inp.fovH) / inp.fovH);
+    var adapter = mountMatch(cam.mount, lens.mount) === 2;
+
+    var sc = scoreOf({
+      feasible: true,
+      margin: (pxAccReq - pxAcc) / pxAccReq,
+      dofOK: dofOK,
+      dof: dof,
+      heightDiff: inp.heightDiff,
+      blurPx: blurPx,
+      ap: ap,
+      tMaxMs: tMaxMs,
+      fErr: fErr,
+      fovOver: fovOver,
+      fps: fps,
+      camFps: cam.fps,
+      bandwidth: bandwidth,
+      ifaceCap: ifaceCap,
+      camIface: cam.iface,
+      adapter: adapter
+    });
+    return {
+      score: sc.score,
+      items: sc.items,
+      fps: fps,
+      bandwidth: bandwidth,
+      ap: ap,
+      dof: dof,
+      blurPx: blurPx,
+      tMaxMs: tMaxMs,
+      margin: (pxAccReq - pxAcc) / pxAccReq,
+      adapter: adapter
+    };
+  }
+
+  /* ============================ 自定义搭配评定 ============================ */
+  function findInList(list, sel) {
+    if (!sel) return null;
+    if (typeof sel === 'object' && sel.model) {
+      var ob = sel.brand || null;
+      var exact = list.filter(function (x) {
+        return x.model === sel.model && (!ob || (x.brand || '') === ob);
+      });
+      if (exact.length) return exact[0];
+      return list.filter(function (x) { return x.model === sel.model; })[0] || null;
+    }
+    var parts = String(sel).split('::');
+    var wantBrand = parts.length > 1 ? parts[0] : null;
+    var wantModel = parts.length > 1 ? parts[1] : parts[0];
+    for (var i = 0; i < list.length; i++) {
+      var x = list[i];
+      if (x.model !== wantModel) continue;
+      if (wantBrand && (x.brand || '') !== wantBrand) continue;
+      return x;
+    }
+    return null;
+  }
+
+  function lightSizeMetric(x, need) {
+    if (!x || !x.size || !x.size.length) return 0;
+    if (need.axis === 'area') {
+      return Math.min((x.size[0] || 0) / need.w, (x.size[1] || 0) / need.h);
+    }
+    return (x.size[0] || 0) / need.d;
+  }
+
+  /**
+   * 自定义搭配评定：用户从产品库挑相机 / 镜头 / 光源，系统按与 solve 相同的
+   * 光学公式与评分规则逐项判定，并反查型号库给出可执行建议。
+   *
+   * sel = { camera: '品牌::型号', lens: '品牌::型号', light: '品牌::型号' }
+   * 返回 { ok, feasible, score, grade, gradeLabel, checks[], suggestions[], req, actual, scoreItems }
+   */
+  function evaluateCombo(raw, sel) {
+    var inp = normalizeInput(raw);
+    if (!inp.ok) return { ok: false, error: inp.error };
+    sel = sel || {};
+    var task = TASKS[inp.task] || TASKS.defect;
+    var k = task.k;
+    var pxAccReq = inp.precision / k;
+    var needW = Math.ceil(inp.fovW / pxAccReq - 1e-9);
+    var needH = Math.ceil(inp.fovH / pxAccReq - 1e-9);
+
+    var cam = findInList(CAT.CAMERAS || [], sel.camera);
+    var lens = findInList(CAT.LENSES || [], sel.lens);
+    var lrec = findInList((CAT && CAT.LIGHTS) || [], sel.light);
+    if (!cam) return { ok: false, error: '未找到所选相机（可能已被顶栏品牌筛选排除）' };
+    if (!lens) return { ok: false, error: '未找到所选镜头（可能已被顶栏镜头品牌筛选排除）' };
+
+    var checks = [];
+    var suggestions = [];
+    function chk(group, label, need, actual, level, detail) {
+      checks.push({ group: group, label: label, need: need, actual: actual, level: level, detail: detail || '' });
+    }
+    function sug(text, action) {
+      suggestions.push({ text: text, action: action || null });
+    }
+    function keyOf(x) { return (x.brand ? x.brand + '::' : '') + x.model; }
+    function labelOf(x) { return (x.brand ? '[' + x.brand + '] ' : '') + x.model; }
+    function act(kind, x) { return { kind: kind, key: keyOf(x), label: labelOf(x) }; }
+
+    /* ---- 光学 ---- */
+    var mm = mountMatch(cam.mount, lens.mount);
+    var diag = Math.sqrt(cam.sw * cam.sw + cam.sh * cam.sh);
+    var camMp = (cam.w * cam.h) / 1e6;
+    var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
+    var fReq = (inp.wd * m0) / (1 + m0);
+    var canFocus = lens.focal < inp.wd * 0.95;
+    var m = canFocus ? lens.focal / (inp.wd - lens.focal) : null;
+    var fovW = canFocus ? cam.sw / m : null;
+    var fovH = canFocus ? cam.sh / m : null;
+    var pxAcc = canFocus ? Math.max(fovW / cam.w, fovH / cam.h) : Infinity;
+    var margin = canFocus ? (pxAccReq - pxAcc) / pxAccReq : -1;
+    var pxSizeMM = cam.sh / cam.h;
+    var isColor = cam.color === '彩色';
+    var bitDepth = isColor ? 16 : 8;
+    var adapter = mm === 2;
+
+    var fps;
+    if (inp.speed > 0) fps = Math.max(1, Math.ceil((inp.speed / inp.fovH) * 1.2));
+    else fps = Math.min(15, cam.fps);
+    if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
+    var bandwidth = (cam.w * cam.h * fps * bitDepth) / 8 / 1e6;
+    var ifaceCap = IFACE_BW[cam.iface] || 350;
+    var tMaxMs = inp.speed > 0 ? ((canFocus ? pxAcc : pxAccReq) / inp.speed) * 1000 : Infinity;
+    if (!canFocus) tMaxMs = Infinity;
+
+    var cc = 2 * pxSizeMM;
+    var apFloor = Math.max(4, lens.fmin || 2.8);
+    var ladder = APERTURES.filter(function (f) {
+      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+    });
+    if (!ladder.length) ladder = [(lens.fmin || 2.8)];
+    var ap = ladder[0], dof = 0, dofOK = false;
+    if (canFocus) {
+      for (var q = 0; q < ladder.length; q++) {
+        var F = ladder[q];
+        dof = (2 * F * cc * (1 + m)) / (m * m);
+        ap = F;
+        if (dof >= inp.heightDiff) { dofOK = true; break; }
+      }
+    }
+    var blurPx = (2.44 * LAMBDA_UM * ap) / (pxSizeMM * 1000);
+    var fErr = Math.abs(lens.focal - fReq) / fReq;
+    var fovOver = canFocus
+      ? Math.max((fovW - inp.fovW) / inp.fovW, (fovH - inp.fovH) / inp.fovH)
+      : 0;
+
+    var failWhy = [];
+
+    /* ---- 相机 ---- */
+    var colorNeed = inp.needColor || inp.task === 'color';
+    if (colorNeed && !isColor) {
+      failWhy.push('需要彩色相机');
+      chk('相机', '彩色 / 黑白', '彩色', cam.color, 'fail', '当前任务需要颜色信息，黑白相机无法还原色彩');
+    } else if (!colorNeed && isColor) {
+      chk('相机', '彩色 / 黑白', '黑白', cam.color, 'warn', '本任务不需要颜色，彩色相机灵敏度更低且带宽翻倍；如无颜色需求可选同分辨率黑白款');
+    } else {
+      chk('相机', '彩色 / 黑白', colorNeed ? '彩色' : '黑白', cam.color, 'pass', '');
+    }
+    if (inp.speed > 0) {
+      chk('相机', '快门类型', '全局快门', cam.shutter === 'Global' ? '全局快门' : '卷帘快门',
+        cam.shutter === 'Global' ? 'pass' : 'warn',
+        cam.shutter === 'Global' ? '' : '运动中卷帘快门会产生果冻畸变，建议换全局快门机型');
+    }
+    chk('相机', '最大帧率', fps + ' fps', cam.fps + ' fps', fps <= cam.fps ? 'pass' : 'warn',
+      fps <= cam.fps ? '' : '需降速、缩小 ROI 或换更高帧率型号');
+    chk('相机', '数据带宽', fmt(bandwidth) + ' MB/s（' + cam.iface + ' 约 ' + ifaceCap + '）',
+      fmt(bandwidth) + ' MB/s', bandwidth <= ifaceCap ? 'pass' : 'warn',
+      bandwidth <= ifaceCap ? '' : '可降帧率、开 ROI 或换更高带宽接口');
+
+    /* ---- 镜头 / 卡口 ---- */
+    if (mm === 0) {
+      failWhy.push('卡口不匹配');
+      chk('镜头', '卡口匹配', cam.mount + ' 口', lens.mount + ' 口', 'fail',
+        '相机 ' + cam.mount + ' 口无法安装 ' + lens.mount + ' 口镜头（C 口镜头可经转接环上大口径机身）');
+    } else if (mm === 2) {
+      chk('镜头', '卡口匹配', cam.mount + ' 口', lens.mount + ' 口（转接环）', 'warn',
+        '需 ' + cam.mount + '→' + lens.mount + ' 转接环（约 ' + ADAPTER_RING_LEN + ' mm，计入安装空间）');
+    } else {
+      chk('镜头', '卡口匹配', cam.mount + ' 口', lens.mount + ' 口', 'pass', '');
+    }
+    if (lens.ic == null) {
+      chk('镜头', '像面覆盖', '≥ ' + fmt(diag) + ' mm', '大靶面', 'pass', '型录未给像面直径，按大靶面处理');
+    } else if (lens.ic < diag * 0.97) {
+      failWhy.push('镜头像面覆盖不足');
+      chk('镜头', '像面覆盖', '≥ ' + fmt(diag) + ' mm（靶面对角）', lens.ic + ' mm', 'fail',
+        '像面小于相机靶面，四角会出现严重暗角');
+    } else if (lens.ic < diag + 0.2) {
+      chk('镜头', '像面覆盖', '≥ ' + fmt(diag) + ' mm', lens.ic + ' mm', 'warn', '像面与靶面基本持平，边缘可能轻微暗角');
+    } else {
+      chk('镜头', '像面覆盖', '≥ ' + fmt(diag) + ' mm', lens.ic + ' mm', 'pass', '');
+    }
+    if (lens.mp == null) {
+      chk('镜头', '解析力匹配', '≈ ' + fmt(camMp, 1) + ' MP', '未标注', 'pass', '');
+    } else if (lens.mp < camMp * 0.85) {
+      failWhy.push('镜头解析力低于相机');
+      chk('镜头', '解析力匹配', '≥ ' + fmt(camMp * 0.85, 1) + ' MP', lens.mp + ' MP', 'fail',
+        '镜头解析力明显低于相机像素密度，换更高像素镜头或降相机分辨率');
+    } else if (lens.mp < camMp) {
+      chk('镜头', '解析力匹配', '≈ ' + fmt(camMp, 1) + ' MP', lens.mp + ' MP', 'warn', '镜头解析力略低于相机，边缘锐度可能不足');
+    } else {
+      chk('镜头', '解析力匹配', '≈ ' + fmt(camMp, 1) + ' MP', lens.mp + ' MP', 'pass', '');
+    }
+    if (!canFocus) {
+      failWhy.push('焦距不小于工作距离');
+      chk('镜头', '对焦可行性', '焦距 < WD ' + fmt(inp.wd) + ' mm', lens.focal + ' mm', 'fail',
+        '焦距必须小于工作距离，否则无法对焦；请缩短焦距或加大 WD');
+    } else {
+      chk('镜头', '对焦可行性', '焦距 < WD ' + fmt(inp.wd) + ' mm', lens.focal + ' mm', 'pass', '');
+    }
+    if (lens.minDist != null) {
+      var minMm = lens.minDist * 1000;
+      if (inp.wd < minMm) {
+        failWhy.push('工作距离小于最近摄距');
+        chk('镜头', '最近摄距', 'WD ≥ ' + minMm + ' mm', fmt(inp.wd) + ' mm', 'fail',
+          '当前 WD 小于镜头最近摄距，无法合焦');
+      } else if (inp.wd < minMm * 1.15) {
+        chk('镜头', '最近摄距', 'WD ≥ ' + minMm + ' mm', fmt(inp.wd) + ' mm', 'warn', '接近最近摄距，对焦余量很小');
+      } else {
+        chk('镜头', '最近摄距', 'WD ≥ ' + minMm + ' mm', fmt(inp.wd) + ' mm', 'pass', '');
+      }
+    }
+    if (canFocus && (fovW < inp.fovW * 0.999 || fovH < inp.fovH * 0.999)) {
+      failWhy.push('实际视场小于需求');
+      chk('系统', '视场覆盖', '≥ ' + fmt(inp.fovW) + ' × ' + fmt(inp.fovH) + ' mm',
+        fmt(fovW) + ' × ' + fmt(fovH) + ' mm', 'fail', '拍不全工件；换更短焦距或拉大 WD');
+    } else if (canFocus) {
+      chk('系统', '视场覆盖', '≥ ' + fmt(inp.fovW) + ' × ' + fmt(inp.fovH) + ' mm',
+        fmt(fovW) + ' × ' + fmt(fovH) + ' mm', 'pass', '');
+    }
+    if (canFocus && pxAcc > pxAccReq * (1 + 1e-9)) {
+      failWhy.push('像素精度不达标');
+      chk('系统', '像素精度', '≤ ' + fmt(pxAccReq, 4) + ' mm/px', fmt(pxAcc, 4) + ' mm/px', 'fail',
+        '每个最小特征不足 ' + k + ' 像素；提高相机分辨率或缩小视场');
+    } else if (canFocus) {
+      chk('系统', '像素精度', '≤ ' + fmt(pxAccReq, 4) + ' mm/px', fmt(pxAcc, 4) + ' mm/px', 'pass',
+        '余量 ' + pctStr(margin));
+    }
+    if (canFocus && margin >= 0 && margin < 0.15) {
+      chk('系统', '精度余量', '≥ 15%', pctStr(margin), 'warn', '余量偏小，镜头畸变 / 装夹误差容易吃掉精度');
+    }
+    if (canFocus) {
+      chk('系统', '景深', '≥ ' + fmt(inp.heightDiff) + ' mm', fmt(dof) + ' mm（F' + ap + '）',
+        dofOK ? 'pass' : 'warn', dofOK ? '' : '工件高度变化超过景深，可能失焦；收小光圈或改用远心镜头');
+      chk('系统', '衍射弥散', '≤ 2.5 px', fmt(blurPx) + ' px（F' + ap + '）',
+        blurPx <= 2.5 ? 'pass' : 'warn', blurPx <= 2.5 ? '' : '光圈收得过小，衍射已影响分辨率');
+    }
+    chk('系统', '曝光上限', inp.speed > 0 ? '≥ 1 ms' : '静态',
+      isFinite(tMaxMs) ? fmt(tMaxMs, 3) + ' ms' : '—',
+      (!isFinite(tMaxMs) || tMaxMs >= 1) ? 'pass' : 'warn',
+      (!isFinite(tMaxMs) || tMaxMs >= 1) ? '' : '常亮光源不够亮，必须频闪 + 触发同步');
+    if (inp.space > 0) {
+      var sp = spaceCheck(inp, cam, lens);
+      chk('系统', '安装空间', '≤ ' + fmt(inp.space) + ' mm', '约 ' + fmt(sp.need) + ' mm',
+        sp.pass ? 'pass' : 'warn', sp.pass ? '' : '超出 ' + fmt(sp.over) + ' mm；缩短 WD 或换短镜头');
+    }
+    if (canFocus) {
+      var bd = accuracyBudget(inp, lens, pxAcc, pxAccReq);
+      chk('系统', '精度预算', '≤ ' + fmt(pxAccReq, 4) + ' mm', '± ' + fmt(bd.total, 4) + ' mm',
+        bd.pass ? 'pass' : 'warn', bd.pass ? '像素 + 亚像素 + 畸变 + 标定合成' : '合成误差超过要求，需提高分辨率或加强标定');
+    }
+
+    /* ---- 光源 ---- */
+    var lightRec = buildLight(inp, { tMaxMs: tMaxMs, speed: inp.speed, mount: cam.mount });
+    var recType = LIGHT_TYPE_MAP[lightRec.type] || 'ring';
+    var recNeed = lightSizeNeed(inp, lightRec.type);
+    var lightOk = true;
+    var lightPenalties = [];
+    if (!lrec) {
+      lightOk = false;
+      lightPenalties.push({ label: '未选光源', penalty: 10, detail: '没有光源就无法确认打光效果，方案不完整' });
+      chk('光源', '光源型号', '已选型号', '未选择', 'warn', '未指定光源时无法确认尺寸、颜色与打光方式');
+    } else {
+      // 型号库同族里是否有推荐颜色：没有时 pickLightSku 本就按白光兜底，不该再罚用户
+      var colorPool = ((CAT && CAT.LIGHTS) || []).filter(function (x) {
+        return sameLightFamily(x.type, recType) && x.color === lightRec.color;
+      });
+      var colorMissing = colorPool.length === 0;
+      if (lrec.color !== lightRec.color) {
+        if (colorMissing && lrec.color === 'white') {
+          chk('光源', '光源颜色', lightRec.colorName, '白光（库内无' + lightRec.colorName + '）', 'pass',
+            '同族型号库没有' + lightRec.colorName + '，白光为合理替代；如需特定波长建议定制');
+        } else {
+          lightOk = false;
+          lightPenalties.push({ label: '光源颜色不符', penalty: 6, detail: '推荐' + lightRec.colorName + '，当前为 ' + lrec.color });
+          chk('光源', '光源颜色', lightRec.colorName, lrec.color,
+            'warn', '推荐' + lightRec.colorName + '（' + lightRec.wavelength + '），颜色不同会影响对比度');
+        }
+      } else {
+        chk('光源', '光源颜色', lightRec.colorName, lrec.color, 'pass', '');
+      }
+      if (!sameLightFamily(lrec.type, recType)) {
+        lightOk = false;
+        lightPenalties.push({ label: '照明方式不同', penalty: 8, detail: '推荐' + lightRec.label });
+        chk('光源', '照明方式', lightRec.label, LIGHT_TYPE_LABEL[lrec.type] || lrec.type, 'warn',
+          '与推荐照明方式不同，请确认打光效果；尺寸与颜色判定仍按推荐方式的要求');
+      } else {
+        chk('光源', '照明方式', lightRec.label, LIGHT_TYPE_LABEL[lrec.type] || lrec.type, 'pass', '');
+      }
+      var lm = lightSizeMetric(lrec, recNeed);
+      var sizeTxt = (lrec.size || []).join(' × ') + ' mm';
+      if (lm < 1) {
+        lightOk = false;
+        lightPenalties.push({ label: '发光面偏小', penalty: 8, detail: '视野边缘可能照度不足' });
+        chk('光源', '发光面尺寸', '≥ ' + (recNeed.axis === 'area'
+          ? recNeed.w + ' × ' + recNeed.h : recNeed.d) + ' mm', sizeTxt, 'warn',
+          '发光面小于建议尺寸，视野边缘可能照度不足；选更大规格或多灯拼接');
+      } else if (lm > 3) {
+        chk('光源', '发光面尺寸', '≥ ' + (recNeed.axis === 'area'
+          ? recNeed.w + ' × ' + recNeed.h : recNeed.d) + ' mm', sizeTxt, 'pass', '尺寸充足（规格偏大，可用但成本更高）');
+      } else {
+        chk('光源', '发光面尺寸', '≥ ' + (recNeed.axis === 'area'
+          ? recNeed.w + ' × ' + recNeed.h : recNeed.d) + ' mm', sizeTxt, 'pass', '');
+      }
+      if (lrec.power != null) {
+        chk('光源', '功率', '—', lrec.power + ' W', 'pass', '');
+      }
+    }
+
+    /* ---- 评分 / 等级 ---- */
+    var feasible = failWhy.length === 0;
+    var sc = scoreOf({
+      feasible: feasible,
+      feasibleWhy: failWhy.join('；'),
+      margin: margin,
+      dofOK: canFocus ? dofOK : true,   // 无法对焦时不再重复扣景深分
+      dof: dof,
+      heightDiff: inp.heightDiff,
+      blurPx: canFocus ? blurPx : 0,
+      ap: ap,
+      tMaxMs: tMaxMs,
+      fErr: fErr,
+      fovOver: fovOver,
+      fps: fps,
+      camFps: cam.fps,
+      bandwidth: bandwidth,
+      ifaceCap: ifaceCap,
+      camIface: cam.iface,
+      adapter: adapter
+    });
+    if (lightPenalties.length) {
+      sc.items = sc.items.concat(lightPenalties);
+      var penalty = 0;
+      sc.items.forEach(function (x) { penalty += x.penalty; });
+      sc.score = Math.max(5, Math.min(100, Math.round(100 - penalty)));
+    }
+    var grade, gradeLabel;
+    if (sc.score >= 95) { grade = 'A'; gradeLabel = '推荐方案'; }
+    else if (sc.score >= 80) { grade = 'B'; gradeLabel = '可用方案'; }
+    else if (sc.score >= 60) { grade = 'C'; gradeLabel = '勉强可用'; }
+    else { grade = 'D'; gradeLabel = '不建议'; }
+
+    /* ---- 建议：反查型号库给可替换型号 ---- */
+    function lensBase(l) {
+      return mountMatch(cam.mount, l.mount) > 0
+        && (l.ic == null || l.ic >= diag * 0.97)
+        && (l.mp == null || l.mp >= camMp * 0.85)
+        && l.focal < inp.wd * 0.95
+        && (l.minDist == null || l.minDist * 1000 <= inp.wd)
+        && l.focal <= fReq + 1e-9;
+    }
+    function lensPass(l) {
+      if (!lensBase(l)) return false;
+      var lm2 = l.focal / (inp.wd - l.focal);
+      var pa = Math.max((cam.sw / lm2) / cam.w, (cam.sh / lm2) / cam.h);
+      return pa <= pxAccReq * (1 + 1e-9);
+    }
+    function lensList(pred, limit) {
+      var out = (CAT.LENSES || []).filter(function (l) {
+        if (l.model === lens.model && (l.brand || '') === (lens.brand || '')) return false;
+        return pred(l);
+      });
+      out.sort(function (a, b) {
+        var aa = mountMatch(cam.mount, a.mount), ab = mountMatch(cam.mount, b.mount);
+        if (aa !== ab) return ab - aa;
+        return b.focal - a.focal;
+      });
+      return out.slice(0, limit || 3);
+    }
+    function camList(pred, limit) {
+      var out = (CAT.CAMERAS || []).filter(function (c) {
+        if (c.model === cam.model && (c.brand || '') === (cam.brand || '')) return false;
+        return c.mount !== 'Bare' && pred(c);
+      });
+      out.sort(function (a, b) { return a.w * a.h - b.w * b.h; });
+      return out.slice(0, limit || 3);
+    }
+    function pushActs(list, kind, text) {
+      if (!list.length) return;
+      sug(text + '：' + list.map(labelOf).join('、'), act(kind, list[0]));
+    }
+
+    if (mm === 0 || !canFocus || (failWhy.indexOf('实际视场小于需求') >= 0)) {
+      var fixLens = lensList(lensPass, 3);
+      if (fixLens.length) {
+        pushActs(fixLens, 'lens', mm === 0
+          ? '换用能与 ' + cam.mount + ' 口直配（或经转接）的达标镜头'
+          : '换用焦距更合适、视场与精度都达标的镜头');
+      } else {
+        // 没有「视场与精度同时达标」的镜头时，退一步只保证拍全工件：
+        // 短焦把视野撑开后像素精度可能不够，文本里明确提示还要复核精度。
+        var wideLens = lensList(lensBase, 3);
+        if (wideLens.length) {
+          pushActs(wideLens, 'lens', '换用更短焦距、能拍全 ' + fmt(inp.fovW) + ' × ' + fmt(inp.fovH) +
+            ' mm 的镜头（像素精度需再复核）');
+        }
+      }
+    }
+    if (lens.ic != null && lens.ic < diag * 0.97) {
+      var bigIc = lensList(function (l) { return lensPass(l); }, 3);
+      if (bigIc.length) pushActs(bigIc, 'lens', '换用像面覆盖 ' + fmt(diag) + ' mm 靶面的镜头');
+    }
+    if (pxAcc > pxAccReq || failWhy.indexOf('镜头解析力低于相机') >= 0) {
+      var betterCam = camList(function (c) {
+        if (c.w < needW || c.h < needH) return false;
+        if (colorNeed ? c.color !== '彩色' : c.color !== '黑白') return false;
+        if (inp.speed > 0 && c.shutter !== 'Global') return false;
+        return true;
+      }, 3);
+      if (betterCam.length) pushActs(betterCam, 'camera', '换用分辨率 ≥ ' + needW + ' × ' + needH + ' 的相机');
+      var betterLens = lensList(lensPass, 2);
+      if (betterLens.length) pushActs(betterLens, 'lens', '或换用长焦端、仍覆盖视场的镜头');
+    }
+    if (!dofOK && canFocus) {
+      var tele = suggestTelecentric(inp, cam, m0);
+      sug(tele && tele.feasible
+        ? '景深不足：收小光圈，或改用远心镜头 ' + tele.series + '（倍率 ' + fmt(tele.mag, 3) + '×，WD ' + tele.wdMin + '~' + tele.wdMax + ' mm）'
+        : '景深不足：收小光圈、减小工件高度差，或改用远心镜头');
+    }
+    if (fps > cam.fps) {
+      var fastCam = camList(function (c) {
+        if (c.w < needW || c.h < needH || c.fps < fps) return false;
+        if (colorNeed ? c.color !== '彩色' : c.color !== '黑白') return false;
+        return inp.speed <= 0 || c.shutter === 'Global';
+      }, 3);
+      if (fastCam.length) pushActs(fastCam, 'camera', '换用 ≥ ' + fps + ' fps 的相机');
+    }
+    if (bandwidth > ifaceCap) {
+      var fastIface = (CAT.CAMERAS || []).filter(function (c) {
+        return c.model !== cam.model && c.w === cam.w && c.h === cam.h && c.color === cam.color
+          && (IFACE_BW[c.iface] || 350) >= bandwidth;
+      }).sort(function (a, b) { return (IFACE_BW[a.iface] || 0) - (IFACE_BW[b.iface] || 0); }).slice(0, 2);
+      if (fastIface.length) pushActs(fastIface, 'camera', '同分辨率换更高带宽接口');
+    }
+    if (inp.space > 0) {
+      var sp2 = spaceCheck(inp, cam, lens);
+      if (sp2.pass === false) {
+        sug('安装空间超出 ' + fmt(sp2.over) + ' mm：缩短 WD、换短镜头（现 ' + sp2.lensLen + ' mm）或调整安装结构');
+      }
+    }
+    if (inp.speed > 0 && cam.shutter !== 'Global') {
+      var gsCam = camList(function (c) {
+        return c.shutter === 'Global' && c.w >= cam.w * 0.6 && c.h >= cam.h * 0.6
+          && (colorNeed ? c.color === '彩色' : c.color !== '彩色');
+      }, 2);
+      if (gsCam.length) pushActs(gsCam, 'camera', '换用全局快门相机');
+    }
+    if (!lrec || lightOk === false) {
+      var lightPool = ((CAT && CAT.LIGHTS) || []).filter(function (x) {
+        return sameLightFamily(x.type, recType) && x.color === lightRec.color && lightSizeMetric(x, recNeed) >= 1;
+      });
+      lightPool.sort(function (a, b) { return lightSizeMetric(a, recNeed) - lightSizeMetric(b, recNeed); });
+      var picks = [], seenB = {};
+      lightPool.forEach(function (x) {
+        if (picks.length >= 3) return;
+        var b = x.brand || '';
+        if (seenB[b] && picks.length < 2) return;
+        seenB[b] = 1;
+        picks.push(x);
+      });
+      pushActs(picks, 'light',
+        '按「' + lightRec.label + ' · ' + lightRec.colorName + '」推荐光源（发光面 ≥ ' +
+        (recNeed.axis === 'area' ? recNeed.w + ' × ' + recNeed.h : recNeed.d) + ' mm）');
+    }
+    if (!suggestions.length) {
+      // 硬性条件已经不过时，别说「方案整体可用」——库里找不到可替换型号时给可执行的退路
+      sug(!feasible
+        ? '硬性条件不满足，且库里没有可直接替换的型号：建议放宽精度、调整 WD 或缩小视野后重新评定。'
+        : (sc.score >= 90
+          ? '全部硬性条件通过，选型合理，无需替换。'
+          : '方案整体可用；如需更高余量，可参考上方扣分项逐条优化。'));
+    }
+
+    return {
+      ok: true,
+      feasible: feasible,
+      score: sc.score,
+      scoreItems: sc.items,
+      grade: grade,
+      gradeLabel: gradeLabel,
+      checks: checks,
+      suggestions: suggestions,
+      req: { pxAccReq: pxAccReq, needW: needW, needH: needH, k: k, task: inp.task, taskLabel: task.label },
+      actual: {
+        pxAcc: pxAcc, margin: margin, fovW: fovW, fovH: fovH, m: m, fReq: fReq,
+        dof: dof, aperture: ap, blurPx: blurPx, tMaxMs: tMaxMs, fps: fps,
+        bandwidth: bandwidth, adapter: adapter, mountMatch: mm
+      },
+      picked: { camera: keyOf(cam), lens: keyOf(lens), light: lrec ? keyOf(lrec) : null }
+    };
+  }
+
+  function pctStr(x) {
+    return isFinite(x) ? Math.round(x * 100) + '%' : '—';
   }
 
   /* ============================ 主流程 ============================ */
@@ -1624,19 +2514,61 @@
     var siblings = buildSiblings(cam, lens, needW, needH, light, inp, pick.fReq, altCamKeys, altLensKeys, altLightKeys);
     var geometry = buildGeometry(inp, cam, lens, light, dof, pxAcc);
 
-    /* ---- 匹配度 ---- */
-    var score = 100;
-    if (!feasible) score -= 45;
-    if (margin < 0.15) score -= 12;
-    if (!dofOK) score -= 15;
-    if (blurPx > 2.5) score -= 8;
-    if (tMaxMs < 1) score -= 6;
-    if (fErr > 0.15) score -= 8;
-    if (fovOver > 0.2) score -= 6;
-    if (fps > cam.fps) score -= 10;
-    if (bandwidth > ifaceCap) score -= 10;
-    if (adapter) score -= 3;   // 与 candScore 保持一致：转接方案略逊于直接卡口
-    score = Math.max(5, Math.min(100, Math.round(score)));
+    /* ---- 匹配度（与 evaluateCombo 共用 scoreOf，扣分规则保持一致） ---- */
+    var sc = scoreOf({
+      feasible: feasible,
+      feasibleWhy: manual.camera || manual.lens ? '手动指定的型号存在硬性缺陷' : '型号库内单相机方案无法满足全部硬性条件',
+      margin: margin,
+      dofOK: dofOK,
+      dof: dof,
+      heightDiff: inp.heightDiff,
+      blurPx: blurPx,
+      ap: ap,
+      tMaxMs: tMaxMs,
+      fErr: fErr,
+      fovOver: fovOver,
+      fps: fps,
+      camFps: cam.fps,
+      bandwidth: bandwidth,
+      ifaceCap: ifaceCap,
+      camIface: cam.iface,
+      adapter: adapter
+    });
+    var score = sc.score;
+    var scoreItems = sc.items;
+
+    /* ---- 现场参数 / 安装配套 / 验收复核 / 选型依据 ---- */
+    var site = siteSetup(inp, cam, lens, light, ap, dof, blurPx, c, m, pxSizeMM, tMaxMs, fps);
+    var install = installKit(inp, cam, lens, light, space, adapter);
+    var acceptance = acceptanceChecklist(inp, cam, lens, light, pxAcc, budget, space, tMaxMs, fps, blurPx, margin);
+
+    var rationale;
+    if (manual.camera || manual.lens) {
+      rationale = {
+        manual: true,
+        note: '当前含手动指定的型号，不参与「与次优对比」；清除手动指定可看自动排序的取舍理由。'
+      };
+    } else if (autoAlts.length) {
+      var a0 = autoAlts[0];
+      var a0m = candidateMetrics(inp, a0, pxAccReq);
+      rationale = buildRationale(cam, lens, a0, {
+        score: score,
+        altScore: a0m.score,
+        pxAcc: pxAcc,
+        pxAccReq: pxAccReq,
+        margin: margin,
+        bandwidth: bandwidth,
+        altBandwidth: a0m.bandwidth,
+        adapter: adapter
+      });
+    } else {
+      rationale = {
+        none: true,
+        note: feasible
+          ? '型号库内没有其他达标的整机组合可对比，当前方案是唯一满足全部硬性条件的选择。'
+          : '当前需求下型号库内没有达标的整机组合，先按风险提示调整需求，或改用线扫 / 远心方案后再比选。'
+      };
+    }
 
     /* ---- 验算过程 ---- */
     var calc = [
@@ -1677,6 +2609,7 @@
       ok: true,
       feasible: feasible,
       score: score,
+      scoreItems: scoreItems,
       margin: margin,
       input: inp,
       task: { key: inp.task, label: task.label, k: k },
@@ -1766,6 +2699,10 @@
       manual: manual,
       budget: budget,
       space: space,
+      site: site,
+      install: install,
+      acceptance: acceptance,
+      rationale: rationale,
       geometry: geometry,
       lineScan: lineScan,
       profile3D: profile3D,
@@ -1778,6 +2715,7 @@
 
   return {
     solve: solve,
+    evaluateCombo: evaluateCombo,
     TASKS: TASKS,
     MATERIALS: MATERIALS,
     COLOR: COLOR,

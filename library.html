@@ -39,12 +39,20 @@
   .tb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .tb-title { font-size: 19px; font-weight: 700; letter-spacing: .5px; }
   .tb-title small { font-weight: 400; font-size: 12.5px; color: #93a4bd; margin-left: 8px; }
-  .tb-back {
-    margin-left: auto; text-decoration: none; font-size: 12.5px; color: #d7e3f4;
-    border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 6px 14px;
-    background: rgba(255,255,255,.07); white-space: nowrap;
+  /* ---------- 全站导航（与选型助手 / 自定义搭配同一套） ---------- */
+  .pnav { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pnav > a, .pnav > .on {
+    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
+    font-size: 12px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 7px 13px;
+    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    transition: .15s;
   }
-  .tb-back:hover { background: rgba(56,189,248,.22); border-color: rgba(56,189,248,.55); color: #fff; }
+  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > .on {
+    color: #fff; font-weight: 600;
+    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
+    border-color: rgba(56, 189, 248, .7);
+  }
   .tb-stats { margin-top: 8px; font-size: 12.5px; color: #93a4bd; }
   .tb-stats b { color: #fff; font-weight: 600; }
   .tb-search { margin-top: 14px; position: relative; max-width: 560px; }
@@ -155,6 +163,9 @@
   .inquiry-tray { bottom: 70px; background: #14532d; }
   .inquiry-tray .t-go { background: #22c55e; }
   .inquiry-tray .t-clear { background: rgba(255, 255, 255, .14); }
+  .combo-tray { bottom: 122px; background: #1e3a8a; }
+  .combo-tray .t-go { background: #38bdf8; text-decoration: none; display: inline-block; }
+  .combo-tray .t-clear { background: rgba(255, 255, 255, .14); }
   .cmp-tray .t-models { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; }
   .cmp-tray button {
     font-family: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
@@ -182,6 +193,21 @@
     border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; cursor: pointer;
   }
   .x-btn:hover { background: #dbeafe; }
+  /* 询价清单底部操作条：贴在弹层底边常驻，主按钮占满、清空为次要按钮 */
+  .inq-actions {
+    position: sticky; bottom: 0; z-index: 2; margin-top: 6px;
+    display: flex; gap: 10px; padding: 10px 18px;
+    background: var(--panel); border-top: 1px solid var(--line);
+  }
+  .inq-actions .x-btn { width: auto; flex: 0 0 auto; white-space: nowrap; }
+  .inq-actions .inq-copy {
+    flex: 1 1 auto; color: #fff; border-color: transparent; font-weight: 600;
+    background: linear-gradient(180deg, #38bdf8, #2563eb);
+  }
+  .inq-actions .inq-copy:hover { background: linear-gradient(180deg, #38bdf8, #2563eb); filter: brightness(1.06); }
+  .inq-actions .inq-clear { color: #dc2626; background: #fff; border-color: #fecaca; }
+  .inq-actions .inq-clear:hover { background: #fef2f2; border-color: #fca5a5; }
+  .sheet-inq { padding-bottom: 0; }
   .x-title { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
   .x-title .x-note { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 6px; }
   .x-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -198,6 +224,9 @@
     white-space: nowrap;
   }
   .inq-add.on { background: #dcfce7; border-color: #86efac; font-weight: 600; }
+  .combo-add { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+  .combo-add.on { background: #dbeafe; border-color: #93c5fd; font-weight: 600; color: #1e40af; }
+  .combo-add + .inq-add { margin-left: 0; }
   .x-mini {
     font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
     color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
@@ -300,8 +329,10 @@
     .filters { padding: 10px 12px; gap: 8px 14px; }
     .f-reset { margin-left: 0; }
     .f-num { width: 84px; }
-    .tb-back { margin-left: 0; }
     .tb-row { gap: 8px; }
+    /* 导航：窄屏独占一行横滑，不再拆成上下两个按钮 */
+    .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .pnav > a, .pnav > .on { font-size: 11.5px; padding: 6px 11px; }
   }
 </style>
 </head>
@@ -311,8 +342,12 @@
   <div class="topbar-inner">
     <div class="tb-row">
       <span class="tb-title">产品库<small>机器视觉选型助手 · 全量型号查询</small></span>
-      <a class="tb-back" href="home.html">🏠 主页</a>
-      <a class="tb-back" href="index.html">← 返回选型助手</a>
+      <nav class="pnav" aria-label="页面导航">
+        <a href="home.html">主页</a>
+        <a href="index.html">选型助手</a>
+        <span class="on" aria-current="page">产品库</span>
+        <a href="combo.html">自定义搭配</a>
+      </nav>
     </div>
     <div class="tb-stats" id="stats"></div>
     <div class="tb-search" id="searchBox">
@@ -345,6 +380,7 @@
 
 <div class="cmp-tray" id="cmpTray"></div>
 <div class="cmp-tray inquiry-tray" id="inqTray"></div>
+<div class="cmp-tray combo-tray" id="comboTray"></div>
 
 <div class="mask" id="mask">
   <div class="sheet" id="sheet"></div>
@@ -403,10 +439,15 @@
   function mountText(m) { return m == null ? null : (MOUNT_LABEL[m] || m); }
   function lightTypeText(t) { return LIGHT_TYPE_LABEL[t] || t; }
   function lightColorText(c) { return c == null ? null : (COLOR_LABEL[c] || c); }
-  function fmtSize(s) {
+  // 环形/环形无影光源 size 为 [外径, 照射角]（第二维是照射角，不是内径，绝不交换）
+  function fmtSize(s, type) {
     if (s == null) return null;
-    if (Array.isArray(s)) return s.join(' × ') + ' mm';
-    return String(s);
+    if (!Array.isArray(s)) return String(s);
+    if (/^ring/.test(type || '') && s.length >= 2) {
+      var w = s[0], ang = s[1];
+      return (ang > 0) ? 'Ø' + w + '（' + ang + '° 照射角）' : 'Ø' + w;
+    }
+    return s.join(' × ') + ' mm';
   }
   // 曝光时间（µs）→ 人话
   function expText(us) {
@@ -531,7 +572,7 @@
       { h: '品牌', brand: true },
       { h: '类型', get: V(function (it) { return lightTypeText(it.d.type); }) },
       { h: '颜色', color: true, get: V(function (it) { return lightColorText(it.d.color); }) },
-      { h: '尺寸', get: V(function (it) { return fmtSize(it.d.size); }) },
+      { h: '尺寸', get: V(function (it) { return fmtSize(it.d.size, it.d.type); }) },
       { h: '功率 W', cls: 'num', get: V(function (it) { return it.d.power; }) },
       { h: '角度 °', cls: 'num', get: V(function (it) { return it.d.angle; }) }
     ],
@@ -578,7 +619,7 @@
     else if (it.cat === 'line') { s.push(d.w + ' px'); s.push(d.iface); s.push(d.color); }
     else if (it.cat === 'lens') { s.push(d.focal + ' mm'); s.push(mountText(d.mount)); s.push(d.fmt); }
     else if (it.cat === 'tele') { s.push(d.model); }
-    else if (it.cat === 'light') { s.push(lightTypeText(d.type)); s.push(lightColorText(d.color)); s.push(fmtSize(d.size)); }
+    else if (it.cat === 'light') { s.push(lightTypeText(d.type)); s.push(lightColorText(d.color)); s.push(fmtSize(d.size, d.type)); }
     else if (it.cat === 'ctrl') { s.push(d.channels + ' 通道'); s.push(d.mode); }
     else if (it.cat === 'prof') {
       s.push(profKind(d));
@@ -657,7 +698,7 @@
       ['产品名称', function (d) { return d.name; }],
       ['类型', function (d) { return lightTypeText(d.type); }],
       ['颜色', function (d) { return lightColorText(d.color); }],
-      ['尺寸', function (d) { return fmtSize(d.size); }],
+      ['尺寸', function (d) { return fmtSize(d.size, d.type); }],
       ['功率', function (d) { return d.power != null ? d.power + ' W' : null; }],
       ['发光角度', function (d) { return d.angle != null ? d.angle + '°' : null; }]
     ],
@@ -1250,7 +1291,7 @@
     ];
     if (it.cat === 'light') return [
       ['类型', lightTypeText(d.type)], ['颜色', lightColorText(d.color) || '—'],
-      ['尺寸', fmtSize(d.size) || '—'], ['功率', d.power != null ? d.power + ' W' : '—'],
+      ['尺寸', fmtSize(d.size, d.type) || '—'], ['功率', d.power != null ? d.power + ' W' : '—'],
       ['角度', d.angle != null ? d.angle + '°' : '—']
     ];
     if (it.cat === 'ctrl') return [
@@ -1336,6 +1377,10 @@
       '<div class="sheet-head"><div class="row1">' +
         (logo ? '<img class="sheet-logo" src="' + esc(logo) + '" alt="' + esc(brandShort(it.brand)) + '" />' : '') +
         '<span class="cat-tag">' + esc(catInfo ? catInfo.catName : '') + '</span>' +
+        (comboSupported(it)
+          ? '<button class="inq-add combo-add' + (comboSame(it) ? ' on' : '') + '" id="comboAdd">' +
+            (comboSame(it) ? '✓ 已在搭配台' : '＋ 加入搭配') + '</button>'
+          : '') +
         '<button class="inq-add" id="inqAdd">' + (inquiryHas(d.model || d.series || '') ? '✓ 已在清单' : '＋ 询价清单') + '</button>' +
         '<button class="sheet-close" id="sheetClose">✕</button>' +
       '</div>' +
@@ -1360,6 +1405,12 @@
         addBtn.classList.add('on');
       }
       renderInquiryTray();
+    });
+    var comboBtn = document.getElementById('comboAdd');
+    if (comboBtn) comboBtn.addEventListener('click', function () {
+      var on = comboToggle(it);
+      comboBtn.textContent = on ? '✓ 已在搭配台' : '＋ 加入搭配';
+      comboBtn.classList.toggle('on', on);
     });
     bindDetailExtras(it);
   }
@@ -1608,6 +1659,82 @@
     }
   });
 
+  /* ---- 搭配台（与 combo.html 共用 vs-combo） ---- */
+  var COMBO_KEY = 'vs-combo';
+  var COMBO_NAMES = { camera: '相机', lens: '镜头', light: '光源' };
+  function comboLoad() {
+    try { return JSON.parse(localStorage.getItem(COMBO_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function comboSave(o) {
+    try { localStorage.setItem(COMBO_KEY, JSON.stringify(o)); } catch (e) { /* 隐私模式等场景忽略 */ }
+  }
+  function comboSlotOf(cat) {
+    return cat === 'cam' ? 'camera' : (cat === 'lens' ? 'lens' : (cat === 'light' ? 'light' : null));
+  }
+  // 搭配页只合并主目录里的光源（Basler 灯光独立库暂未并入选型引擎）
+  function comboSupported(it) {
+    if (!comboSlotOf(it.cat)) return false;
+    if (it.cat !== 'light') return true;
+    var gs = ['HikrobotCatalog', 'HuaruiCatalog', 'BaslerCatalog', 'DahengCatalog'];
+    for (var i = 0; i < gs.length; i++) {
+      var c = window[gs[i]];
+      if (c && (c.LIGHTS || []).indexOf(it.d) >= 0) return true;
+    }
+    return false;
+  }
+  function comboBrandKey(b) {
+    if (!b) return null;
+    if (BRANDS[b]) return b;
+    var ks = Object.keys(BRANDS);
+    for (var i = 0; i < ks.length; i++) {
+      var m = BRANDS[ks[i]];
+      if (!m) continue;
+      if (m.name === b || m.short === b || String(m.key).toLowerCase() === String(b).toLowerCase()) return ks[i];
+      if (String(b).indexOf(m.short) >= 0) return ks[i];
+    }
+    return b;
+  }
+  function comboModel(it) { return it.d.model || it.d.series || ''; }
+  function comboSame(it) {
+    var slot = comboSlotOf(it.cat);
+    if (!slot) return false;
+    var cur = comboLoad()[slot];
+    return !!cur && comboBrandKey(cur.b) === comboBrandKey(it.brand) && cur.m === comboModel(it);
+  }
+  function comboToggle(it) {
+    var slot = comboSlotOf(it.cat);
+    if (!slot || !comboSupported(it)) return false;
+    var o = comboLoad();
+    if (o[slot] && comboBrandKey(o[slot].b) === comboBrandKey(it.brand) && o[slot].m === comboModel(it)) {
+      delete o[slot];
+    } else {
+      o[slot] = { b: it.brand, m: comboModel(it) };
+    }
+    comboSave(o);
+    renderComboTray();
+    return !!o[slot];
+  }
+  function renderComboTray() {
+    var tray = document.getElementById('comboTray');
+    if (!tray) return;
+    var o = comboLoad();
+    var parts = [];
+    ['camera', 'lens', 'light'].forEach(function (k) {
+      if (o[k] && o[k].m) parts.push(COMBO_NAMES[k] + ' ' + o[k].m);
+    });
+    if (!parts.length) { tray.className = 'cmp-tray combo-tray'; tray.innerHTML = ''; return; }
+    tray.className = 'cmp-tray combo-tray show';
+    tray.innerHTML =
+      '<span>🧩 搭配台 ' + parts.length + '/3</span>' +
+      '<span class="t-models">' + esc(parts.join(' · ')) + '</span>' +
+      '<a class="t-go" href="combo.html">去评定 →</a>' +
+      '<button class="t-clear" id="comboClear">清空</button>';
+    document.getElementById('comboClear').addEventListener('click', function () {
+      comboSave({});
+      renderComboTray();
+    });
+  }
+
   /* ---- 询价清单（localStorage 持久化，仅本机） ---- */
   var INQ_KEY = 'vs-inquiry-list';
   function inquiryLoad() {
@@ -1653,7 +1780,7 @@
         (it ? '<button class="x-mini" data-open-item="' + i + '">详情</button>' : '') +
         '<button class="x-mini danger" data-rm="' + i + '">移除</button></td></tr>';
     }).join('');
-    $sheet.className = 'sheet sheet-wide';
+    $sheet.className = 'sheet sheet-wide sheet-inq';
     $sheet.innerHTML =
       '<div class="sheet-head"><div class="row1">' +
         '<span class="cat-tag">询价清单 · ' + list.length + ' 项</span>' +
@@ -1661,9 +1788,9 @@
       '</div>' +
       '<div class="sheet-meta"><span>保存在本机浏览器（localStorage），换设备不跟随</span></div></div>' +
       '<div style="overflow-x:auto"><table class="cmp-table"><thead><tr><td class="k">类别</td><th>型号</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-      '<div class="x-block" style="display:flex;gap:10px">' +
-        '<button class="x-btn" id="inqCopy" style="flex:1">复制清单文本</button>' +
-        '<button class="x-btn" id="inqClear" style="flex:0 0 auto;color:#dc2626;border-color:#fecaca;background:#fef2f2">清空</button>' +
+      '<div class="inq-actions">' +
+        '<button class="x-btn inq-copy" id="inqCopy">复制清单文本</button>' +
+        '<button class="x-btn inq-clear" id="inqClear">清空</button>' +
       '</div>';
     $mask.classList.add('show');
     document.getElementById('sheetClose').addEventListener('click', function () {
@@ -1744,6 +1871,7 @@
   renderAll();
 
   renderInquiryTray();
+  renderComboTray();
 
   /* ============ 8. URL 参数入口：?cat=cam&q=型号 → 自动定位并弹出详情 ============ */
   (function initFromUrl() {

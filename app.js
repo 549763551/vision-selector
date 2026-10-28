@@ -214,6 +214,118 @@
   /* ---------------- 手动指定型号 ---------------- */
   var manual = { camera: null, lens: null, light: null };
 
+  /* ---------------- 自定义搭配交接（独立页面 combo.html） ---------------- */
+  // vs-combo 是搭配台草稿（产品库 / 搭配页共用）；vs-combo-apply 只在「应用到选型助手」时写入
+  var COMBO_KEY = 'vs-combo-apply';
+
+  function comboKey(brand, model) { return (brand ? brand + '::' : '') + model; }
+
+  // 一次性读取来自「自定义搭配」页的交接数据（读完即删，避免刷新时反复覆盖手动选择）
+  function takeComboHandoff() {
+    try {
+      var raw = localStorage.getItem(COMBO_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || (!o.camera && !o.lens && !o.light && !o.req)) return null;
+      return o;
+    } catch (e) { return null; }
+  }
+
+  /* ---- 方案清单（BOM） ---- */
+  function inqLoad() {
+    try { return JSON.parse(localStorage.getItem('vs-inquiry-list') || '[]'); } catch (e) { return []; }
+  }
+  function inqSave(list) {
+    try { localStorage.setItem('vs-inquiry-list', JSON.stringify(list)); } catch (e) { /* 隐私模式忽略 */ }
+  }
+  function inqAdd(rec) {
+    var list = inqLoad();
+    if (!list.some(function (x) { return x.m === rec.m; })) { list.push(rec); inqSave(list); }
+  }
+  function inqHas(model) {
+    return inqLoad().some(function (x) { return x.m === model; });
+  }
+  // 询价清单与产品库共用，品牌统一存产品库使用的注册键
+  function brandKeyOf(b) {
+    if (!b) return null;
+    var ks = Object.keys(BRANDS);
+    for (var i = 0; i < ks.length; i++) {
+      var m = BRANDS[ks[i]];
+      if (!m) continue;
+      if (m.key === b || m.name === b || m.short === b) return m.key;
+      if (String(m.key).toLowerCase() === String(b).toLowerCase()) return m.key;
+      if (String(b).indexOf(m.short) >= 0) return m.key;
+    }
+    return b;
+  }
+
+  function bomRows(r) {
+    var c = r.camera, l = r.lens, g = r.light;
+    var rows = [];
+    rows.push({
+      cat: 'cam', catName: '相机', brand: c.brand, model: c.model, qty: 1,
+      spec: c.w + '×' + c.h + ' px · ' + c.sw + '×' + c.sh + ' mm · ' + c.interface + ' · ' + c.mount + ' 口'
+    });
+    rows.push({
+      cat: 'lens', catName: '镜头', brand: l.brand, model: l.model, qty: 1,
+      spec: l.f + ' mm F' + l.aperture + ' · ' + l.mount + ' 口 · 视场 ' + num(l.fovW, 1) + '×' + num(l.fovH, 1) + ' mm' +
+        (l.adapter ? ' · 需转接环' : '')
+    });
+    if (l.adapter) {
+      rows.push({
+        cat: 'acc', catName: '附件', brand: null, model: c.mount + '→' + l.mount + ' 转接环', qty: 1,
+        spec: '约 12 mm，已计入安装空间'
+      });
+    }
+    if (g && g.sku) {
+      rows.push({
+        cat: 'light', catName: '光源', brand: g.skuBrand, model: g.sku, qty: g.count || 1,
+        spec: (g.skuSize || []).join('×') + ' mm · ' + (g.power == null ? '' : g.power + ' W · ') +
+          g.colorName + ' · ' + (g.controller || '')
+      });
+    }
+    if (g && g.controllerModel) {
+      var ctrl = ((CAT && CAT.CONTROLLERS) || []).filter(function (x) { return x.model === g.controllerModel; })[0];
+      rows.push({
+        cat: 'ctrl', catName: '控制器', brand: ctrl ? ctrl.brand : g.skuBrand, model: g.controllerModel, qty: 1,
+        spec: (ctrl && ctrl.channels ? ctrl.channels + ' 通道' : (g.controllerChannels || '—') + ' 通道') +
+          (ctrl && ctrl.strobe ? ' · 支持频闪' : '')
+      });
+    }
+    return rows;
+  }
+
+  function bomCard(r) {
+    var rows = bomRows(r);
+    var htmlRows = rows.map(function (x, i) {
+      var added = x.cat !== 'acc' && inqHas(x.model);
+      return '<tr><td class="cat">' + esc(x.catName) + '</td>' +
+        '<td class="model">' + esc(x.model) + (x.brand ? '<span class="bom-brand">' + esc(x.brand) + '</span>' : '') + '</td>' +
+        '<td class="qty">' + x.qty + '</td>' +
+        '<td>' + esc(x.spec) + '</td>' +
+        '<td style="white-space:nowrap">' + (x.cat === 'acc'
+          ? '<span style="color:#94a3b8">—</span>'
+          : '<button class="bom-add' + (added ? ' on' : '') + '" data-bom-add="' + i + '" data-bom-model="' + esc(x.model) + '"' +
+            ' data-bom-brand="' + esc(x.brand || '') + '" data-bom-cat="' + esc(x.cat) + '">' +
+            (added ? '✓ 已加入' : '＋ 询价') + '</button>') + '</td></tr>';
+    }).join('');
+    return '<div class="card"><h2 class="sec">方案清单 (BOM) <span class="hint">直接拿去询价 / 备料</span>' +
+      '<button class="btn bom-all" id="bomAll">全部加入询价清单</button></h2>' +
+      '<div style="overflow-x:auto"><table class="mini bom-table"><thead><tr>' +
+      '<th>类别</th><th>品牌 / 型号</th><th>数量</th><th>关键规格</th><th></th>' +
+      '</tr></thead><tbody>' + htmlRows + '</tbody></table></div>' +
+      '<div class="sib-note">清单按当前方案自动生成；「加入询价清单」保存在本机浏览器，可在产品库查看完整参数。</div></div>';
+  }
+
+  /* ---- 评分构成 ---- */
+  function scoreItemsHtml(r) {
+    var items = r.scoreItems || [];
+    if (!items.length) return '评分构成：<span class="si-chip ok">无扣分项</span>';
+    return '评分构成：' + items.map(function (x) {
+      return '<span class="si-chip" title="' + esc(x.detail) + '">' + esc(x.label) + ' −' + x.penalty + '</span>';
+    }).join('');
+  }
+
   function readInput() {
     return {
       fovW: readNum('fovW'),
@@ -261,6 +373,21 @@
     if (!model) return '';
     return '<a class="lib-link" href="library.html?cat=' + encodeURIComponent(cat) +
       '&q=' + encodeURIComponent(model) + '" title="在产品库中查看全参数与备选">产品库 ↗</a>';
+  }
+
+  // 带当前需求跳「自定义搭配」页，避免在那边重填一遍
+  function comboLinkHref() {
+    var parts = [];
+    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm', 'space'].forEach(function (k) {
+      var v = $(k).value;
+      if (v !== '') parts.push(k + '=' + encodeURIComponent(v));
+    });
+    ['task', 'material', 'colorTarget'].forEach(function (k) {
+      if ($(k).value) parts.push(k + '=' + encodeURIComponent($(k).value));
+    });
+    if ($('needColor').checked) parts.push('needColor=1');
+    if ($('lineScanFirst').checked) parts.push('lineScanFirst=1');
+    return 'combo.html' + (parts.length ? '?' + parts.join('&') : '');
   }
 
   function expoRange(a, b) {
@@ -549,6 +676,87 @@
   }
 
 
+  /* ---------------- 选型依据（与次优对比） ---------------- */
+  function rationaleCard(r) {
+    var q = r.rationale;
+    if (!q) return '';
+    var head = '<div class="rationale"><div class="why-title">选型依据 <span class="hint">与次优方案逐项对比</span></div>';
+    if (q.manual || q.none) {
+      return head + '<div class="why-sum">' + esc(q.note) + '</div></div>';
+    }
+    var rows = q.rows.map(function (x) {
+      var cls = x.cmp === 'win' ? 'cmp-win' : (x.cmp === 'lose' ? 'cmp-lose' : 'cmp-tie');
+      return '<tr><td>' + esc(x.k) + '</td><td class="' + cls + '">' + esc(x.a) + '</td><td>' + esc(x.b) + '</td></tr>';
+    }).join('');
+    return head +
+      '<div class="why-sum">' + esc(q.summary) + '</div>' +
+      '<table class="mini wrap why-table"><thead><tr><th>项目</th><th>本方案</th><th>次优（' + esc(q.altCamera) + '）</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="sib-note">次优方案的镜头为 ' + esc(q.altLens) +
+      '；两项硬指标持平时，按「像素更少 → 接口更常用 → 镜头可直连」的次序取舍。分数口径与上方匹配度一致。</div></div>';
+  }
+
+  /* ---------------- 现场参数建议 ---------------- */
+  function siteCard(r) {
+    var s = r.site;
+    if (!s) return '';
+    var rows = [];
+    rows.push(['光圈', 'F' + s.aperture.value, s.aperture.note]);
+    var exp = s.exposure;
+    rows.push(['曝光',
+      '起 ' + num(exp.startMs, 3) + ' ms' + (exp.upperMs == null ? '（静态不限）' : '（上限 ' + num(exp.upperMs, 3) + ' ms）'),
+      exp.note]);
+    rows.push(['增益', '0 dB',
+      '先用照度与曝光把灰度做到 70–80%；增益只在亮度不足时小幅加（≤ 6 dB），加太多噪点会吃掉亚像素精度']);
+    rows.push(['触发', s.trigger.mode, s.trigger.note]);
+    if (s.light) {
+      rows.push(['光源调光',
+        (s.light.mode || '') + (s.light.controller ? ' · ' + s.light.controller : '') +
+          (s.light.channels ? '（' + s.light.channels + ' 通道）' : ''),
+        s.light.note]);
+    }
+    var body = rows.map(function (x) {
+      return '<tr><td class="nw">' + esc(x[0]) + '</td><td>' + esc(x[1]) + '</td><td class="unit" style="white-space:normal">' + esc(x[2]) + '</td></tr>';
+    }).join('');
+    return '<table class="mini wrap"><thead><tr><th>项目</th><th>建议设置</th><th>说明</th></tr></thead><tbody>' +
+      body + '</tbody></table>' +
+      '<div class="sib-note">给的是「可照抄的起始值」，不是最终参数：现场用直方图与标准件微调后固定下来，并记录在设备参数表里。</div>';
+  }
+
+  /* ---------------- 安装与配套清单 ---------------- */
+  function installCard(r) {
+    var k = r.install;
+    if (!k) return '';
+    var body = k.items.map(function (x) {
+      return '<tr><td class="nw">' + esc(x.name) + '</td><td>' + esc(x.value) + '</td>' +
+        '<td class="unit" style="white-space:normal">' + esc(x.note) + '</td></tr>';
+    }).join('');
+    var spaceTag = k.pass == null
+      ? '<span class="hint">未填可用安装空间，只列尺寸链</span>'
+      : (k.pass
+        ? '<span class="tag ok">尺寸链放得下</span>'
+        : '<span class="tag bad">超出 ' + num(k.needAll - k.available, 0) + ' mm</span>');
+    return '<div class="space-line">含支架与调整余量共计 <b>≈ ' + num(k.needAll, 0) + ' mm</b>　' + spaceTag + '</div>' +
+      '<table class="mini wrap"><thead><tr><th>项目</th><th>配置</th><th>说明</th></tr></thead><tbody>' +
+      body + '</tbody></table>';
+  }
+
+  /* ---------------- 验收与复核清单 ---------------- */
+  function acceptCard(r) {
+    var a = r.acceptance;
+    if (!a) return '';
+    var body = a.items.map(function (x) {
+      return '<tr><td class="nw">' + esc(x.name) + '</td><td>' + esc(x.target) + '</td>' +
+        '<td class="unit" style="white-space:normal">' + esc(x.method) + '</td></tr>';
+    }).join('');
+    var focus = a.focus.length
+      ? '<ul class="why">' + a.focus.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
+      : '';
+    return '<table class="mini wrap"><thead><tr><th>检查项</th><th>验收指标</th><th>测法</th></tr></thead><tbody>' +
+      body + '</tbody></table>' + focus +
+      '<div class="sib-note">验收顺序：先机械与打光（图像对比度达标）→ 再标定 → 最后测重复性与偏差；任何一项不达标先回查上一环节。</div>';
+  }
+
   /* ---------------- 精度预算 ---------------- */
   function budgetCard(r) {
     var b = r.budget;
@@ -559,7 +767,7 @@
         '<td class="unit">' + esc(x.note) + '</td></tr>';
     }).join('');
     var pct = Math.round(b.ratio * 100);
-    return '<table class="mini"><thead><tr><th>误差项</th>' +
+    return '<table class="mini wrap"><thead><tr><th>误差项</th>' +
       '<th style="text-align:right">估算</th><th>说明</th></tr></thead><tbody>' + rows + '</tbody></table>' +
       '<div class="budget-sum">合成 <b>± ' + n4(b.total) + ' mm</b>' +
       '<span>占像素精度要求 ' + pct + '%</span>' +
@@ -653,6 +861,8 @@
     }
 
     var r = E.solve(readInput());
+    var comboLink = $('comboLink');
+    if (comboLink) comboLink.href = comboLinkHref();
 
     if (!r.ok) {
       $('scoreNum').innerHTML = '--<small>/100</small>';
@@ -660,10 +870,16 @@
       $('stateChip').className = 'tag bad';
       $('stateChip').textContent = '输入有误';
       $('summary').innerHTML = '<span style="color:#b91c1c">' + esc(r.error) + '</span>';
+      $('scoreItems').innerHTML = '';
+      $('rationale').innerHTML = '';
       $('cards').innerHTML = '';
+      $('bom').innerHTML = '';
       $('calcBody').innerHTML = '';
       $('risks').innerHTML = '';
       $('riskCount').textContent = '';
+      $('site').innerHTML = '';
+      $('install').innerHTML = '';
+      $('accept').innerHTML = '';
       return;
     }
 
@@ -672,11 +888,17 @@
     $('stateChip').className = 'tag ' + (r.feasible ? 'ok' : 'bad');
     $('stateChip').textContent = r.feasible ? '方案可行' : '需升级方案';
     $('summary').innerHTML = esc(r.summary);
+    $('scoreItems').innerHTML = scoreItemsHtml(r);
+    $('rationale').innerHTML = rationaleCard(r);
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
+    $('bom').innerHTML = bomCard(r);
     $('suggest').innerHTML = suggestCard(r);
     $('siblings').innerHTML = siblingCard(r);
     scrollSiblingsToCurrent();
+    $('site').innerHTML = siteCard(r);
+    $('install').innerHTML = installCard(r);
+    $('accept').innerHTML = acceptCard(r);
     $('budget').innerHTML = budgetCard(r);
     $('diagram').innerHTML = diagramCard(r);
 
@@ -777,6 +999,11 @@
     var lines = [];
     lines.push('【机器视觉选型方案】');
     lines.push(r.summary);
+    if (r.scoreItems && r.scoreItems.length) {
+      lines.push('· 扣分项：' + r.scoreItems.map(function (x) {
+        return x.label + ' −' + x.penalty + (x.detail ? '（' + x.detail + '）' : '');
+      }).join('；'));
+    }
     lines.push('');
     lines.push('· 任务：' + r.task.label + '（每特征 ' + r.task.k + ' 像素）');
     lines.push('· 相机：' + (c.brand ? '[' + c.brand + '] ' : '') + c.model + '（' + c.series + '）');
@@ -840,6 +1067,50 @@
         (t.feasible ? '（当前 WD 可用）' : '（当前 WD 不在区间，需调整）'));
       lines.push('　 景深估算 ' + num(t.dofEst, 2) + 'mm（F8）');
       lines.push('　 ' + t.note);
+    }
+    lines.push('');
+    lines.push('· 方案清单（BOM）：');
+    bomRows(r).forEach(function (x) {
+      lines.push('　' + x.catName + '：' + (x.brand ? '[' + x.brand + '] ' : '') + x.model +
+        ' × ' + x.qty + (x.spec ? '　' + x.spec : ''));
+    });
+    if (r.rationale && r.rationale.rows) {
+      lines.push('');
+      lines.push('· 选型依据：');
+      lines.push('　' + r.rationale.summary);
+      r.rationale.rows.forEach(function (x) {
+        lines.push('　' + x.k + '：本方案 ' + x.a + '　| 次优 ' + x.b);
+      });
+    } else if (r.rationale && r.rationale.note) {
+      lines.push('');
+      lines.push('· 选型依据：' + r.rationale.note);
+    }
+    if (r.site) {
+      var st = r.site;
+      lines.push('');
+      lines.push('· 现场参数建议：');
+      lines.push('　 光圈 F' + st.aperture.value + '：' + st.aperture.note);
+      lines.push('　 曝光 起 ' + num(st.exposure.startMs, 3) + ' ms' +
+        (st.exposure.upperMs == null ? '（静态不限）' : '（上限 ' + num(st.exposure.upperMs, 3) + ' ms）') +
+        '：' + st.exposure.note);
+      lines.push('　 增益 0 dB：先用照度与曝光把灰度做到 70–80%，增益只在不足时小幅加（≤ 6 dB）');
+      lines.push('　 触发 ' + st.trigger.mode + '：' + st.trigger.note);
+      if (st.light) lines.push('　 调光：' + st.light.note);
+    }
+    if (r.install) {
+      lines.push('');
+      lines.push('· 安装与配套清单：');
+      r.install.items.forEach(function (x) {
+        lines.push('　' + x.name + '：' + x.value + (x.note ? '（' + x.note + '）' : ''));
+      });
+    }
+    if (r.acceptance) {
+      lines.push('');
+      lines.push('· 验收与复核清单：');
+      r.acceptance.items.forEach(function (x) {
+        lines.push('　' + x.name + '：' + x.target + '　→ ' + x.method);
+      });
+      r.acceptance.focus.forEach(function (x) { lines.push('　重点：' + x); });
     }
     if (r.warnings.length) {
       lines.push('');
@@ -977,6 +1248,32 @@
       } else fallbackCopy(txt, done);
     });
 
+    // 方案清单：逐行加入询价清单（与产品库共用 vs-inquiry-list）
+    $('bom').addEventListener('click', function (e) {
+      var add = e.target.closest('[data-bom-add]');
+      if (add) {
+        var model = add.getAttribute('data-bom-model');
+        if (!inqHas(model)) {
+          inqAdd({ m: model, b: brandKeyOf(add.getAttribute('data-bom-brand')), c: add.getAttribute('data-bom-cat') });
+        }
+        add.textContent = '✓ 已加入';
+        add.classList.add('on');
+        return;
+      }
+      if (e.target.id === 'bomAll') {
+        var rr = E.solve(readInput());
+        if (!rr.ok) return;
+        bomRows(rr).forEach(function (x) {
+          if (x.cat !== 'acc') inqAdd({ m: x.model, b: brandKeyOf(x.brand), c: x.cat });
+        });
+        Array.prototype.forEach.call($('bom').querySelectorAll('[data-bom-add]'), function (b) {
+          b.textContent = '✓ 已加入';
+          b.classList.add('on');
+        });
+        e.target.textContent = '✓ 已加入清单';
+      }
+    });
+
     // 同系列表格：点型号 = 手动指定，再点一次 = 取消
     $('siblings').addEventListener('click', function (e) {
       var auto = e.target.closest('[data-action="auto"]');
@@ -1000,6 +1297,17 @@
     var pm = /[?&]p=([a-z]+)/.exec(location.search);
     var state = Object.assign({}, pm && PRESETS[pm[1]] ? PRESETS[pm[1]] : DEFAULT, fromQuery());
     applyState(state);
+
+    // 来自「自定义搭配」页的一键应用：先恢复需求，再固定三个手动型号
+    var ho = takeComboHandoff();
+    if (ho) {
+      if (ho.req) applyState(Object.assign({}, DEFAULT, ho.req));
+      manual.camera = ho.camera ? comboKey(ho.camera.b, ho.camera.m) : null;
+      manual.lens = ho.lens ? comboKey(ho.lens.b, ho.lens.m) : null;
+      manual.light = ho.light ? ho.light.m : null;
+      try { localStorage.removeItem(COMBO_KEY); } catch (e) { /* 隐私模式忽略 */ }
+      render();
+    }
   }
 
   if (document.readyState === 'loading') {

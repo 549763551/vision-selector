@@ -19,6 +19,7 @@
     --muted: #64748b;
     --line: #e3e9f1;
     --accent: #2563eb;
+    --accent-soft: #eff6ff;
     --ok: #16a34a;
     --warn: #d97706;
     --danger: #dc2626;
@@ -57,12 +58,21 @@
   .brand-logo { display: block; height: 19px; width: auto; }
   .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
   .brand p { margin: 4px 0 0; font-size: 12.5px; color: #93a4bd; }
-  .home-link {
-    display: inline-block; margin-top: 6px; font-size: 11.5px; color: #d7e3f4; text-decoration: none;
-    border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; padding: 3px 11px;
-    background: rgba(255, 255, 255, .07);
+  /* ---------- 全站导航（与产品库 / 自定义搭配同一套） ---------- */
+  .pnav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .brand .pnav { margin-top: 10px; }
+  .pnav > a, .pnav > .on {
+    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
+    font-size: 12px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 7px 13px;
+    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    transition: .15s;
   }
-  .home-link:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > .on {
+    color: #fff; font-weight: 600;
+    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
+    border-color: rgba(56, 189, 248, .7);
+  }
   .brand-filter { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .brand-filter + .brand-filter { margin-left: 0; }
   .brand-filter .bf-label { font-size: 12px; color: #7d8ca5; margin-right: 2px; }
@@ -104,7 +114,7 @@
   .layout-wide.duo {
     display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: stretch;
   }
-  .layout-wide.duo > .card { margin-top: 0; }
+  .layout-wide.duo > .card { margin-top: 0; min-width: 0; }
   .layout-wide.duo > .card { display: flex; flex-direction: column; }
   .layout-wide.duo > .card .actions { margin-top: auto; }
   #sibCol .card { margin-top: 0; }
@@ -207,7 +217,7 @@
 
   /* ---------- 三张方案卡 ---------- */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)); gap: 14px; }
-  .cards .card { margin-top: 0; display: flex; flex-direction: column; }
+  .cards .card { margin-top: 0; display: flex; flex-direction: column; min-width: 0; }
   .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
   .card-head h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .4px; }
   .card-head .tag { margin-left: auto; }
@@ -301,7 +311,9 @@
     vertical-align: 1px; white-space: nowrap;
   }
   .sib-note { margin-top: 10px; font-size: 11px; color: #94a3b8; line-height: 1.7; }
-  .sib-sub { margin-top: 9px; border-top: 1px dashed #eef2f7; padding-top: 7px; }
+  .sib-block { min-width: 0; }
+  /* 跨品牌子表未包滚动容器，窄屏会把整列顶宽（表格 nowrap 的 min-content 外溢） */
+  .sib-sub { margin-top: 9px; border-top: 1px dashed #eef2f7; padding-top: 7px; overflow-x: auto; }
   .sib-sub-h { font-size: 11px; color: #475569; font-weight: 600; margin-bottom: 4px; }
   .bf-mini-brand { font-size: 9px; color: #94a3b8; margin-left: 2px; }
   table.mini tbody tr[data-kind] { cursor: pointer; }
@@ -320,6 +332,41 @@
     border: 1px solid #cbd5e1; background: #fff; color: #334155;
   }
   .sib-manual button:hover { border-color: #93c5fd; background: #f0f9ff; }
+
+  /* ---------- 评分构成 ---------- */
+  .score-items {
+    margin-top: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--muted);
+  }
+  .score-items .si-title { font-weight: 600; color: #475569; margin-right: 2px; }
+  .si-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-weight: 600; cursor: help;
+  }
+  .si-chip.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; cursor: default; }
+
+  /* ---------- 方案清单 BOM ---------- */
+  .bom-table td.cat { color: var(--muted); white-space: nowrap; }
+  .bom-table td.model { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; }
+  .bom-table td.qty { text-align: center; white-space: nowrap; }
+  .bom-table .bom-brand { color: var(--muted); font-size: 11px; display: block; }
+  /* 行内「＋ 询价」：与页面其他细边框小标签同款，已加入转绿 */
+  .bom-add {
+    font-family: inherit; font-size: 11px; line-height: 1.45; cursor: pointer; white-space: nowrap;
+    color: var(--accent); background: var(--accent-soft); border: 1px solid #bfdbfe;
+    border-radius: 999px; padding: 3px 10px; transition: .15s;
+  }
+  .bom-add:hover { background: #dbeafe; border-color: #93c5fd; }
+  .bom-add.on { color: #15803d; background: #f0fdf4; border-color: #bbf7d0; font-weight: 600; }
+  .bom-add.on:hover { background: #dcfce7; border-color: #86efac; }
+  /* 标题栏的整单按钮：压成与标题同高的胶囊，不抢正文按钮的分量 */
+  .btn.bom-all {
+    height: 26px; padding: 0 12px; border-radius: 999px; font-size: 11.5px;
+    color: var(--accent); background: var(--accent-soft); border-color: #bfdbfe;
+  }
+  .btn.bom-all:hover { background: #dbeafe; border-color: #93c5fd; }
+  .bom-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .bom-actions .btn { flex: 0 0 auto; padding: 0 14px; }
 
   /* ---------- 按钮 ---------- */  .actions { display: flex; gap: 9px; margin-top: 12px; }
   .btn {
@@ -358,6 +405,25 @@
   .dg-s { font-size: 11.5px; fill: #475569; font-weight: 600; }
   .space-line { font-size: 12px; color: #475569; margin-top: 4px; }
   .space-line .tag { margin-left: 6px; }
+
+  /* ---------- 选型依据 / 现场参数 / 安装配套 / 验收 ---------- */
+  .rationale { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eef2f7; }
+  .why-title {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    font-size: 12.5px; font-weight: 700; color: #334155;
+  }
+  .why-title .hint { font-weight: 400; font-size: 11px; color: #94a3b8; }
+  .why-sum {
+    margin: 7px 0 9px; padding: 8px 11px; border-radius: 9px;
+    background: #f8fafc; border: 1px solid #eef2f7;
+    font-size: 12px; line-height: 1.7; color: #475569;
+  }
+  table.mini.wrap tbody td { white-space: normal; }
+  table.mini.wrap thead th { white-space: normal; }
+  table.mini.wrap tbody td.nw { white-space: nowrap; }
+  .cmp-win { color: #15803d; font-weight: 700; }
+  .cmp-lose { color: #b45309; }
+  .cmp-tie { color: #475569; }
 
   /* ---------- 仿小程序移动端组件（桌面全部隐藏，≤760px 生效；尺寸按 1rpx=0.5px 从小程序换算） ---------- */
   .segbar {
@@ -414,20 +480,59 @@
     .brand h1 { font-size: 15px; }
     .brand p { font-size: 10.5px; }
     .presets { gap: 6px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; margin-left: 0; width: 100%; }
+    .presets > span { flex: 0 0 auto; white-space: nowrap; }
     .presets button { padding: 5px 10px; font-size: 11.5px; white-space: nowrap; }
+    /* 导航：一行横滑，不与品牌筛选/预设混排 */
+    .pnav { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .pnav > a, .pnav > .on { font-size: 11.5px; padding: 6px 11px; }
     .layout { padding: 10px 10px; gap: 12px; }
     .layout-wide { padding: 0 10px; }
     .layout-wide + .layout-wide, .layout-wide { margin-top: 10px; }
     .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
     .req-grid .fov-cell { grid-column: span 2; }
     .score-num { font-size: 40px; }
-    .cards { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: minmax(0, 1fr); }
     .sib-scroll { max-height: 230px; }
     /* 窄屏防溢出：宽表格改为卡片内横向滚动，避免整页被撑宽 */
     main .card, .layout-wide .card { overflow-x: auto; }
     table.mini { font-size: 11px; }
     .sib-note, .catalog-note { font-size: 11px; }
+    /* 验算表：四列在 390px 挤不开（单位列被裁掉），改为每行堆叠 */
+    [data-anchor="calc"] table thead { display: none; }
+    [data-anchor="calc"] table, [data-anchor="calc"] tbody,
+    [data-anchor="calc"] tr, [data-anchor="calc"] td { display: block; width: auto; }
+    [data-anchor="calc"] tr { padding: 8px 0; border-bottom: 1px dashed #eef2f7; }
+    [data-anchor="calc"] tr:last-child { border-bottom: 0; }
+    [data-anchor="calc"] td { border: 0; padding: 0; }
+    [data-anchor="calc"] td:first-child { font-weight: 600; color: #334155; margin-bottom: 2px; }
+    [data-anchor="calc"] td.num, [data-anchor="calc"] td.unit { display: inline; text-align: left; }
+    [data-anchor="calc"] td.num { margin-right: 4px; }
+    [data-anchor="calc"] td.num::before { content: "= "; color: #94a3b8; font-weight: 400; }
     .summary { font-size: 12px; }
+    /* 选型依据对比表：三列在窄屏挤不开，改为逐项分组 */
+    .why-table thead { display: none; }
+    .why-table, .why-table tbody, .why-table tr, .why-table td { display: block; width: auto; }
+    .why-table tr { padding: 7px 0; border-bottom: 1px dashed #eef2f7; }
+    .why-table tbody td { border: 0; padding: 1px 0; }
+    .why-table td:first-child { font-weight: 600; color: #64748b; }
+    .why-table td:nth-child(2)::before { content: "本方案　"; color: #94a3b8; }
+    .why-table td:nth-child(3)::before { content: "次优　　"; color: #94a3b8; }
+    /* 方案清单 BOM：五列在 390px 放不下，询价按钮会被挤到屏外，改为每行堆叠 */
+    .bom-table thead { display: none; }
+    .bom-table, .bom-table tbody { display: block; width: auto; }
+    .bom-table tr {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+      align-items: start; column-gap: 9px;
+      padding: 8px 0; border-bottom: 1px dashed #eef2f7;
+    }
+    .bom-table tbody tr:last-child { border-bottom: 0; }
+    table.bom-table tbody td { border: 0; padding: 0; display: block; white-space: normal; }
+    table.bom-table tbody td.cat { grid-area: 1 / 1; padding-top: 2px; }
+    table.bom-table tbody td.model { grid-area: 1 / 2; overflow-wrap: anywhere; }
+    table.bom-table tbody td.qty { grid-area: 1 / 3; padding-top: 1px; }
+    table.bom-table tbody td.qty::before { content: "×"; color: #94a3b8; }
+    table.bom-table tbody td:nth-child(4) { grid-area: 2 / 1 / 3 / -1; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    table.bom-table tbody td:nth-child(5) { grid-area: 1 / 4; justify-self: end; }
 
     /* ---- 仿小程序移动端：吸顶分段 / 表单收起摘要 / 方案卡折叠 ---- */
     .segbar { display: flex; }
@@ -449,9 +554,11 @@
   }
 
   @media (max-width: 1020px) {
-    .layout { grid-template-columns: 1fr; padding: 14px 14px 14px; }
+    /* 单列轨道必须 minmax(0,1fr)：裸 1fr 等于 minmax(auto,1fr)，会被表格式 nowrap 内容的
+       min-content 顶宽，整页横向溢出（跨品牌子表尤其明显） */
+    .layout { grid-template-columns: minmax(0, 1fr); padding: 14px 14px 14px; }
     .layout-wide { padding: 0 14px; }
-    .layout-wide.duo { grid-template-columns: 1fr; }
+    .layout-wide.duo { grid-template-columns: minmax(0, 1fr); }
     .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .topbar { padding: 16px 16px; }
     .presets { margin-left: 0; width: 100%; }
@@ -466,7 +573,12 @@
       <div>
         <h1>机器视觉智能选型助手</h1>
         <p>多品牌型号库　·　输入检测需求 → 自动推导相机 / 镜头 / 光源方案</p>
-        <a class="home-link" href="home.html">← 返回主页</a>
+        <nav class="pnav" aria-label="页面导航">
+          <a href="home.html">主页</a>
+          <span class="on" aria-current="page">选型助手</span>
+          <a href="library.html">产品库</a>
+          <a href="combo.html" id="comboLink" title="从型号库自选相机 / 镜头 / 光源，系统逐项评定">自定义搭配</a>
+        </nav>
       </div>
     </div>
     <div class="brand-filter" id="brandFilter"><span class="bf-label">相机品牌</span></div>
@@ -594,15 +706,33 @@
         </div>
       </div>
       <div class="summary" id="summary">—</div>
+      <div class="score-items" id="scoreItems"></div>
+      <!-- 选型依据：为什么是这台相机 / 这支镜头（与次优方案逐项对比） -->
+      <div id="rationale"></div>
     </div>
 
     <div class="cards" id="cards"></div>
+
+    <!-- 方案清单（BOM）：相机 / 镜头 / 光源 / 控制器，可一键加入询价清单 -->
+    <div id="bom"></div>
 
     <!-- 扩展建议：紧随方案卡下方，不再独占一行 -->
     <div id="suggest"></div>
   </section>
 
 </main>
+
+<!-- 现场参数建议 + 安装与配套清单：同一行 -->
+<div class="layout-wide duo">
+  <div class="card">
+    <h2 class="sec">现场参数建议 <span class="hint">上机就能照抄的起始值</span></h2>
+    <div id="site"></div>
+  </div>
+  <div class="card">
+    <h2 class="sec">安装与配套清单 <span class="hint">下单前一次备齐</span></h2>
+    <div id="install"></div>
+  </div>
+</div>
 
 <!-- 精度预算 + 光路与安装示意：同一行 -->
 <div class="layout-wide duo">
@@ -638,6 +768,14 @@
     <div class="actions">
       <button class="btn primary" id="copyBtn">复制方案文本</button>
     </div>
+  </div>
+</div>
+
+<!-- 验收与复核清单：上机后按这张表验收 -->
+<div class="layout-wide">
+  <div class="card">
+    <h2 class="sec">验收与复核清单 <span class="hint">装好后逐项打钩才算交付</span></h2>
+    <div id="accept"></div>
   </div>
 </div>
 

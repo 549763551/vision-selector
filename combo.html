@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>自定义搭配评定 · 机器视觉选型助手</title>
+<meta name="description" content="从海康机器人 / 华睿 / Basler / 大恒四品牌型号库自选相机、镜头与光源，按视野、精度、工作距离等需求逐项评定卡口、像面、解析力、精度、景深、曝光与照明匹配，并给出可一键替换的改进建议。" />
+<link rel="icon" href="assets/favicon.ico" />
+<style>
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e3e9f1;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
+      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    color: #fff;
+    padding: 18px 22px 16px;
+    border-top: 3px solid #e60012;
+  }
+  .topbar-inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .brand p { margin: 4px 0 6px; font-size: 12.5px; color: #93a4bd; }
+  /* ---------- 全站导航（与选型助手 / 产品库同一套） ---------- */
+  .pnav { margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pnav > a, .pnav > .on {
+    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
+    font-size: 12px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 7px 13px;
+    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    transition: .15s;
+  }
+  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > .on {
+    color: #fff; font-weight: 600;
+    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
+    border-color: rgba(56, 189, 248, .7);
+  }
+  .head-note { margin-left: auto; font-size: 11.5px; color: #7d8ca5; }
+
+  /* ---------- 布局 ---------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 14px 22px 48px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 24px -20px rgba(15, 23, 42, .35);
+  }
+  .card + .card { margin-top: 14px; }
+  h2.sec {
+    margin: 0 0 14px; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; letter-spacing: .3px;
+  }
+  h2.sec::before {
+    content: ""; width: 4px; height: 15px; border-radius: 2px;
+    background: linear-gradient(180deg, #38bdf8, #2563eb);
+  }
+  h2.sec .hint { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  h2.sec .btn { margin-left: auto; }
+
+  /* ---------- 需求表单 ---------- */
+  .req-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; align-items: end; }
+  .field { min-width: 0; }
+  .field > label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+  .field > label em { font-style: normal; font-weight: 400; color: #94a3b8; font-size: 11px; }
+  .field .unit { color: #94a3b8; font-size: 12px; font-weight: 400; }
+  input[type="text"], input[type="number"], input[type="search"], select {
+    width: 100%; height: 37px; padding: 0 10px;
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
+    background: #fbfdff; border: 1px solid #d6e0ea; border-radius: 9px;
+    outline: none; transition: .15s;
+  }
+  select { cursor: pointer; }
+  input:focus, select:focus { background: #fff; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59, 130, 246, .18); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .check {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    font-size: 12.5px; color: #475569; padding: 9px 11px;
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 9px;
+    user-select: none; height: 37px;
+  }
+  .check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  .check-cell { display: flex; align-items: flex-end; }
+  .check-cell .check { flex: 1; }
+
+  /* ---------- 搭配台 ---------- */
+  .btn {
+    height: 34px; border-radius: 9px; cursor: pointer; padding: 0 13px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    border: 1px solid #d6e0ea; background: #fff; color: #334155; transition: .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: #93c5fd; background: #f8fbff; }
+  .btn.primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #1d4ed8; color: #fff;
+    box-shadow: 0 6px 16px -8px rgba(37, 99, 235, .8);
+  }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .combo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .cmpick { position: relative; min-width: 0; }
+  .cmpick > label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+  .cmpick > label small { color: #94a3b8; font-weight: 400; margin-left: 5px; }
+  .picked { margin-top: 7px; min-height: 34px; font-size: 11.5px; color: #64748b; line-height: 1.55; }
+  .picked b {
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+    color: #0f172a; font-size: 12px; font-family: ui-monospace, Consolas, monospace;
+  }
+  .picked .p-model { word-break: break-all; min-width: 0; }
+  .picked .p-meta { display: block; margin-top: 2px; }
+  .p-logo { height: calc(15px * var(--logo-scale, 1)); width: auto; max-width: 96px; object-fit: contain; flex: 0 0 auto; }
+  .picked .p-clear {
+    border: 0; background: transparent; color: #94a3b8; cursor: pointer; font-size: 11px;
+    padding: 0; margin-left: 4px;
+  }
+  .picked .p-clear:hover { color: var(--danger); }
+  .cmpick-list {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 60;
+    max-height: 264px; overflow-y: auto; background: #fff; border: 1px solid #d6e0ea; border-radius: 10px;
+    box-shadow: 0 16px 36px -18px rgba(15, 23, 42, .45); padding: 5px;
+  }
+  .cmpick-list.open { display: block; }
+  .cmpick-item {
+    display: block; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
+    border: 0; background: transparent; border-radius: 7px; padding: 6px 8px; font-size: 12.5px; color: #1e293b;
+  }
+  .cmpick-item:hover, .cmpick-item.on { background: var(--accent-soft); }
+  .cmpick-item .ck-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ck-logo { height: calc(13px * var(--logo-scale, 1)); width: auto; max-width: 84px; object-fit: contain; flex: 0 0 auto; }
+  .cmpick-item b { font-weight: 600; color: #475569; font-size: 11px; margin-right: 2px; }
+  .cmpick-item span { display: block; color: #94a3b8; font-size: 11px; margin-top: 2px; }
+  .cmpick-empty { padding: 10px; font-size: 12px; color: #94a3b8; }
+
+  /* ---------- 评定 ---------- */
+  .combo-empty {
+    margin-top: 16px; padding: 14px; border: 1px dashed #cfdae7; border-radius: 10px;
+    background: #f8fafc; font-size: 12.5px; color: #64748b;
+  }
+  .combo-head {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc;
+  }
+  .combo-num {
+    font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #2563eb, #0891b2); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .combo-num small { font-size: 12px; font-weight: 600; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+  .combo-grade { display: flex; flex-direction: column; gap: 5px; }
+  .combo-grade .tag { align-self: flex-start; }
+  .combo-sub { font-size: 11.5px; color: var(--muted); }
+  .combo-head .btn { margin-left: auto; }
+  .tag {
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+    background: #f1f5f9; color: #475569; white-space: nowrap;
+  }
+  .tag.ok { background: #dcfce7; color: #15803d; }
+  .tag.warn { background: #fef3c7; color: #b45309; }
+  .tag.bad { background: #fee2e2; color: #b91c1c; }
+  .combo-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; margin-top: 16px; }
+  .combo-title { font-size: 12px; font-weight: 700; color: #475569; margin: 0 0 7px; }
+  .combo-title + .combo-sugs { margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .combo-table thead th {
+    text-align: left; font-weight: 600; color: var(--muted); font-size: 10.5px;
+    padding: 0 6px 7px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  .combo-table td { padding: 6px; border-bottom: 1px solid #f4f7fb; vertical-align: top; }
+  .combo-table tr.grp td {
+    background: #f8fafc; font-size: 11px; font-weight: 700; color: #475569;
+    padding: 5px 6px; border-bottom: 1px solid #eef2f7;
+  }
+  .combo-table td.lv { white-space: nowrap; font-weight: 600; }
+  .combo-table td.lv.pass { color: #15803d; }
+  .combo-table td.lv.warn { color: #b45309; }
+  .combo-table td.lv.fail { color: #b91c1c; }
+  .combo-table td .detail { color: #94a3b8; font-size: 11px; font-weight: 400; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: #475569; }
+  .combo-side { min-width: 0; }
+  .combo-sugs { margin: 0; padding: 0; list-style: none; }
+  .combo-sugs li {
+    display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.65; color: #334155;
+    padding: 7px 10px; border: 1px solid #eef2f7; border-radius: 9px; margin-bottom: 7px; background: #fbfdff;
+  }
+  .combo-sugs li.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+  .x-mini {
+    font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
+    color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: auto; flex: 0 0 auto;
+  }
+  .x-mini:hover { border-color: #93c5fd; }
+  .combo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .si-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 11.5px; font-weight: 600; cursor: help;
+  }
+  .si-chip.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; cursor: default; }
+  .req-line {
+    margin-top: 12px; padding: 9px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #eef2f7;
+    font-size: 12px; color: #475569; line-height: 1.7;
+  }
+  .req-line b { color: #0f172a; }
+  .combo-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .pick-chip {
+    display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%;
+    padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+    font-size: 12px; color: #334155;
+  }
+  .pick-chip.empty { color: #94a3b8; background: #f8fafc; border-style: dashed; }
+  .pick-logo { height: calc(15px * var(--logo-scale, 1)); width: auto; max-width: 96px; object-fit: contain; flex: 0 0 auto; }
+  .pick-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .pick-txt b { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
+  .pick-txt small { color: var(--muted); font-size: 10.5px; }
+  .combo-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  footer {
+    max-width: 1180px; margin: 0 auto; padding: 0 22px 40px;
+    font-size: 11.5px; color: var(--muted); line-height: 1.8;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 900px) {
+    .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .combo-grid { grid-template-columns: 1fr; }
+    .combo-body { grid-template-columns: 1fr; }
+    .combo-head .btn { margin-left: 0; width: 100%; }
+    .topbar { padding: 14px 14px; }
+    .wrap { padding: 12px 12px 40px; }
+    footer { padding: 0 12px 32px; }
+    .head-note { display: none; }
+    .card { padding: 13px 13px 12px; }
+    .pnav { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .pnav > a, .pnav > .on { font-size: 11.5px; padding: 6px 11px; }
+  }
+  @media (max-width: 560px) {
+    .pick-chip { flex: 1 1 100%; }
+    .combo-body { gap: 12px; }
+    /* 逐项评定：手机上转为「标签行 + 要求/实际 + 结论」的堆叠卡片，避免 4 列挤压 */
+    .combo-table thead { display: none; }
+    .combo-table, .combo-table tbody, .combo-table tr, .combo-table td { display: block; }
+    .combo-table tr:not(.grp) { padding: 7px 0 8px; border-bottom: 1px solid #f4f7fb; }
+    .combo-table tr.grp { margin-top: 6px; }
+    .combo-table tr.grp td { border: 0; border-radius: 6px; }
+    .combo-table td { border: 0; padding: 1px 0; }
+    .combo-table td:first-child { font-weight: 700; color: #334155; font-size: 12.5px; }
+    .combo-table td.mono { display: inline-block; font-size: 11.5px; margin-right: 14px; }
+    .combo-table td.mono::before { content: attr(data-label) " "; color: #94a3b8; font-size: 10px; }
+    .combo-table td.lv { font-size: 11.5px; padding-top: 2px; }
+    .combo-table td .detail { display: block; margin-top: 1px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>自定义搭配评定</h1>
+      <p>从型号库自选相机 / 镜头 / 光源，按当前需求逐项评定并给出改进建议</p>
+      <nav class="pnav" aria-label="页面导航">
+        <a href="home.html">主页</a>
+        <a href="index.html">选型助手</a>
+        <a href="library.html">产品库</a>
+        <span class="on" aria-current="page">自定义搭配</span>
+      </nav>
+    </div>
+    <div class="head-note">本地计算 · 选择只保存在本机浏览器</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h2 class="sec">检测需求 <span class="hint">评定按这套要求进行；从选型助手跳转时自动带入</span></h2>
+    <div class="req-grid">
+      <div class="field">
+        <label>视野 FOV <em>拍摄范围</em></label>
+        <div class="row2">
+          <input type="number" id="fovW" min="1" step="1" value="50" placeholder="宽 mm" />
+          <input type="number" id="fovH" min="1" step="1" value="40" placeholder="高 mm" />
+        </div>
+      </div>
+      <div class="field">
+        <label>最小特征 δ <em>公差/缺陷</em></label>
+        <input type="number" id="precision" min="0.001" step="0.001" value="0.1" />
+      </div>
+      <div class="field">
+        <label>检测任务</label>
+        <select id="task"></select>
+      </div>
+      <div class="field">
+        <label>工作距离 WD <span class="unit">mm</span></label>
+        <input type="number" id="wd" min="10" step="10" value="300" />
+      </div>
+      <div class="field">
+        <label>被测物材质</label>
+        <select id="material"></select>
+      </div>
+      <div class="field">
+        <label>目标主色 <em>选单色光</em></label>
+        <select id="colorTarget"></select>
+      </div>
+      <div class="field check-cell">
+        <label class="check"><input type="checkbox" id="needColor" /><span>需要彩色相机</span></label>
+      </div>
+      <div class="field">
+        <label>高度变化 <em>决定景深</em></label>
+        <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
+      </div>
+      <div class="field">
+        <label>运动速度 <span class="unit">mm/s</span></label>
+        <input type="number" id="speed" min="0" step="10" value="0" />
+      </div>
+      <div class="field">
+        <label>生产节拍 <span class="unit">件/分</span></label>
+        <input type="number" id="cpm" min="0" step="1" value="0" />
+      </div>
+      <div class="field">
+        <label>可用安装空间 <em>0=不校验</em> <span class="unit">mm</span></label>
+        <input type="number" id="space" min="0" step="10" value="0" />
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="sec">搭配台 <span class="hint">支持型号 / 品牌 / 分辨率 / 卡口 / 焦距 / 光源类型等关键词</span>
+      <button class="btn" id="autoBtn">载入自动推荐</button>
+      <button class="btn" id="clearBtn">清空搭配</button>
+    </h2>
+    <div class="combo-grid">
+      <div class="cmpick" data-slot="camera">
+        <label>相机 <small>必需</small></label>
+        <input type="search" class="cmpick-input" id="camInput" placeholder="如 CS016 / 海康 / 1440万…" autocomplete="off" />
+        <div class="cmpick-list" id="camList"></div>
+        <div class="picked" id="camPicked"></div>
+      </div>
+      <div class="cmpick" data-slot="lens">
+        <label>镜头 <small>必需</small></label>
+        <input type="search" class="cmpick-input" id="lensInput" placeholder="如 HN-25 / 25mm / C 口…" autocomplete="off" />
+        <div class="cmpick-list" id="lensList"></div>
+        <div class="picked" id="lensPicked"></div>
+      </div>
+      <div class="cmpick" data-slot="light">
+        <label>光源 <small>可选，但缺省会扣分</small></label>
+        <input type="search" class="cmpick-input" id="lightInput" placeholder="如 环形 / 条形 / 白光…" autocomplete="off" />
+        <div class="cmpick-list" id="lightList"></div>
+        <div class="picked" id="lightPicked"></div>
+      </div>
+    </div>
+    <div id="comboEval"></div>
+  </section>
+</main>
+
+<footer>
+  评定口径与「选型助手」自动方案一致：像素精度 = δ / k，焦距 f = WD·m/(1+m)，景深 DOF = 2·F·c·(1+m)/m²，运动模糊 ≤ 1 像素。
+  型号库来自海康机器人 / 华睿 / Basler / 大恒图像官方型录；本页为非官方辅助工具，参数以厂商最新资料为准。
+</footer>
+
+<script src="brands.js"></script>
+<script src="hikrobot-catalog.js"></script>
+<script src="hikrobot-3d-catalog.js"></script>
+<script src="huarui-catalog.js"></script>
+<script src="basler-catalog.js"></script>
+<script src="basler-lens-catalog.js"></script>
+<script src="daheng-catalog.js"></script>
+<script src="engine.js"></script>
+<script src="combo.js"></script>
+</body>
+</html>

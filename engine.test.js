@@ -1006,6 +1006,264 @@ test('库内无 3D 目录时 height 任务不报错且建议为空', () => {
   assert.strictEqual(r.profile3D, null);
 });
 
+console.log('\n[16] 自定义搭配评定（evaluateCombo）');
+
+function comboOf(r) {
+  return {
+    camera: (r.camera.brand ? r.camera.brand + '::' : '') + r.camera.model,
+    lens: (r.lens.brand ? r.lens.brand + '::' : '') + r.lens.model,
+    light: r.light.sku ? (r.light.skuBrand ? r.light.skuBrand + '::' : '') + r.light.sku : null,
+  };
+}
+function checkOf(ev, label) {
+  return ev.checks.filter((c) => c.label === label)[0];
+}
+
+test('自动方案自评：分数与 solve 完全一致，等级 A', () => {
+  [
+    base(),
+    base({ task: 'precise_measure', fovW: 20, fovH: 15, precision: 0.05, wd: 250, material: 'metal_matte', heightDiff: 0.5 }),
+    base({ task: 'ocr', fovW: 60, fovH: 45, precision: 0.15, wd: 200, material: 'label', heightDiff: 0, speed: 200 }),
+    base({ task: 'measure', fovW: 40, fovH: 30, precision: 0.05, wd: 260, material: 'glass' }),
+  ].forEach((inp) => {
+    const r = Engine.solve(inp);
+    const ev = Engine.evaluateCombo(inp, comboOf(r));
+    assert.ok(ev.ok, '评定应成功');
+    assert.strictEqual(ev.score, r.score, '同一条搭配的分数必须与 solve 一致');
+    assert.deepStrictEqual(ev.scoreItems, r.scoreItems, '扣分项也应一致');
+  });
+  const r = Engine.solve(base());
+  const ev = Engine.evaluateCombo(base(), comboOf(r));
+  assert.strictEqual(ev.feasible, true);
+  assert.strictEqual(ev.grade, 'A', '默认场景应为 A，实际 ' + ev.grade);
+  assert.strictEqual(ev.checks.filter((c) => c.level === 'fail').length, 0);
+});
+
+test('逐项评定覆盖相机 / 镜头 / 系统 / 光源，且每项都有要求与实际值', () => {
+  const r = Engine.solve(base());
+  const ev = Engine.evaluateCombo(base(), comboOf(r));
+  const groups = {};
+  ev.checks.forEach((c) => {
+    groups[c.group] = 1;
+    assert.ok(c.label && c.need && c.actual != null, '检查项字段不完整: ' + JSON.stringify(c));
+    assert.ok(['pass', 'warn', 'fail'].indexOf(c.level) >= 0, '未知结论: ' + c.level);
+  });
+  ['相机', '镜头', '系统', '光源'].forEach((g) => assert.ok(groups[g], '缺少「' + g + '」分组'));
+  assert.ok(checkOf(ev, '卡口匹配'), '缺卡口检查');
+  assert.ok(checkOf(ev, '像素精度'), '缺像素精度检查');
+  assert.ok(checkOf(ev, '照明方式'), '缺照明方式检查');
+  assert.ok(ev.req.pxAccReq > 0 && ev.req.needW > 0 && ev.req.needH > 0, 'req 应含精度与分辨率需求');
+});
+
+test('卡口不匹配：判 fail、分数显著下降，并给出可直配的替换镜头', () => {
+  const m42 = CAT.LENSES.filter((l) => l.mount === 'M42' || l.mount === 'F')[0];
+  const cam = byModel('MV-CS032-60GM');
+  assert.ok(m42 && cam, '测试型号缺失');
+  const ev = Engine.evaluateCombo(base(), { camera: cam.model, lens: m42.model, light: null });
+  assert.strictEqual(ev.feasible, false, 'C 口相机装 M42 镜头应判不可行');
+  const mountCheck = checkOf(ev, '卡口匹配');
+  assert.strictEqual(mountCheck.level, 'fail');
+  assert.ok(ev.suggestions.some((s) => s.action && s.action.kind === 'lens'), '应给出替换镜头建议');
+  const firstLens = ev.suggestions.filter((s) => s.action && s.action.kind === 'lens')[0];
+  const sugLens = lensByModel(firstLens.action.key.split('::').pop());
+  assert.ok(sugLens && sugLens.mount === cam.mount, '建议镜头应能直配相机卡口');
+});
+
+test('像素精度不足：判 fail，并建议更高分辨率相机', () => {
+  const cam = byModel('MV-CS032-60GM');
+  const l6 = CAT.LENSES.filter((l) => l.mount === 'C' && l.focal <= 8)[0];
+  assert.ok(cam && l6, '测试型号缺失');
+  const ev = Engine.evaluateCombo(base(), { camera: cam.model, lens: l6.model, light: null });
+  assert.strictEqual(ev.feasible, false, '短焦覆盖大视场时精度应不达标');
+  assert.strictEqual(checkOf(ev, '像素精度').level, 'fail');
+  const camSug = ev.suggestions.filter((s) => s.action && s.action.kind === 'camera');
+  assert.ok(camSug.length >= 1, '应给出更高分辨率相机建议');
+  const model = camSug[0].action.key.split('::').pop();
+  const c2 = byModel(model);
+  assert.ok(c2 && c2.w >= ev.req.needW && c2.h >= ev.req.needH, '建议相机应满足所需分辨率');
+});
+
+test('光源照明方式不符：给 warn 并扣分，同时推荐同族正确光源', () => {
+  const r = Engine.solve(base());
+  const ring = CAT.LIGHTS.filter((x) => x.type === 'ring' && x.color === r.light.color)[0];
+  assert.ok(ring, '缺少环形光源测试型号');
+  const ev = Engine.evaluateCombo(base(), {
+    camera: comboOf(r).camera,
+    lens: comboOf(r).lens,
+    light: ring.model,
+  });
+  const lightCheck = checkOf(ev, '照明方式');
+  assert.strictEqual(lightCheck.level, 'warn', '环形光 ≠ 推荐条形光，应给警告');
+  assert.ok(ev.score < 100, '照明方式不符应扣分');
+  const item = ev.scoreItems.filter((x) => x.label === '照明方式不同')[0];
+  assert.ok(item && item.penalty > 0, '评分构成应包含照明方式扣分');
+  const sug = ev.suggestions.filter((s) => s.action && s.action.kind === 'light')[0];
+  assert.ok(sug, '应给出正确光源建议');
+  const sugLight = CAT.LIGHTS.filter((x) => x.model === sug.action.key.split('::').pop())[0];
+  assert.ok(sugLight && (sugLight.type === 'bar' || sugLight.type === 'bar_array'), '建议应是条形光源');
+});
+
+test('光源颜色不符：扣分并说明推荐颜色', () => {
+  const r = Engine.solve(base());
+  const redBar = CAT.LIGHTS.filter((x) => (x.type === 'bar' || x.type === 'bar_array') && x.color === 'red')[0];
+  assert.ok(redBar, '缺少红色条形光测试型号');
+  const ev = Engine.evaluateCombo(base(), {
+    camera: comboOf(r).camera,
+    lens: comboOf(r).lens,
+    light: redBar.model,
+  });
+  assert.strictEqual(checkOf(ev, '光源颜色').level, 'warn');
+  assert.ok(ev.scoreItems.some((x) => x.label === '光源颜色不符'), '应记录颜色扣分');
+});
+
+test('未选光源：扣 10 分并给出推荐型号', () => {
+  const r = Engine.solve(base());
+  const ev = Engine.evaluateCombo(base(), { camera: comboOf(r).camera, lens: comboOf(r).lens, light: null });
+  const item = ev.scoreItems.filter((x) => x.label === '未选光源')[0];
+  assert.ok(item && item.penalty === 10, '未选光源应扣 10 分');
+  assert.strictEqual(checkOf(ev, '光源型号').level, 'warn');
+  assert.ok(ev.suggestions.some((s) => s.action && s.action.kind === 'light'), '应推荐光源型号');
+});
+
+test('评分自洽：总分 = 100 - 各项扣分（下限 5）', () => {
+  const r = Engine.solve(base());
+  const ring = CAT.LIGHTS.filter((x) => x.type === 'ring')[0];
+  const ev = Engine.evaluateCombo(base(), { camera: comboOf(r).camera, lens: comboOf(r).lens, light: ring.model });
+  const sum = ev.scoreItems.reduce((a, x) => a + x.penalty, 0);
+  assert.strictEqual(ev.score, Math.max(5, Math.min(100, 100 - sum)), '总分与扣分不自洽');
+});
+
+test('运动拍摄 + 卷帘快门：给 warn', () => {
+  const rolling = CAT.CAMERAS.filter((c) => c.shutter !== 'Global' && c.mount === 'C')[0];
+  if (!rolling) return;
+  const r = Engine.solve(base());
+  const ev = Engine.evaluateCombo(base({ speed: 200 }), {
+    camera: rolling.model,
+    lens: comboOf(r).lens,
+    light: comboOf(r).light,
+  });
+  const c = checkOf(ev, '快门类型');
+  assert.ok(c && c.level === 'warn', '卷帘快门在运动场景应给警告');
+});
+
+test('手动搭配不达标时独立判定，不沿用 solve 的自动回退结果', () => {
+  const m42 = CAT.LENSES.filter((l) => l.mount === 'M42' || l.mount === 'F')[0];
+  const cam = byModel('MV-CS032-60GM');
+  const solved = Engine.solve(base({ manualCamera: cam.model, manualLens: m42.model }));
+  assert.ok(solved.ok && solved.feasible, 'solve 对手动不匹配组合会回退到自动方案');
+  assert.ok(solved.warnings.some((w) => /无法采用/.test(w.text)), 'solve 应提示已回退');
+  const ev = Engine.evaluateCombo(base(), { camera: cam.model, lens: m42.model, light: null });
+  assert.strictEqual(ev.feasible, false, 'evaluateCombo 必须独立指出卡口问题');
+  assert.ok(ev.picked.lens.indexOf(m42.model) >= 0, '评定的就是用户所选镜头');
+});
+
+console.log('\n[17] 现场参数 / 安装配套 / 验收复核 / 选型依据');
+
+test('现场参数：光圈在镜头范围内，静态给起始曝光、不给上限', () => {
+  const r = Engine.solve(base());
+  assert.ok(r.site && r.site.aperture && r.site.exposure && r.site.trigger, '缺少现场参数字段');
+  const ap = r.site.aperture;
+  assert.ok(ap.value >= r.lens.fmin - 1e-9 && ap.value <= (r.lens.fmax || 22) + 1e-9, '光圈超出镜头可用范围: F' + ap.value);
+  assert.ok(ap.dof > 0 && ap.blurPx > 0, '光圈档应带景深与衍射');
+  if (ap.stop) {
+    assert.ok(ap.stop > ap.value, '收小一档的光圈值必须更大');
+    assert.ok(ap.stopDof > ap.dof, '收小一档景深应变大');
+  }
+  assert.strictEqual(r.site.exposure.upperMs, null, '静态拍摄不应有曝光上限');
+  assert.ok(r.site.exposure.startMs > 0, '静态也要给起始曝光值');
+  assert.ok(/软触发|连续/.test(r.site.trigger.mode), '静态应为软触发 / 连续采集');
+  assert.ok(r.site.light && r.site.light.controller, '有光源型号时应给出调光控制器');
+  assert.strictEqual(r.site.light.strobe, !!r.light.controllerStrobe, '频闪能力应与控制器一致');
+});
+
+test('现场参数：运动时硬触发 + 曝光上限，需要频闪时明确提示', () => {
+  const r = Engine.solve(base({ speed: 300 }));
+  const s = r.site;
+  assert.ok(isFinite(s.exposure.upperMs) && s.exposure.upperMs > 0, '运动拍摄应有曝光上限');
+  assert.ok(/硬触发/.test(s.trigger.mode), '运动拍摄应为硬触发');
+  assert.ok(s.trigger.freqHz >= 1, '硬触发频率应 ≥ 1 Hz');
+  if (s.exposure.upperMs < 1) {
+    assert.strictEqual(s.light.needStrobe, true, '曝光 < 1 ms 必须标注需要频闪');
+    assert.ok(/频闪/.test(s.light.note), '说明里应提到频闪');
+  }
+  assert.ok(s.exposure.startMs > 0 && s.exposure.startMs <= s.exposure.upperMs, '起始曝光不得超出上限');
+});
+
+test('安装配套：尺寸链与可用空间判定一致，关键项齐全', () => {
+  const r = Engine.solve(base({ space: 380 }));
+  const k = r.install;
+  near(k.needAll, r.space.need + k.bracket + k.clearance, 1e-6, '含支架余量的总长');
+  assert.strictEqual(k.pass, 380 >= k.needAll, 'pass 必须与可用空间一致');
+  const names = k.items.map((x) => x.name);
+  ['尺寸链', '数据线', '触发 / IO 线', '镜头附件', '光源安装', '光源控制器', '供电功率'].forEach((n) => {
+    assert.ok(names.indexOf(n) >= 0, '缺少配套项：' + n);
+  });
+  const dataLine = k.items.filter((x) => x.name === '数据线')[0];
+  assert.ok(dataLine.value.length > 0, '数据线应给出接口对应线型');
+  const power = k.items.filter((x) => x.name === '供电功率')[0];
+  assert.ok(/1\.5/.test(power.note), '电源应给出 1.5 倍预留提示');
+});
+
+test('安装配套：未填可用空间时只展示、不判定', () => {
+  const r = Engine.solve(base());
+  assert.strictEqual(r.install.pass, null, '未填空间不应给出通过/不通过');
+  assert.strictEqual(r.install.available, null, '未填空间不应有可用值');
+});
+
+test('验收清单：五项固定检查，焦点随指标变化', () => {
+  const r = Engine.solve(base());
+  assert.deepStrictEqual(r.acceptance.items.map((x) => x.name), ['重复性', '测量偏差', '图像对比度', '节拍', '环境']);
+  const repeat = r.acceptance.items[0];
+  near(parseFloat(String(repeat.target).replace(/[^\d.]/g, '')), r.camera.pxAcc * 0.3, 0.0002, '重复性 0.3 像素');
+  assert.ok(r.acceptance.focus.some((x) => /精度预算/.test(x)), '预算占比高时应提示先复核');
+  const fast = Engine.solve(base({ speed: 300 }));
+  if (fast.site.exposure.upperMs < 1) {
+    assert.ok(fast.acceptance.focus.some((x) => /曝光/.test(x)), '短曝光应进重点项');
+  }
+});
+
+test('选型依据：给出次优整机、六项对比，且判定与数值自洽', () => {
+  const r = Engine.solve(base());
+  const q = r.rationale;
+  assert.ok(!q.none && !q.manual, '自动选型应有对比结论');
+  assert.strictEqual(q.rows.length, 6, '应为六个对比维度');
+  assert.deepStrictEqual(q.rows.map((x) => x.k), ['匹配度', '相机', '像素精度', '精度余量', '接口 / 带宽', '镜头']);
+  assert.ok(q.summary.indexOf('次优') >= 0, '结论应点名次优方案');
+  assert.ok(q.altScore >= 5 && q.altScore <= 100, '次优分数应在 5~100');
+  const scoreRow = q.rows.filter((x) => x.k === '匹配度')[0];
+  const want = r.score === q.altScore ? 'tie' : (r.score > q.altScore ? 'win' : 'lose');
+  assert.strictEqual(scoreRow.cmp, want, '匹配度判定与分数不一致');
+  assert.ok(CAT.CAMERAS.some((c) => q.altCamera.indexOf(c.model) >= 0), '次优相机必须来自型号库');
+  assert.ok(CAT.LENSES.some((l) => q.altLens.indexOf(l.model) >= 0), '次优镜头必须来自型号库');
+  q.rows.forEach((x) => {
+    assert.ok(['win', 'lose', 'tie'].indexOf(x.cmp) >= 0, '对比判定取值非法：' + x.cmp);
+    assert.ok(x.a && x.b, '每一项都要有本方案与次优的取值');
+  });
+});
+
+test('选型依据：次优按同一口径重新算分（不受备选选优近似影响）', () => {
+  // 该场景主方案因停档后衍射扣 8 分；备选若仍按最宽光圈估分就会虚高
+  const r = Engine.solve(base({
+    fovW: 120, fovH: 90, precision: 0.05, task: 'presence', needColor: true, heightDiff: 3, cpm: 60
+  }));
+  assert.ok(r.rationale.rows, '应有对比');
+  assert.ok(r.rationale.altScore <= r.score, '次优分数不应高于首选：' + r.score + ' vs ' + r.rationale.altScore);
+});
+
+test('选型依据：手动指定 / 无备选时给出说明而非空表', () => {
+  const cam = byModel('MV-CS032-60GM');
+  const manual = Engine.solve(base({ manualCamera: cam.model }));
+  assert.strictEqual(manual.rationale.manual, true, '手动指定应标记 manual');
+  assert.ok(!manual.rationale.rows && manual.rationale.note, '手动指定应给说明文字');
+
+  const hard = Engine.solve(base({ precision: 0.01 }));
+  assert.strictEqual(hard.feasible, false, '该需求应不可行');
+  if (!hard.rationale.rows) {
+    assert.strictEqual(hard.rationale.none, true, '无备选时应标记 none');
+    assert.ok(/调|线扫|远心/.test(hard.rationale.note), '说明里应给出下一步方向');
+  }
+});
+
 console.log('\n' + '='.repeat(52));
 console.log(pass + ' 通过, ' + fail + ' 失败');
 if (fail > 0) {

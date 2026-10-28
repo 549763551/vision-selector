@@ -41,7 +41,7 @@
   .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 60px; }
 
   /* 两个入口卡 */
-  .entries { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
   @media (max-width: 760px) { .entries { grid-template-columns: 1fr; } }
   a.entry {
     display: block; text-decoration: none; color: var(--ink);
@@ -56,6 +56,7 @@
   }
   .entry-ico.sel { background: linear-gradient(135deg, #38bdf8, #2563eb); }
   .entry-ico.lib { background: linear-gradient(135deg, #34d399, #059669); }
+  .entry-ico.cmb { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
   .entry h2 { margin: 0; font-size: 17px; }
   .entry .go { margin-left: auto; color: var(--accent); font-size: 13px; white-space: nowrap; }
   .entry p.desc { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.75; }
@@ -155,6 +156,19 @@
         <li>面阵 / 线阵相机、镜头、远心、光源、控制器全覆盖</li>
         <li>型号 / 系列 / 传感器关键词即时搜索</li>
         <li>每个型号带示意图与数据来源标注</li>
+      </ul>
+    </a>
+    <a class="entry" href="combo.html">
+      <div class="entry-head">
+        <span class="entry-ico cmb">🧩</span>
+        <h2>自定义搭配</h2>
+        <span class="go">进入 →</span>
+      </div>
+      <p class="desc">不想只看自动结果？从四品牌型号库里自选相机、镜头、光源，按当前需求逐项评定，不合适的项直接给出替换型号。</p>
+      <ul>
+        <li>卡口 / 像面 / 解析力 / 精度 / 景深 / 曝光逐项判定</li>
+        <li>分数 + 等级 + 每项扣分原因，与自动选型同一套公式</li>
+        <li>产品库「加入搭配」可把型号带进来，评定后一键回填选型助手</li>
       </ul>
     </a>
   </div>
@@ -264,7 +278,7 @@
 
   document.getElementById('foot').innerHTML =
     '数据来源：各品牌官方型录与官网产品数据（详见产品库页脚）。参数以厂商官方最新资料为准。' +
-    '<br>本工具集为纯前端页面：home.html 主页 · index.html 选型助手 · library.html 产品库，可整目录拷贝离线使用。';
+    '<br>本工具集为纯前端页面：home.html 主页 · index.html 选型助手 · library.html 产品库 · combo.html 自定义搭配，可整目录拷贝离线使用。';
 })();
 </script>
 </body>

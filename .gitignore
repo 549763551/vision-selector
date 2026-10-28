@@ -20,3 +20,4 @@ tools/_cache/
 # 本地临时仿真 / 预览产物
 _preview/
 tools/sim-*.js
+tools/preview-*.js
