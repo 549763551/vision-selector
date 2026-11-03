@@ -675,11 +675,40 @@ test('镜头同系列面板出现跨品牌等价替换（海康镜头场景 → 
   assert.ok(r.ok);
   assert.strictEqual(r.lens.brand, '海康机器人 HIKROBOT', '默认应选海康镜头');
   assert.ok(r.siblings.lens.crossTotal >= 1, '镜头面板应展示跨品牌等价替换');
+  assert.ok(r.siblings.lens.crossBrand.some((x) => x.brand === '大恒图像'), '应能给出大恒的等价镜头');
   r.siblings.lens.crossBrand.forEach((x) => {
-    assert.strictEqual(x.brand, '大恒图像', '候选应来自其他品牌');
+    assert.notStrictEqual(x.brand, r.lens.brand, '候选应来自其他品牌');
     assert.strictEqual(x.mount, r.lens.mount, '候选应与当前镜头同卡口');
     assert.ok(Math.abs(x.focal - r.lens.f) / r.lens.f <= 0.12, '候选焦距应与当前接近');
   });
+  // 华睿镜头入库后，跨品牌候选不止大恒一家；面板要按品牌铺开，不能让型号最多的一家占满
+  const cb = {};
+  r.siblings.lens.crossBrand.forEach((x) => { cb[x.brand] = (cb[x.brand] || 0) + 1; });
+  assert.ok(Object.keys(cb).length >= 2, '跨品牌候选应覆盖至少两家，实际 ' + Object.keys(cb).join('/'));
+  assert.ok(r.siblings.lens.crossBrand.length <= 12, '跨品牌面板总数不超过 12');
+  // 每家 = 铺开 3 支 + 至多 3 支备选补位
+  Object.keys(cb).forEach((b) => assert.ok(cb[b] <= 6, b + ' 单家最多 6 支，实际 ' + cb[b]));
+});
+
+test('推荐结果与运行环境 locale 无关（排序不得依赖 localeCompare）', () => {
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const snap = (r) => JSON.stringify({
+    cam: [r.camera.brand, r.camera.model],
+    lens: [r.lens.brand, r.lens.model],
+    cross: r.siblings.lens.crossBrand.map((x) => x.brand + '::' + x.model),
+    alts: r.lensAlternates.map((x) => x.lensKey)
+  });
+  const orig = String.prototype.localeCompare;
+  const zh = snap(EngineFactory(CAT3).solve(base()));
+  // 中文系统按拼音排（大恒 < 华睿），英文/CI 环境按 root 序列（华睿 < 大恒）：
+  // 若排序依赖 locale，同一需求在两台机器上会给出不同的镜头候选。
+  String.prototype.localeCompare = function (b) {
+    const s = String(this); b = String(b);
+    return s < b ? -1 : s > b ? 1 : 0;
+  };
+  let ascii;
+  try { ascii = snap(EngineFactory(CAT3).solve(base())); } finally { String.prototype.localeCompare = orig; }
+  assert.strictEqual(ascii, zh, '换排序环境后推荐结果发生变化');
 });
 
 test('手动指定 品牌::镜头型号 生效（跨品牌点选镜头）', () => {

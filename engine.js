@@ -91,6 +91,14 @@
     return lens.fmin != null ? lens.fmin : 22;
   }
 
+  // 排序比较必须与运行环境的 locale 无关：localeCompare 在中文系统与英文系统（含 CI）
+  // 上对中文品牌名给出相反的顺序，会让同一需求在不同机器上推出不同的候选镜头。
+  function cmpText(a, b) {
+    a = a == null ? '' : String(a);
+    b = b == null ? '' : String(b);
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+
   // 各接口的可用带宽（MB/s，经验值）
   var IFACE_BW = {
     GigE: 110, '2.5GigE': 280, USB3: 350, '10GigE': 1100,
@@ -704,7 +712,7 @@
       if (ta !== tb) return ta - tb;
       var da = Math.abs(ratio(a) - 1), db = Math.abs(ratio(b) - 1);
       if (Math.abs(da - db) > 1e-9) return da - db;
-      return (a.brand || '').localeCompare(b.brand || '');
+      return cmpText(a.brand, b.brand);
     });
     // 规格超配 3 倍以上的只作兜底，避免「50 mm 视野推荐 642 mm 灯管」
     var tight = pool.filter(function (x) { return ratio(x) <= 3; });
@@ -1085,7 +1093,7 @@
         alt: !!(altCamKeys && altCamKeys[(c.brand || '') + '::' + c.model])
       };
     }).sort(function (a, b) {
-      return a.model.localeCompare(b.model);
+      return cmpText(a.model, b.model);
     });
 
     var crossItems = camCross.map(function (c) {
@@ -1101,7 +1109,7 @@
         alt: !!(altCamKeys && altCamKeys[(c.brand || '') + '::' + c.model])
       };
     }).sort(function (a, b) {
-      return (a.brand || '').localeCompare(b.brand || '') || a.model.localeCompare(b.model);
+      return cmpText(a.brand, b.brand) || cmpText(a.model, b.model);
     });
 
     // 镜头：同系列 + 同卡口，按焦距排序
@@ -1129,7 +1137,7 @@
     // 与相机块的 crossBrand 对应——此前镜头侧只有同系列，导致"选不了其他品牌镜头"。
     var camMp = (cam.w * cam.h) / 1e6;
     var camDiag = Math.sqrt(cam.sw * cam.sw + cam.sh * cam.sh);
-    var lensCrossAll = CAT.LENSES.filter(function (l) {
+    var lensCrossSorted = CAT.LENSES.filter(function (l) {
       if ((l.brand || '') === (lens.brand || '')) return false;        // 仅其他品牌
       if (l.mount !== lens.mount) return false;                        // 卡口一致
       if (l.focal > fReq + 1e-9) return false;                         // 焦距过大则视场不足
@@ -1141,8 +1149,33 @@
       return true;
     }).sort(function (a, b) {
       return Math.abs(a.focal - lens.focal) - Math.abs(b.focal - lens.focal) ||
-        (a.brand || '').localeCompare(b.brand || '') || a.model.localeCompare(b.model);
-    }).slice(0, 12);
+        cmpText(a.brand, b.brand) || cmpText(a.model, b.model);
+    });
+    // 取法：先按品牌铺开（每家最多 3 支、共 9），再把「备选」镜头补进来（最多 12）。
+    // 只按接近程度截断会让型号数最多的大恒占满整屏，华睿的等价型号看不见，
+    // 而「备选」是另按精度与焦距选出的，一旦落在截断线外，面板上的「备选」标注就丢了。
+    var crossPicked = {}, crossList = [];
+    function takeCross(l) {
+      var k = (l.brand || '') + '::' + l.model;
+      if (!crossPicked[k]) { crossPicked[k] = 1; crossList.push(l); }
+    }
+    var crossByBrand = {};
+    lensCrossSorted.forEach(function (l) {
+      var b = l.brand || '';
+      if ((crossByBrand[b] || 0) >= 3 || crossList.length >= 9) return;
+      var n = crossList.length;
+      takeCross(l);
+      if (crossList.length > n) crossByBrand[b] = (crossByBrand[b] || 0) + 1;
+    });
+    if (altLensKeys) {
+      lensCrossSorted.forEach(function (l) {
+        if (altLensKeys[(l.brand || '') + '::' + l.model]) takeCross(l);
+      });
+    }
+    var lensCrossAll = crossList.sort(function (a, b) {
+      return Math.abs(a.focal - lens.focal) - Math.abs(b.focal - lens.focal) ||
+        cmpText(a.brand, b.brand) || cmpText(a.model, b.model);
+    });
 
     var lensCrossItems = lensCrossAll.map(function (l) {
       return {
