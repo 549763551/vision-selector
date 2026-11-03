@@ -11,7 +11,9 @@
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./hikrobot-catalog.js'));
+    var _eng = factory(require('./hikrobot-catalog.js'));
+    _eng.VisionEngineFactory = factory; // 多品牌：传入合并后的目录即可重建引擎
+    module.exports = _eng;
   } else {
     root.VisionEngine = factory(root.HikrobotCatalog);
     root.VisionEngineFactory = factory; // 多品牌：传入合并后的目录即可重建引擎
@@ -82,13 +84,20 @@
   var APERTURES = [2.8, 4, 5.6, 8, 11, 16, 22];
   var LAMBDA_UM = 0.55;
 
+  // 手册只印一档 F 数的是固定光圈镜头（大恒 M*-MPW2-R / RV·FV·MV、海康 MVL-KF·HF），
+  // 没有收光圈的余地：光圈上限必须取它自己那一档，不能按「可调到 F22」算景深。
+  function apMaxOf(lens) {
+    if (lens.fmax != null) return lens.fmax;
+    return lens.fmin != null ? lens.fmin : 22;
+  }
+
   // 各接口的可用带宽（MB/s，经验值）
   var IFACE_BW = {
-    GigE: 110, USB3: 350, '10GigE': 1100,
+    GigE: 110, '2.5GigE': 280, USB3: 350, '10GigE': 1100,
     CameraLink: 680, CoaXPress: 1250, XoFLink: 1250, XoCLink: 1250
   };
   // 同像素量下优先选便宜/易用的接口
-  var IFACE_RANK = { GigE: 0, USB3: 1, '10GigE': 2, CameraLink: 3, CoaXPress: 4, XoFLink: 5, XoCLink: 6 };
+  var IFACE_RANK = { GigE: 0, '2.5GigE': 1, USB3: 2, '10GigE': 3, CameraLink: 4, CoaXPress: 5, XoFLink: 6, XoCLink: 7 };
 
   /* ============================ 小工具 ============================ */
 
@@ -142,10 +151,10 @@
   /**
    * 相机卡口与镜头卡口的匹配等级：
    *   1 = 直接安装；2 = 经转接环安装（大口径相机配 C 口镜头）；0 = 不兼容。
-   * 大口径机身（F/M42/M58/M72）同族镜头直接装；C 口镜头可经转接环安装
+   * 大口径机身（F/M42/M58/M72/M90）同族镜头直接装；C 口镜头可经转接环安装
    * （工业现场常见，但法兰距与像面覆盖需另行确认，选型时按直接卡口优先）。
    */
-  var BIG_MOUNT_FAMILY = { 'F': 'F', 'M42': 'F', 'M42/F': 'F', 'M58': 'M58', 'M72': 'M72' };
+  var BIG_MOUNT_FAMILY = { 'F': 'F', 'M42': 'F', 'M42/F': 'F', 'M58': 'M58', 'M72': 'M72', 'M90': 'M90' };
   function mountMatch(camMount, lensMount) {
     if (camMount === 'C') return lensMount === 'C' ? 1 : 0;
     if (camMount === 'M12') return lensMount === 'M12' ? 1 : 0;
@@ -353,7 +362,7 @@
     var cc = 2 * (cam.sh / cam.h);
     var apFloor = Math.max(4, lens.fmin || 2.8);
     var ladder = APERTURES.filter(function (f) {
-      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+      return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     if (!ladder.length) ladder = [lens.fmin || 2.8];
     var dofOK = false;
@@ -1293,6 +1302,7 @@
   // 接口 → 线缆类型；触发线统一按工业相机常见的 6-pin Hirose
   var IFACE_CABLE = {
     GigE: 'Cat6 屏蔽网线（≤100 m）',
+    '2.5GigE': 'Cat6 屏蔽网线（≤100 m，需 2.5G 交换机/网卡）',
     '10GigE': 'Cat6a / 光纤（配 10G 网卡）',
     USB3: 'USB3 屏蔽线（≤3 m，超长用有源延长）',
     CameraLink: 'CameraLink 线 + 采集卡',
@@ -1330,15 +1340,19 @@
   function siteSetup(inp, cam, lens, light, ap, dof, blurPx, cc, m, pxSizeMM, tMaxMs, fps) {
     /* ---- 光圈：当前已是「满足景深的最大光圈」，再看能否再收一档 ---- */
     var stops = APERTURES.filter(function (f) {
-      return f > ap + 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+      return f > ap + 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     var stop = stops.length ? stops[0] : null;
     var stopDof = stop ? (2 * stop * cc * (1 + m)) / (m * m) : null;
     var stopBlur = stop ? (2.44 * LAMBDA_UM * stop) / (pxSizeMM * 1000) : null;
     var canStopDown = !!(stop && stopBlur <= 2.5);
+    var fixedAp = lens.fmax == null && lens.fmin != null;
     var dofOK = dof >= inp.heightDiff;
     var apertureNote;
-    if (!dofOK) {
+    if (fixedAp) {
+      apertureNote = '该镜头为固定光圈 F' + ap + '（手册只印一档），光圈与景深都不可现场调节' +
+        (dofOK ? '' : '；景深 ' + fmt(dof) + ' mm 小于高度变化 ' + fmt(inp.heightDiff) + ' mm，需换可调光圈镜头或远心镜头');
+    } else if (!dofOK) {
       apertureNote = '已收到该镜头最小光圈 F' + ap + '，景深 ' + fmt(dof) + ' mm 仍小于高度变化 ' +
         fmt(inp.heightDiff) + ' mm，建议换远心镜头或减小高度差';
     } else if (blurPx > 2.5) {
@@ -1677,7 +1691,7 @@
     var c = 2 * pxSizeMM;
     var apFloor = Math.max(4, lens.fmin || 2.8);
     var ladder = APERTURES.filter(function (f) {
-      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+      return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     if (!ladder.length) ladder = [(lens.fmin || 2.8)];
     var ap = ladder[0];
@@ -1822,7 +1836,7 @@
     var cc = 2 * pxSizeMM;
     var apFloor = Math.max(4, lens.fmin || 2.8);
     var ladder = APERTURES.filter(function (f) {
-      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+      return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     if (!ladder.length) ladder = [(lens.fmin || 2.8)];
     var ap = ladder[0], dof = 0, dofOK = false;
@@ -2368,7 +2382,7 @@
     // 实用最小光圈取 F4：比全开更利于像质，再按景深需求逐级收小
     var apFloor = Math.max(4, lens.fmin || 2.8);
     var ladder = APERTURES.filter(function (f) {
-      return f >= apFloor - 1e-9 && f <= (lens.fmax || 22) + 1e-9;
+      return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     if (!ladder.length) ladder = [(lens.fmin || 2.8)];
     var ap = ladder[0];

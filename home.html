@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉选型工具集 · 主页</title>
-<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询四品牌 1672 个产品的全参数。纯前端离线可用。" />
+<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询四品牌 3647 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -110,6 +110,23 @@
   .docs a:hover { border-color: #93c5fd; color: var(--accent); }
   .docs .pdf-ico { color: #dc2626; font-size: 15px; flex: 0 0 auto; }
 
+  /* 公众号 / 小程序二维码 */
+  .qrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 480px; }
+  .qr-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 14px 12px; text-align: center;
+  }
+  .qr-card img {
+    display: block; width: 100%; max-width: 190px; margin: 0 auto 9px;
+    aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px;
+  }
+  .qr-card b { display: block; font-size: 13px; }
+  .qr-card span { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+  @media (max-width: 560px) {
+    .qrs { grid-template-columns: 1fr; max-width: 300px; }
+    .qr-card img { max-width: 200px; }
+  }
+
   footer { max-width: 1080px; margin: 0 auto; padding: 0 20px 46px; font-size: 12px; color: var(--muted); line-height: 1.8; }
 
   @media (max-width: 760px) {
@@ -153,7 +170,7 @@
       </div>
       <p class="desc">全部型号的一站式查询：按类别、品牌、接口、卡口、焦距、颜色等筛选，点开看全参数，手机电脑都能用。</p>
       <ul>
-        <li>面阵 / 线阵相机、镜头、远心、光源、控制器全覆盖</li>
+        <li>面阵 / 线阵相机、镜头、远心、光源、控制器全覆盖，另含 3D 传感器、工控机与红外相机</li>
         <li>型号 / 系列 / 传感器关键词即时搜索</li>
         <li>每个型号带示意图与数据来源标注</li>
       </ul>
@@ -186,6 +203,20 @@
 
   <h3 class="sec-h">常用资料 <small>manuals/ 目录，点开即读</small></h3>
   <div class="docs" id="docs"></div>
+
+  <h3 class="sec-h">关注与小程序 <small>手机扫码直接打开</small></h3>
+  <div class="qrs">
+    <div class="qr-card">
+      <img src="assets/qr-gzh.jpg" alt="微信公众号二维码" loading="lazy" />
+      <b>微信公众号</b>
+      <span>扫码关注，获取版本更新</span>
+    </div>
+    <div class="qr-card">
+      <img src="assets/qr-mp.jpg" alt="微信小程序码" loading="lazy" />
+      <b>微信小程序</b>
+      <span>手机上选型、查型号</span>
+    </div>
+  </div>
 </div>
 
 <footer id="foot"></footer>
@@ -194,6 +225,7 @@
 <script src="hikrobot-catalog.js"></script>
 <script src="hikrobot-3d-catalog.js"></script>
 <script src="hikrobot-ipc-catalog.js"></script>
+<script src="hikrobot-ir-catalog.js"></script>
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
 <script src="basler-lens-catalog.js"></script>
@@ -205,7 +237,7 @@
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog' };
   var metas = {};
   var allMetas = [];
-  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0 };
+  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0 };
   var total = 0;
   Object.keys(SRC).forEach(function (bk) {
     var c = window[SRC[bk]];
@@ -219,20 +251,22 @@
     n.light += (c.LIGHTS || []).length;
     n.ctrl += (c.CONTROLLERS || []).length;
   });
-  // 附加库：海康 3D / 工控机；Basler 镜头 / 灯光
+  // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光
   [[window.Hikrobot3DCatalog, 'hikrobot'], [window.HikrobotIpcCatalog, 'hikrobot'],
+   [window.HikrobotIrCatalog, 'hikrobot'],
    [window.BaslerLensCatalog, 'basler'], [window.BaslerLightCatalog, 'basler']].forEach(function (p) {
     var c = p[0], bk = p[1];
     if (!c) return;
     if (c.META) allMetas.push({ brand: bk, meta: c.META });
     n.prof += (c.PROFILERS || []).length + (c.SMART || []).length;
     n.ipc += (c.CHASSIS || []).length + (c.BOARDS || []).length;
+    n.ir += (c.IR || []).length;
     n.lens += (c.LENSES || []).length;
     n.tele += (c.TELECENTRIC || []).length;
     n.light += (c.LIGHTS || []).length;
     n.ctrl += (c.CONTROLLERS || []).length;
   });
-  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc;
+  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
@@ -241,7 +275,7 @@
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
     ['远心镜头系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
-    ['3D 传感器', n.prof], ['工控机 / 主板', n.ipc]
+    ['3D 传感器', n.prof], ['工控机 / 主板', n.ipc], ['红外相机', n.ir]
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
   }).join('') + '<div class="stat"><b style="color:var(--accent)">' + total + '</b><span>型号总数</span></div>';
@@ -252,7 +286,7 @@
       .reduce(function (s, x) {
         return s + (x.meta.cameras || 0) + (x.meta.linescan || 0) + (x.meta.lenses || 0) +
           (x.meta.telecentric || 0) + (x.meta.lights || 0) + (x.meta.controllers || 0) +
-          (x.meta.profilers || 0) + (x.meta.smart || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0);
+          (x.meta.profilers || 0) + (x.meta.smart || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0) + (x.meta.ir || 0);
       }, 0);
     var gen = allMetas.filter(function (x) { return x.brand === bk && x.meta.generated; })
       .map(function (x) { return x.meta.generated; }).sort().pop();

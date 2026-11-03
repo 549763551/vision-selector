@@ -289,14 +289,39 @@ for r in lights_list:
 for r in ctrls_list:
     r["brand"] = "华睿"
 
+# ---- 镜头 / 远心：由 parse-huarui-lenses.py 生成，读入合并 ----
+# 手册「最近摄距(mm)」列是毫米，库内 minDist 口径是米，需要除以 1000
+LENSES_JSON = "tools/_cache/huarui_lenses.json"
+LENS_KEYS = ["model", "brand", "series", "focal", "fmin", "fmax", "mount",
+             "ic", "fmt", "mp", "dist", "minDist", "len"]
+try:
+    _lj = json.load(open(LENSES_JSON, encoding="utf-8"))
+except Exception:
+    _lj = {}
+lenses_list = []
+for r in (_lj.get("lenses") or []):
+    r = dict(r)
+    r["brand"] = "华睿"
+    md = r.get("minDist")
+    if isinstance(md, (int, float)) and md >= 5:
+        r["minDist"] = round(md / 1000.0, 3)
+    lenses_list.append({k: r[k] for k in LENS_KEYS if r.get(k) is not None})
+lenses_list.sort(key=lambda x: (x["series"], x["focal"] or 0, x["model"]))
+tele_list = []
+for r in (_lj.get("tele") or []):
+    r = dict(r)
+    r["brand"] = "华睿"
+    tele_list.append(r)
+
 # ---- 生成 UMD 目录 ----
 META = {"source": "机器视觉产品手册中文版V20260901", "brand": "华睿（大华机器视觉）",
         "generated": "2026-10-23", "cameras": len(cams_list), "linescan": len(linescan_list),
+        "lenses": len(lenses_list), "telecentric": len(tele_list),
         "lights": len(lights_list), "controllers": len(ctrls_list)}
 js = []
 js.append("/**")
-js.append(" * 华睿（大华机器视觉）型号库 —— 面阵 + 线阵 + 光源 + 光源控制器")
-js.append(" * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）+ tools/parse-huarui-lights.py（光源/控制器）")
+js.append(" * 华睿（大华机器视觉）型号库 —— 面阵 + 线阵 + 镜头 + 光源 + 光源控制器")
+js.append(" * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）+ tools/parse-huarui-lenses.py（镜头）+ tools/parse-huarui-lights.py（光源/控制器）")
 js.append(" * 本文件由脚本生成，请勿手工编辑。")
 js.append(" */")
 js.append("(function (root, factory) {")
@@ -314,6 +339,14 @@ js.append("  var LINESCAN = [")
 for r in linescan_list:
     js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
 js.append("  ];")
+js.append("  var LENSES = [")
+for r in lenses_list:
+    js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
+js.append("  ];")
+js.append("  var TELECENTRIC = [")
+for r in tele_list:
+    js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
+js.append("  ];")
 js.append("  var LIGHTS = [")
 for r in lights_list:
     js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
@@ -322,7 +355,8 @@ js.append("  var CONTROLLERS = [")
 for r in ctrls_list:
     js.append("    " + json.dumps(r, ensure_ascii=False) + ",")
 js.append("  ];")
-js.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };")
+js.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: LENSES,"
+            " TELECENTRIC: TELECENTRIC, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };")
 js.append("});")
 open(OUT_JS, "w", encoding="utf-8").write("\n".join(js) + "\n")
 

@@ -314,6 +314,7 @@
       '<div style="overflow-x:auto"><table class="mini bom-table"><thead><tr>' +
       '<th>类别</th><th>品牌 / 型号</th><th>数量</th><th>关键规格</th><th></th>' +
       '</tr></thead><tbody>' + htmlRows + '</tbody></table></div>' +
+      '<div class="bom-actions"><a class="btn bom-go" href="library.html?inq=1" title="在产品库中查看清单与完整参数">到产品库查看 →</a></div>' +
       '<div class="sib-note">清单按当前方案自动生成；「加入询价清单」保存在本机浏览器，可在产品库查看完整参数。</div></div>';
   }
 

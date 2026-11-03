@@ -478,9 +478,9 @@ const body =
   '/**\n' +
   ' * 海康机器人（HIKROBOT）完整型号库\n' +
   ' * 相机/镜头/远心：《' + META.source + '》；光源：官网产品列表\n' +
-  ' * 生成脚本：tools/parse-catalog.js    生成日期：' + META.generated + '\n' +
-  ' * 面阵 ' + CAMERAS.length + ' / 线扫 ' + LINESCAN.length + ' / 镜头 ' + lenses.length +
-  ' / 远心 ' + TELECENTRIC.length + ' / 光源 ' + LIGHTS.length + '。请勿手工编辑。\n' +
+  ' * 生成脚本：tools/parse-catalog.js（主库）+ tools/parse-hikrobot-gaps.py + tools/merge-catalog-add.py（手册补录）    生成日期：' + META.generated + '\n' +
+  ' * 面阵/板级 ' + CAMERAS.length + ' / 线扫 ' + LINESCAN.length + ' / 镜头 ' + lenses.length +
+  ' / 远心 ' + TELECENTRIC.length + ' / 光源 ' + LIGHTS.length + ' / 控制器 ' + CONTROLLERS.length + '。请勿手工编辑。\n' +
   ' */\n' +
   "(function (root, factory) {\n" +
   "  if (typeof module === 'object' && module.exports) module.exports = factory();\n" +

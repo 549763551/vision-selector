@@ -1,4 +1,5 @@
 node_modules/
+__pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -21,3 +22,16 @@ tools/_cache/
 _preview/
 tools/sim-*.js
 tools/preview-*.js
+
+# 营销素材（公众号草稿/封面图，本地留存不入库）
+素材/
+
+# 发布片渲染帧与动效工具产物（21MB 本地素材，不入库）
+发布片/
+tools/huashu-motion/
+
+# 功能介绍片工程与渲染产物（约 152MB 本地素材，不入库不推送）
+功能片/
+功能片-*/
+# 功能片用的硬件示意图原图（9.6MB，仅 功能片/tools/cutout_hardware.py 引用）
+vibe_images/

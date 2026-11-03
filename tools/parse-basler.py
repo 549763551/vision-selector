@@ -8,10 +8,18 @@ Basler 相机型号库生成器
   ace 2      : a2A<宽>-<帧率>[接口字母][m/c]   g=GigE  u=USB3  g10=10GigE  c=CoaXPress
   boost(CXP) : boA<宽>-<帧率>c[m/c]            c=CoaXPress（所有 boost 均为 CXP-12）
 仅相机支持多品牌（镜头/光源仍由海康提供），故本文件只产出 CAMERAS。
+联网补充条目（tools/fetch-basler-cams.js 抓 docs.baslerweb.com 型号页生成）：
+  tools/_cache/basler_cams_add.json  面阵补充（BASE 表未覆盖的分辨率档）
+  tools/_cache/basler_linescan.json  线扫 racer 2 全系列
 生成：python tools/parse-basler.py  ->  basler-catalog.js
 """
 import json
 import datetime
+import os
+
+CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools', '_cache')
+ADD_CAMS_JSON = os.path.join(CACHE, 'basler_cams_add.json')
+LINESCAN_JSON = os.path.join(CACHE, 'basler_linescan.json')
 
 # 每个机型基础信息（同一机型同时生成 黑白/彩色 两款）
 # prefix   : 型号前缀（含分辨率与帧率），如 "acA720-290"
@@ -119,18 +127,45 @@ def build():
             })
     return cams
 
+def load_json(path, default):
+    return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else default
+
+
+CAM_KEYS = ['model', 'w', 'h', 'pxUm', 'sw', 'sh', 'size', 'fps', 'shutter', 'iface',
+            'mount', 'series', 'sensor', 'dims', 'expMinUs', 'expMaxUs', 'poe', 'powerW',
+            'color', 'kind', 'brand']
+LINE_KEYS = ['model', 'w', 'taps', 'pxH', 'pxV', 'lineRate', 'color', 'iface', 'series',
+             'mount', 'powerW', 'sensor', 'expMinUs', 'expMaxUs', 'stages', 'brand']
+
+
+def reorder(rec, keys):
+    out = {k: rec[k] for k in keys if k in rec}
+    for k, v in rec.items():
+        if k not in out and k != 'src':
+            out[k] = v
+    return out
+
+
 def main():
     cams = build()
+    known = {c['model'].upper() for c in cams}
+    add = [reorder(r, CAM_KEYS) for r in load_json(ADD_CAMS_JSON, [])
+           if str(r.get('model', '')).upper() not in known]
+    cams += add
+    lines = [reorder(r, LINE_KEYS) for r in load_json(LINESCAN_JSON, [])]
     meta = {
-        "source": "Basler 官网产品规格（联网检索整理）",
+        "source": "Basler 官网产品规格 docs.baslerweb.com（联网检索整理）",
         "brand": "Basler",
         "generated": datetime.date.today().isoformat(),
         "cameras": len(cams),
+        "linescan": len(lines),
     }
     out = []
     out.append("""/**
- * Basler（宝视纳）相机型号库 —— 面阵 area
- * 数据来源：Basler 官网产品规格（baslerweb.com），经联网检索整理；生成脚本：tools/parse-basler.py
+ * Basler（宝视纳）相机型号库 —— 面阵 area + 线扫 racer 2
+ * 数据来源：docs.baslerweb.com 型号规格页（联网检索整理）；生成脚本：tools/parse-basler.py
+ *   面阵 BASE 表 + tools/_cache/basler_cams_add.json；线扫 tools/_cache/basler_linescan.json
+ *   （由 tools/fetch-basler-cams.js 抓取，每条带 src 字段指向型号页，未印的字段一律留空不伪造）
  * 本文件由脚本生成，请勿手工编辑。
  */""")
     out.append("(function (root, factory) {")
@@ -139,13 +174,14 @@ def main():
     out.append("})(typeof self !== 'undefined' ? self : this, function () {")
     out.append("  'use strict';")
     out.append("  var META = " + json.dumps(meta, ensure_ascii=False) + ";")
-    out.append("  var CAMERAS = " + json.dumps(build(), ensure_ascii=False) + ";")
-    out.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: [], LENSES: [], TELECENTRIC: [], LIGHTS: [], CONTROLLERS: [] };")
+    out.append("  var CAMERAS = " + json.dumps(cams, ensure_ascii=False) + ";")
+    out.append("  var LINESCAN = " + json.dumps(lines, ensure_ascii=False) + ";")
+    out.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: [], TELECENTRIC: [], LIGHTS: [], CONTROLLERS: [] };")
     out.append("});")
     text = "\n".join(out) + "\n"
     with open("basler-catalog.js", "w", encoding="utf-8") as f:
         f.write(text)
-    print("wrote basler-catalog.js :", len(cams), "cameras")
+    print("wrote basler-catalog.js :", len(cams), "cameras (BASE %d + add %d)," % (len(cams) - len(add), len(add)), len(lines), "linescan")
 
 if __name__ == "__main__":
     main()

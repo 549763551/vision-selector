@@ -1,6 +1,6 @@
 /**
- * 华睿（大华机器视觉）型号库 —— 面阵 + 线阵 + 光源 + 光源控制器
- * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）+ tools/parse-huarui-lights.py（光源/控制器）
+ * 华睿（大华机器视觉）型号库 —— 面阵 + 线阵 + 镜头 + 光源 + 光源控制器
+ * 来源：机器视觉产品手册中文版V20260901；生成脚本：tools/parse-huarui.py（面阵）+ tools/parse-huarui-linescan.py（线阵）+ tools/parse-huarui-lenses.py（镜头）+ tools/parse-huarui-lights.py（光源/控制器）
  * 本文件由脚本生成，请勿手工编辑。
  */
 (function (root, factory) {
@@ -8,7 +8,7 @@
   else root.HuaruiCatalog = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var META = {"source": "机器视觉产品手册中文版V20260901", "brand": "华睿（大华机器视觉）", "generated": "2026-10-23", "cameras": 288, "linescan": 26, "lights": 262, "controllers": 20};
+  var META = {"source": "机器视觉产品手册中文版V20260901", "brand": "华睿（大华机器视觉）", "generated": "2026-10-23", "cameras": 288, "linescan": 26, "lenses": 63, "telecentric": 0, "lights": 262, "controllers": 20};
   var CAMERAS = [
     {"w": 640, "h": 480, "pxUm": 4.8, "sw": 3.072, "sh": 2.304, "size": "1/4\"", "fps": 815.0, "shutter": "Global", "iface": "USB3", "mount": "C", "series": "USB3.0小面阵工业相机", "sensor": "PYTHON300", "bit": 10, "dims": [29, 29, 30], "expMinUs": 1.0, "expMaxUs": 1000000.0, "lens": "A9 系列 A", "power": null, "colorRaw": "M/C", "model": "AH5031C/CU000", "color": "彩色", "kind": "area", "brand": "华睿"},
     {"w": 640, "h": 480, "pxUm": 4.8, "sw": 3.072, "sh": 2.304, "size": "1/4\"", "fps": 815.0, "shutter": "Global", "iface": "USB3", "mount": "C", "series": "USB3.0小面阵工业相机", "sensor": "PYTHON300", "bit": 10, "dims": [29, 29, 30], "expMinUs": 1.0, "expMaxUs": 1000000.0, "lens": "A9 系列 A", "power": null, "colorRaw": "M/C", "model": "AH5031M/CU000", "color": "黑白", "kind": "area", "brand": "华睿"},
@@ -327,6 +327,73 @@
     {"model": "*L5167CPA90", "w": 16384, "taps": 12, "pxH": 5.0, "pxV": 5.0, "lineRate": 92.0, "lineRateMax": 92.0, "color": "彩色", "iface": "CoaXPress", "series": "CoaXPress 线阵", "mount": "M90", "powerW": null, "sensor": "CMOS", "expMinUs": 4.0, "brand": "华睿"},
     {"model": "L5167MPA90", "w": 16384, "taps": 16, "pxH": 5.0, "pxV": 5.0, "lineRate": 265.0, "lineRateMax": 265.0, "color": "黑白", "iface": "CoaXPress", "series": "CoaXPress 线阵", "mount": "M90", "powerW": null, "sensor": "CMOS", "expMinUs": 4.0, "brand": "华睿"},
   ];
+  var LENSES = [
+    {"model": "A9-0828-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 8.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.28, "minDist": 0.1, "len": 35.4},
+    {"model": "A9-1228-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 12.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.1, "minDist": 0.1, "len": 30.0},
+    {"model": "A9-1628-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 16.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.08, "minDist": 0.1, "len": 36.9},
+    {"model": "A9-2528-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.02, "minDist": 0.15, "len": 33.5},
+    {"model": "A9-3528-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 35.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.1, "minDist": 0.2, "len": 39.8},
+    {"model": "A9-5028-6MP", "brand": "华睿", "series": "A9-6MP 系列", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": 0.12, "minDist": 0.25, "len": 48.0},
+    {"model": "MH08528K", "brand": "华睿", "series": "MH-K 系列", "focal": 8.5, "fmin": 2.8, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": -0.94, "minDist": 0.5, "len": 72.1},
+    {"model": "MH1220K", "brand": "华睿", "series": "MH-K 系列", "focal": 12.0, "fmin": 2.0, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": 0.04, "minDist": 0.15, "len": 84.4},
+    {"model": "MH1620K", "brand": "华睿", "series": "MH-K 系列", "focal": 16.0, "fmin": 2.0, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": -1.27, "minDist": 0.1, "len": 85.9},
+    {"model": "MH2520K", "brand": "华睿", "series": "MH-K 系列", "focal": 25.0, "fmin": 2.0, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": -0.25, "minDist": 0.15, "len": 82.7},
+    {"model": "MH3520K", "brand": "华睿", "series": "MH-K 系列", "focal": 35.0, "fmin": 2.0, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": -0.22, "minDist": 0.2, "len": 64.3},
+    {"model": "MH5020K", "brand": "华睿", "series": "MH-K 系列", "focal": 50.0, "fmin": 2.0, "fmax": 22.0, "mount": "C", "ic": 23.0, "fmt": "4/3\"", "mp": 10, "dist": -0.11, "minDist": 0.3, "len": 60.9},
+    {"model": "MHR0828M", "brand": "华睿", "series": "MH-M 系列", "focal": 8.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 8, "dist": -0.77, "minDist": 0.1, "len": 35.35},
+    {"model": "MHR1220M", "brand": "华睿", "series": "MH-M 系列", "focal": 12.0, "fmin": 2.0, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 8, "dist": -0.01, "minDist": 0.15, "len": 37.65},
+    {"model": "MHR2520M", "brand": "华睿", "series": "MH-M 系列", "focal": 25.0, "fmin": 2.0, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 8, "dist": -0.04, "minDist": 0.2, "len": 36.25},
+    {"model": "MHR3520M", "brand": "华睿", "series": "MH-M 系列", "focal": 35.0, "fmin": 2.0, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 8, "dist": -0.01, "minDist": 0.2, "len": 52.82},
+    {"model": "MH7532M", "brand": "华睿", "series": "MH-M 系列", "focal": 75.0, "fmin": 3.2, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 8, "dist": 0.07, "minDist": 0.15, "len": 82.1},
+    {"model": "MH0628SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 6.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.04, "minDist": 0.08, "len": 40.36},
+    {"model": "MH0828SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 8.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.55, "minDist": 0.1, "len": 34.74},
+    {"model": "MH1228SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 12.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.04, "minDist": 0.1, "len": 35.36},
+    {"model": "MH1628SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 16.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.08, "minDist": 0.1, "len": 33.12},
+    {"model": "MH2528SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.02, "minDist": 0.1, "len": 34.34},
+    {"model": "MH3528SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 35.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": -0.02, "minDist": 0.15, "len": 42.62},
+    {"model": "MH5028SP", "brand": "华睿", "series": "MH-SP 系列", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 9.4, "fmt": "1/1.8\"", "mp": 6, "dist": 0.11, "minDist": 0.3, "len": 43.89},
+    {"model": "MH0618X", "brand": "华睿", "series": "MH-X 系列", "focal": 6.0, "fmin": 1.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": 2.5, "minDist": 0.1, "len": 77.8},
+    {"model": "MH0814X", "brand": "华睿", "series": "MH-X 系列", "focal": 8.0, "fmin": 1.4, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": 5.5, "minDist": 0.1, "len": 77.8},
+    {"model": "MH1228X", "brand": "华睿", "series": "MH-X 系列", "focal": 12.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": -0.22, "minDist": 0.1, "len": 56.99},
+    {"model": "MH1628X", "brand": "华睿", "series": "MH-X 系列", "focal": 16.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": -0.18, "minDist": 0.1, "len": 51.78},
+    {"model": "MH2528X", "brand": "华睿", "series": "MH-X 系列", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": -0.2, "minDist": 0.15, "len": 49.81},
+    {"model": "MH3528X", "brand": "华睿", "series": "MH-X 系列", "focal": 35.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": -0.02, "minDist": 0.2, "len": 53.61},
+    {"model": "MH5028X", "brand": "华睿", "series": "MH-X 系列", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 12, "dist": -0.02, "minDist": 0.3, "len": 56.82},
+    {"model": "MK1228M", "brand": "华睿", "series": "MK-M 系列", "focal": 12.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 10, "dist": -0.2, "minDist": 0.1, "len": 43.2},
+    {"model": "MK1628M", "brand": "华睿", "series": "MK-M 系列", "focal": 16.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 10, "dist": -0.2, "minDist": 0.1, "len": 40.0},
+    {"model": "MK2528M", "brand": "华睿", "series": "MK-M 系列", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 10, "dist": -0.3, "minDist": 0.15, "len": 46.7},
+    {"model": "MK3528M", "brand": "华睿", "series": "MK-M 系列", "focal": 35.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 10, "dist": 0.07, "minDist": 0.2, "len": 49.2},
+    {"model": "MK5028M", "brand": "华睿", "series": "MK-M 系列", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 11.4, "fmt": "2/3\"", "mp": 10, "dist": -0.01, "minDist": 0.2, "len": 58.1},
+    {"model": "MT1228X", "brand": "华睿", "series": "MT-X 系列", "focal": 12.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 25, "dist": -0.6, "minDist": 0.1, "len": 50.5},
+    {"model": "MT1628X", "brand": "华睿", "series": "MT-X 系列", "focal": 16.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 25, "dist": -0.2, "minDist": 0.15, "len": 49.9},
+    {"model": "MT2528X", "brand": "华睿", "series": "MT-X 系列", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 25, "dist": -0.02, "minDist": 0.15, "len": 47.5},
+    {"model": "MT3528X", "brand": "华睿", "series": "MT-X 系列", "focal": 35.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 25, "dist": -0.07, "minDist": 0.2, "len": 52.7},
+    {"model": "MT5028X", "brand": "华睿", "series": "MT-X 系列", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "C", "ic": 17.6, "fmt": "1.1\"", "mp": 25, "dist": 0.07, "minDist": 0.25, "len": 52.7},
+    {"model": "F30-2045-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 20.0, "fmin": 4.5, "mount": "M42", "ic": 30.0, "fmt": "Φ30", "dist": 0.5, "minDist": 0.2, "len": 51.4},
+    {"model": "F30-2528-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 25.0, "fmin": 2.8, "fmax": 16.0, "mount": "M42", "ic": 30.0, "fmt": "Φ30", "dist": 0.94, "minDist": 0.115, "len": 63.4},
+    {"model": "F30-2840-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 28.0, "fmin": 4.0, "mount": "M42", "ic": 30.0, "fmt": "Φ30", "dist": 0.18, "minDist": 0.1, "len": 54.85},
+    {"model": "F30-3528-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 35.0, "fmin": 2.8, "fmax": 11.0, "mount": "M42", "ic": 30.0, "fmt": "Φ30", "dist": -0.2, "minDist": 0.2, "len": 107.0},
+    {"model": "F43-4028-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 40.0, "fmin": 2.8, "fmax": 11.0, "mount": "M42", "ic": 43.0, "fmt": "Φ43", "dist": 0.62, "minDist": 0.14, "len": 62.7},
+    {"model": "F60-4040A-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 40.0, "fmin": 4.0, "fmax": 22.0, "mount": "M72", "ic": 60.0, "fmt": "Φ60", "dist": 0.2, "minDist": 0.25, "len": 118.75},
+    {"model": "F60-4040B-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 40.0, "fmin": 4.0, "fmax": 16.0, "mount": "M72", "ic": 60.0, "fmt": "Ф60", "dist": 0.09, "minDist": 0.15, "len": 140.7},
+    {"model": "F30-5028-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 50.0, "fmin": 2.8, "fmax": 16.0, "mount": "M42", "ic": 30.0, "fmt": "Ф30", "dist": 0.06, "minDist": 0.2, "len": 77.21},
+    {"model": "F67-5545-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 55.0, "fmin": 4.5, "fmax": 22.0, "mount": "M72", "ic": 67.0, "fmt": "Φ67", "mp": 151, "dist": 0.09, "minDist": 0.098, "len": 132.3},
+    {"model": "F46-6035-M58", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 60.0, "fmin": 3.5, "fmax": 16.0, "mount": "M58", "ic": 46.0, "fmt": "Ф46", "mp": 65, "dist": -0.2, "minDist": 0.35, "len": 101.3},
+    {"model": "F60-6040A-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 60.0, "fmin": 4.0, "fmax": 16.0, "mount": "M72", "ic": 60.0, "fmt": "Ф60", "dist": -0.2, "minDist": 0.34, "len": 114.8},
+    {"model": "F60-6040B-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 60.0, "fmin": 4.0, "fmax": 16.0, "mount": "M72", "ic": 60.0, "fmt": "Ф60", "dist": -0.2, "minDist": 0.2, "len": 114.8},
+    {"model": "F30-8028-M42", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 80.0, "fmin": 2.8, "fmax": 16.0, "mount": "M42", "ic": 30.0, "fmt": "Ф30", "dist": -0.2, "minDist": 0.22, "len": 108.0},
+    {"model": "F80-8040-02X-M72-D76", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 80.0, "fmin": 4.0, "fmax": 22.0, "mount": "M72", "ic": 80.0, "fmt": "Φ80", "dist": 0.02, "minDist": 0.303, "len": 111.7},
+    {"model": "F64-9040-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 90.0, "fmin": 4.0, "fmax": 16.0, "mount": "M72", "ic": 64.0, "fmt": "Φ64", "dist": 0.15, "minDist": 0.722, "len": 127.3},
+    {"model": "F62-9540-005X-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 95.0, "fmin": 4.0, "fmax": 16.0, "mount": "M72", "ic": 62.0, "fmt": "Φ62", "dist": 0.01, "minDist": 1.253, "len": 129.9},
+    {"model": "MHF0522FE", "brand": "华睿", "series": "行业镜头", "focal": 5.0, "fmin": 2.2, "mount": "C", "ic": 16.0, "fmt": "1\"", "minDist": 0.1, "len": 36.0},
+    {"model": "MH1228R", "brand": "华睿", "series": "行业镜头", "focal": 12.0, "fmin": 2.8, "fmax": 13.0, "mount": "C", "ic": 9.4, "fmt": "1/1.7\"", "dist": 0.34, "minDist": 0.2, "len": 23.8},
+    {"model": "MH1628R", "brand": "华睿", "series": "行业镜头", "focal": 16.0, "fmin": 2.8, "fmax": 11.0, "mount": "C", "ic": 9.4, "fmt": "1/1.7\"", "dist": -0.3, "minDist": 0.15, "len": 19.5},
+    {"model": "MH1656XR", "brand": "华睿", "series": "行业镜头", "focal": 16.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.3, "len": 39.8},
+    {"model": "MH2056XR", "brand": "华睿", "series": "行业镜头", "focal": 20.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.5, "len": 30.96},
+    {"model": "MH2556XR", "brand": "华睿", "series": "行业镜头", "focal": 25.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.5, "len": 35.7},
+  ];
+  var TELECENTRIC = [
+  ];
   var LIGHTS = [
     {"model": "PFM-HX3475CO10W", "type": "ring", "color": "white", "size": [34.0, 75.0], "name": "环形光源PFM-HX3475CO10W", "power": 2.0, "angle": 75.0, "brand": "华睿"},
     {"model": "PFM-HX3475CO10R", "type": "ring", "color": "red", "size": [34.0, 75.0], "name": "环形光源PFM-HX3475CO10R", "power": 1.2, "angle": 75.0, "brand": "华睿"},
@@ -613,5 +680,5 @@
     {"model": "LC-DC48320-2T", "channels": 2, "mode": "可变电流控制 / 面板按键 /RS232/ 以太网", "strobe": true, "brand": "华睿"},
     {"model": "LC-DC48760-2T", "channels": 2, "mode": "可变电流控制 / 面板按键 /RS232/ 以太网", "strobe": true, "brand": "华睿"},
   ];
-  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };
+  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: LENSES, TELECENTRIC: TELECENTRIC, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };
 });

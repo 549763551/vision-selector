@@ -315,7 +315,7 @@ test('线扫方案接入直配线扫镜头（卡口同族 + 像面覆盖行宽 +
   if (!ls.lens) return; // 库内无直配镜头时保持“需另选”提示，不算失败
   const lensInCat = CAT.LENSES.find((x) => x.model === ls.lens.model);
   assert.ok(lensInCat, '线扫镜头不在库中');
-  const fam = (m) => ({ 'C': 'C', 'M12': 'M12', 'F': 'F', 'M42': 'F', 'M42/F': 'F', 'M58': 'M58', 'M72': 'M72' })[m];
+  const fam = (m) => ({ 'C': 'C', 'M12': 'M12', 'F': 'F', 'M42': 'F', 'M42/F': 'F', 'M58': 'M58', 'M72': 'M72', 'M90': 'M90' })[m];
   assert.strictEqual(fam(ls.mount), fam(lensInCat.mount), '线扫镜头必须直配卡口');
   assert.ok(lensInCat.ic == null || lensInCat.ic >= ls.optics.sensorW / 2 - 1e-9, '像面必须覆盖行传感器宽的一半');
   assert.ok(lensInCat.focal <= ls.optics.f + 1e-9, '焦距不能超理论焦距（否则视场不足）');
@@ -457,15 +457,20 @@ function mergeMulti(brands, lensBrands) {
   if (brands.indexOf('daheng') >= 0)
     DAH.CAMERAS.forEach((x) => cam.push(Object.assign({}, x, { brand: x.brand || '大恒图像' })));
   // 镜头品牌：默认合并全部有镜头的品牌（与顶栏“镜头品牌筛选”默认全选一致）；可单独指定
-  const lb = lensBrands || ['hikrobot', 'daheng'];
+  const lb = lensBrands || ['hikrobot', 'huarui', 'daheng'];
   let lenses = [];
   if (lb.indexOf('hikrobot') >= 0)
     lenses = lenses.concat(HIK.LENSES.map((x) => Object.assign({}, x, { brand: '海康机器人 HIKROBOT' })));
+  if (lb.indexOf('huarui') >= 0)
+    lenses = lenses.concat(HUA.LENSES.map((x) => Object.assign({}, x, { brand: '华睿' })));
   if (lb.indexOf('daheng') >= 0)
     lenses = lenses.concat(DAH.LENSES.map((x) => Object.assign({}, x, { brand: '大恒图像' })));
+  // 线扫：与 app.js 一致，按品牌补齐 brand（引擎输出的线扫要能看出是谁家的）
   let linescan = [];
-  if (brands.indexOf('hikrobot') >= 0) linescan = linescan.concat(HIK.LINESCAN);
-  if (brands.indexOf('huarui') >= 0) linescan = linescan.concat(HUA.LINESCAN);
+  const stamp = (arr, name) => arr.forEach((x) => { if (!x.brand) x.brand = name; linescan.push(x); });
+  if (brands.indexOf('hikrobot') >= 0) stamp(HIK.LINESCAN, '海康机器人 HIKROBOT');
+  if (brands.indexOf('huarui') >= 0) stamp(HUA.LINESCAN, '华睿');
+  if (brands.indexOf('basler') >= 0) stamp(BAS.LINESCAN, 'Basler');
   // 光源 / 控制器：海康 + 华睿（华睿型录含独立光源与光源控制器章节）
   let lights = [];
   if (brands.indexOf('hikrobot') >= 0)
@@ -477,36 +482,40 @@ function mergeMulti(brands, lensBrands) {
     ctrls = ctrls.concat(HIK.CONTROLLERS.map((x) => Object.assign({}, x, { brand: '海康机器人 HIKROBOT' })));
   if (brands.indexOf('huarui') >= 0)
     ctrls = ctrls.concat(HUA.CONTROLLERS.map((x) => Object.assign({}, x, { brand: '华睿' })));
+  // 远心：海康手册 + 大恒型录（大恒远心按品牌标注，便于跨品牌等价对比）
+  const tele = HIK.TELECENTRIC.map((x) => Object.assign({}, x, { brand: x.brand || '海康机器人 HIKROBOT' }))
+    .concat(DAH.TELECENTRIC.map((x) => Object.assign({}, x, { brand: x.brand || '大恒图像' })));
   return {
     META: { brand: '多品牌' },
     CAMERAS: cam,
     LINESCAN: linescan,
     LENSES: lenses,
-    TELECENTRIC: HIK.TELECENTRIC,
+    TELECENTRIC: tele,
     LIGHTS: lights,
     CONTROLLERS: ctrls
   };
 }
 
-test('多品牌目录合并 = 海康300 + 华睿288 + Basler86 + 大恒275', () => {
+test('多品牌目录合并 = 海康406 + 华睿288 + Basler233 + 大恒688', () => {
   const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
-  assert.strictEqual(CAT3.CAMERAS.length, 949, '合并后相机数');
+  assert.strictEqual(CAT3.CAMERAS.length, 1615, '合并后相机数');
   const byBrand = {};
   CAT3.CAMERAS.forEach((c) => { byBrand[c.brand] = (byBrand[c.brand] || 0) + 1; });
-  assert.strictEqual(byBrand['海康机器人 HIKROBOT'], 300);
+  assert.strictEqual(byBrand['海康机器人 HIKROBOT'], 406);
   assert.strictEqual(byBrand['华睿'], 288);
-  assert.strictEqual(byBrand['Basler'], 86);
-  assert.strictEqual(byBrand['大恒图像'], 275);
+  assert.strictEqual(byBrand['Basler'], 233);
+  assert.strictEqual(byBrand['大恒图像'], 688);
 });
 
-test('镜头库合并 = 海康85 + 大恒71；线扫 = 海康18 + 华睿26', () => {
+test('镜头库合并 = 海康101 + 华睿63 + 大恒578；线扫 = 海康33 + 华睿26 + Basler17', () => {
   const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
-  assert.strictEqual(CAT3.LENSES.length, 156, '合并后镜头数');
-  assert.strictEqual(CAT3.LINESCAN.length, 44, '合并后线扫数');
+  assert.strictEqual(CAT3.LENSES.length, 742, '合并后镜头数');
+  assert.strictEqual(CAT3.LINESCAN.length, 76, '合并后线扫数');
   const lb = {};
   CAT3.LENSES.forEach((l) => { lb[l.brand] = (lb[l.brand] || 0) + 1; });
-  assert.strictEqual(lb['海康机器人 HIKROBOT'], 85);
-  assert.strictEqual(lb['大恒图像'], 71);
+  assert.strictEqual(lb['海康机器人 HIKROBOT'], 101);
+  assert.strictEqual(lb['华睿'], 63);
+  assert.strictEqual(lb['大恒图像'], 578);
   // 镜头输出对象带 brand
   const E3 = EngineFactory(CAT3);
   const r = E3.solve(base());
@@ -517,12 +526,14 @@ test('镜头库合并 = 海康85 + 大恒71；线扫 = 海康18 + 华睿26', () 
   assert.ok(r.siblings.light.items.every((x) => x.brand != null), '光源 siblings 应带 brand');
 });
 
-test('大恒 HN 镜头字段合规（焦距/光圈/卡口/像面）', () => {
+test('大恒镜头字段合规（焦距/光圈/卡口/像面）', () => {
   DAH.LENSES.forEach((l) => {
     assert.ok(l.focal > 0, l.model + ' 焦距');
-    assert.ok(l.fmin > 0 && l.fmax >= l.fmin, l.model + ' 光圈');
-    assert.ok(['C', 'F', 'V38'].indexOf(l.mount) >= 0, l.model + ' 卡口');
-    assert.ok(l.ic > 0, l.model + ' 像面');
+    // 手册 MPW2-R 等表只印最小光圈（F2.4），未印范围；引擎按 F22 兜底
+    assert.ok(l.fmin > 0 && (l.fmax == null || l.fmax >= l.fmin), l.model + ' 光圈');
+    assert.ok(['C', 'F', 'V38', 'M42'].indexOf(l.mount) >= 0, l.model + ' 卡口');
+    // 像面直径只有部分系列印在手册里；未印时引擎按大靶面放行，这里只要求给了就必须是正数
+    assert.ok(l.ic == null || l.ic > 0, l.model + ' 像面');
     assert.ok(l.brand === '大恒图像', l.model + ' brand');
   });
   // C 口覆盖主要焦距段
@@ -564,11 +575,26 @@ test('勾选“优先线扫”后面阵可行场景也给出线扫方案', () =>
 
 test('镜头品牌筛选：仅大恒时镜头全部来自大恒', () => {
   const CATd = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng'], ['daheng']);
-  assert.strictEqual(CATd.LENSES.length, 71, '仅大恒镜头');
+  assert.strictEqual(CATd.LENSES.length, 578, '仅大恒镜头');
   const Ed = EngineFactory(CATd);
   const r = Ed.solve(base());
   assert.ok(r.ok, '仅大恒镜头可解');
   assert.strictEqual(r.lens.brand, '大恒图像');
+});
+
+test('固定光圈镜头（手册只印一档）不推荐它做不到的光圈', () => {
+  const fixed = DAH.LENSES.filter((l) => l.fmin != null && l.fmax == null);
+  assert.ok(fixed.length > 100, '大恒固定光圈镜头应已入库，实际 ' + fixed.length);
+  const sample = fixed.filter((l) => l.mount === 'C' && l.focal === 10.5)[0] || fixed[0];
+  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
+  const E3 = EngineFactory(CAT3);
+  const r = E3.solve(Object.assign(base(), { manualLens: '大恒图像::' + sample.model }));
+  assert.ok(r.ok, '固定光圈镜头手动指定应可解：' + sample.model);
+  assert.strictEqual(r.lens.model, sample.model, '应选中手动指定的镜头');
+  assert.strictEqual(r.site.aperture.value, sample.fmin,
+    '推荐光圈只能是手册那一档 F' + sample.fmin + '，实际 F' + r.site.aperture.value);
+  assert.strictEqual(r.site.aperture.stop, null, '固定光圈没有「再收一档」');
+  assert.ok(/固定光圈/.test(r.site.aperture.note), '现场说明应点明固定光圈，实际：' + r.site.aperture.note);
 });
 
 test('大恒相机核心字段齐全（分辨率/帧率/像元/接口/快门）', () => {
@@ -576,9 +602,9 @@ test('大恒相机核心字段齐全（分辨率/帧率/像元/接口/快门）'
     assert.ok(c.w > 0 && c.h > 0, c.model + ' 分辨率');
     assert.ok(c.fps > 0, c.model + ' 帧率');
     assert.ok(c.pxUm > 0, c.model + ' 像元');
-    assert.ok(['GigE', '10GigE', 'USB3', 'CoaXPress', 'CameraLink'].indexOf(c.iface) >= 0, c.model + ' 接口 ' + c.iface);
+    assert.ok(['GigE', '10GigE', 'USB3', 'CoaXPress', 'CameraLink', 'XoCLink', 'XoFLink', 'Serdes'].indexOf(c.iface) >= 0, c.model + ' 接口 ' + c.iface);
     assert.ok(['Global', 'Rolling'].indexOf(c.shutter) >= 0, c.model + ' 快门');
-    assert.ok(['C', 'M42/F', 'M12', 'Bare'].indexOf(c.mount) >= 0, c.model + ' 卡口 ' + c.mount);
+    assert.ok(['C', 'M42/F', 'M42', 'M12', 'Bare', 'M58', 'M72', 'M90', 'F'].indexOf(c.mount) >= 0, c.model + ' 卡口 ' + c.mount);
     assert.ok(Math.abs(c.w * c.pxUm / 1000 - c.sw) < 0.01, c.model + ' 靶面宽与像元不一致');
   });
 });
@@ -666,9 +692,10 @@ test('手动指定 品牌::镜头型号 生效（跨品牌点选镜头）', () =
   assert.strictEqual(r.lens.brand, '大恒图像');
   assert.strictEqual(r.manual.lens, true, '应标记为手动指定');
   assert.strictEqual(r.lens.f, 25, '焦距应为 25 mm');
-  // 反向：选定大恒镜头后，跨品牌表应给出海康候选
+  // 反向：选定大恒镜头后，跨品牌表应给出其他品牌的等价候选（镜头池含海康/华睿/大恒）
   assert.ok(r.siblings.lens.crossTotal >= 1, '反向跨品牌候选应存在');
-  assert.ok(r.siblings.lens.crossBrand.every((x) => x.brand === '海康机器人 HIKROBOT'), '反向候选应为海康');
+  assert.ok(r.siblings.lens.crossBrand.every((x) => x.brand !== '大恒图像'), '反向候选不应出现当前品牌自身');
+  assert.ok(r.siblings.lens.crossBrand.some((x) => x.brand === '海康机器人 HIKROBOT'), '反向候选应含海康');
   // 同系列表当前行应高亮大恒这支
   const cur = r.siblings.lens.items.filter((x) => x.cur);
   assert.strictEqual(cur.length, 1);
@@ -727,6 +754,7 @@ test('mountMatch 分级：直配 / 转接 / 不兼容', () => {
   assert.strictEqual(mm('M42/F', 'M42'), 1, 'M42/F 相机可直连 M42 镜头');
   assert.strictEqual(mm('M58', 'M42'), 0, 'M58 与 M42 螺纹不通');
   assert.strictEqual(mm('M72', 'C'), 2, 'M72 相机可转接 C 口镜头');
+  assert.strictEqual(mm('M90', 'C'), 2, 'M90 相机（线扫大口径）可转接 C 口镜头');
   assert.strictEqual(mm('Bare', 'C'), 0, '裸板无卡口');
 });
 
@@ -1163,7 +1191,9 @@ test('现场参数：光圈在镜头范围内，静态给起始曝光、不给�
   const r = Engine.solve(base());
   assert.ok(r.site && r.site.aperture && r.site.exposure && r.site.trigger, '缺少现场参数字段');
   const ap = r.site.aperture;
-  assert.ok(ap.value >= r.lens.fmin - 1e-9 && ap.value <= (r.lens.fmax || 22) + 1e-9, '光圈超出镜头可用范围: F' + ap.value);
+  // 固定光圈（手册只印一档）的上限就是它自己那一档，不能按 F22 放行
+  const apCeil = r.lens.fmax != null ? r.lens.fmax : r.lens.fmin;
+  assert.ok(ap.value >= r.lens.fmin - 1e-9 && ap.value <= apCeil + 1e-9, '光圈超出镜头可用范围: F' + ap.value);
   assert.ok(ap.dof > 0 && ap.blurPx > 0, '光圈档应带景深与衍射');
   if (ap.stop) {
     assert.ok(ap.stop > ap.value, '收小一档的光圈值必须更大');
