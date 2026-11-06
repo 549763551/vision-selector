@@ -25,7 +25,8 @@
       var(--bg);
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -33,17 +34,18 @@
   .topbar {
     background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
     color: #fff;
-    padding: 18px 20px 20px;
+    padding: 20px 28px 18px;
+    border-top: 3px solid #e60012;
   }
-  .topbar-inner { max-width: 1240px; margin: 0 auto; }
+  .topbar-inner { max-width: 1200px; margin: 0 auto; }
   .tb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .tb-title { font-size: 19px; font-weight: 700; letter-spacing: .5px; }
-  .tb-title small { font-weight: 400; font-size: 12.5px; color: #93a4bd; margin-left: 8px; }
+  .tb-title { font-size: 22px; font-weight: 700; letter-spacing: .3px; }
+  .tb-title small { display: block; font-weight: 400; font-size: 13.5px; color: #93a4bd; margin: 4px 0 0; }
   /* ---------- 全站导航（与选型助手 / 自定义搭配同一套） ---------- */
-  .pnav { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pnav { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .pnav > a, .pnav > .on {
     display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
-    font-size: 12px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 7px 13px;
+    font-size: 13px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 8px 15px;
     color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
     transition: .15s;
   }
@@ -53,12 +55,12 @@
     background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
     border-color: rgba(56, 189, 248, .7);
   }
-  .tb-stats { margin-top: 8px; font-size: 12.5px; color: #93a4bd; }
+  .tb-stats { margin-top: 10px; font-size: 13.5px; color: #93a4bd; }
   .tb-stats b { color: #fff; font-weight: 600; }
-  .tb-search { margin-top: 14px; position: relative; max-width: 560px; }
+  .tb-search { margin-top: 14px; position: relative; max-width: 620px; }
   .tb-search input {
-    width: 100%; padding: 11px 40px 11px 38px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2);
-    background: rgba(255,255,255,.10); color: #fff; font-size: 14px; font-family: inherit; outline: none;
+    width: 100%; padding: 13px 42px 13px 42px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.10); color: #fff; font-size: 15px; font-family: inherit; outline: none;
   }
   .tb-search input::placeholder { color: #8fa2bd; }
   .tb-search input:focus { border-color: rgba(56,189,248,.6); background: rgba(255,255,255,.14); }
@@ -74,73 +76,85 @@
   .tb-search.has-val .s-clear { display: block; }
 
   /* ---------- 类别标签 ---------- */
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 20px 60px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
   .tabs {
-    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+    display: flex; flex-wrap: wrap; gap: 6px; overflow-x: auto; padding-bottom: 4px;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab {
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-    border-radius: 999px; padding: 8px 16px; font-size: 13.5px; font-family: inherit; cursor: pointer;
+    border-radius: 999px; padding: 8px 12px; font-size: 13.5px; font-family: inherit; cursor: pointer;
     white-space: nowrap; transition: all .15s;
   }
-  .tab small { color: var(--muted); font-size: 11.5px; margin-left: 4px; }
+  .tab small { color: var(--muted); font-size: 12.5px; margin-left: 5px; }
   .tab.on { background: linear-gradient(180deg, #38bdf8, #2563eb); border-color: transparent; color: #fff; }
   .tab.on small { color: rgba(255,255,255,.85); }
 
   /* ---------- 筛选区 ---------- */
   .filters {
     margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end;
+    padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end;
   }
   .f-group { display: flex; flex-direction: column; gap: 5px; }
-  .f-group > label { font-size: 11.5px; color: var(--muted); }
+  .f-group > label { font-size: 12.5px; color: var(--muted); }
   .f-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     border: 1px solid var(--line); background: #fbfdff; color: var(--ink); font-family: inherit;
-    font-size: 12px; border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: all .12s;
+    font-size: 13px; border-radius: 999px; padding: 6px 13px; cursor: pointer; transition: all .12s;
   }
   .chip:hover { border-color: #93c5fd; }
   .chip.on { background: var(--accent-soft); border-color: #2563eb; color: var(--accent); font-weight: 600; }
   .filters select, .filters input[type="number"], .filters input[type="text"] {
-    font-family: inherit; font-size: 12.5px; color: var(--ink); background: #fbfdff;
-    border: 1px solid #d6e0ea; border-radius: 8px; padding: 6px 8px; outline: none; min-width: 0;
+    font-family: inherit; font-size: 13.5px; color: var(--ink); background: #fbfdff;
+    border: 1px solid #d6e0ea; border-radius: 8px; padding: 8px 10px; outline: none; min-width: 0;
   }
   .filters select:focus, .filters input:focus { border-color: #2563eb; }
-  .f-num { width: 96px; }
+  .f-num { width: 104px; }
   .f-reset {
     margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--muted);
-    font-family: inherit; font-size: 12px; border-radius: 8px; padding: 6px 12px; cursor: pointer;
+    font-family: inherit; font-size: 13px; border-radius: 8px; padding: 8px 14px; cursor: pointer;
   }
   .f-reset:hover { color: var(--danger, #dc2626); border-color: #fecaca; }
-  .f-result { font-size: 12.5px; color: var(--muted); padding: 10px 2px 0; }
+  .f-result { font-size: 13.5px; color: var(--muted); padding: 12px 2px 0; }
   .f-result b { color: var(--accent); }
 
   /* ---------- 表格（桌面） ---------- */
+  /* 桌面：不做内嵌滚动，表格随页面一起滚到底（表头吸顶） */
   .tbl-wrap {
     margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    overflow: auto; max-height: calc(100vh - 300px); min-height: 200px;
+    overflow: visible; min-height: 0;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  /* 中等宽度：列挤不下时才允许横向滚动，避免撑破页面 */
+  @media (min-width: 861px) and (max-width: 1023px) {
+    .tbl-wrap { overflow-x: auto; }
+    .topbar { padding: 16px; }
+    .wrap { padding: 16px; }
+    .tb-title small { display: none; }
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th:first-child { border-top-left-radius: 13px; }
+  thead th:last-child { border-top-right-radius: 13px; }
+  #thead th:last-child, #tbody td:last-child { padding-right: 18px; }
   thead th {
-    position: sticky; top: 0; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 600;
-    text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 2;
+    position: sticky; top: 0; background: #f8fafc; color: #475569; font-size: 13px; font-weight: 600;
+    text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 2;
+    box-shadow: 0 6px 10px -10px rgba(15, 23, 42, .5);
   }
-  tbody td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; vertical-align: middle; }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; vertical-align: middle; }
   tbody tr { cursor: pointer; transition: background .1s; }
   tbody tr:hover { background: var(--accent-soft); }
   tbody tr:last-child td { border-bottom: 0; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  td.model { font-weight: 600; font-family: Consolas, "Courier New", monospace; font-size: 12.5px; }
+  td.model { font-weight: 600; font-family: Consolas, "Courier New", monospace; font-size: 13.5px; }
   .brand-tag {
-    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: #475569;
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #475569;
     border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: #f8fafc; white-space: nowrap;
   }
   .brand-tag .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
   .cat-tag {
-    display: inline-block; font-size: 11px; color: var(--accent); background: var(--accent-soft);
-    border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+    display: inline-block; font-size: 12px; color: var(--accent); background: var(--accent-soft);
+    border-radius: 5px; padding: 2px 7px; white-space: nowrap;
   }
   .dim { color: var(--muted); }
   .muted-cell { color: #94a3b8; }
@@ -278,20 +292,20 @@
   .card-art { flex: 0 0 auto; }
   .card-main { flex: 1 1 auto; min-width: 0; }
   .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .card-model { font-weight: 700; font-size: 14px; font-family: Consolas, "Courier New", monospace; word-break: break-all; }
+  .card-model { font-weight: 700; font-size: 15.5px; font-family: Consolas, "Courier New", monospace; word-break: break-all; }
   .card-specs {
     margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px;
   }
   .card-specs .spec {
     display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%;
     background: #f8fafc; border: 1px solid #eef2f7; border-radius: 7px;
-    padding: 3px 9px; font-size: 11.5px; line-height: 1.5;
+    padding: 4px 10px; font-size: 12.5px; line-height: 1.5;
   }
   .card-specs .k { color: var(--muted); flex: 0 0 auto; }
   .card-specs .v { color: var(--ink); font-weight: 600; word-break: break-word; font-variant-numeric: tabular-nums; }
   /* 同规格可替换备注：弱化处理，避免抢型号与参数 */
   .eq-note {
-    margin-top: 8px; font-size: 11.5px; line-height: 1.6; color: var(--muted);
+    margin-top: 8px; font-size: 12.5px; line-height: 1.6; color: var(--muted);
     border-top: 1px dashed var(--line); padding-top: 7px;
   }
   .x-tip { margin-top: 7px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
@@ -299,12 +313,12 @@
   /* ---------- 分页 ---------- */
   .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
   .pager button {
-    font-family: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--panel);
-    color: var(--ink); border-radius: 9px; padding: 7px 16px; cursor: pointer;
+    font-family: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--ink); border-radius: 10px; padding: 9px 18px; cursor: pointer;
   }
   .pager button:disabled { opacity: .4; cursor: default; }
   .pager button:not(:disabled):hover { border-color: #2563eb; color: var(--accent); }
-  .pager .pg-info { font-size: 12.5px; color: var(--muted); }
+  .pager .pg-info { font-size: 13.5px; color: var(--muted); }
 
   /* ---------- 详情弹层 ---------- */
   .mask {
@@ -328,21 +342,31 @@
   /* 详情操作按钮独立一行：避免与 logo / 类别 / 关闭键在窄屏抢宽度换行 */
   .sheet-acts { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .sheet-acts .inq-add { margin-left: 0; }
-  .sheet-model { font-size: 17px; font-weight: 700; font-family: Consolas, "Courier New", monospace; word-break: break-all; }
+  .sheet-model { font-size: 19px; font-weight: 700; font-family: Consolas, "Courier New", monospace; word-break: break-all; }
   .sheet-close {
     margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--muted);
     width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; flex: 0 0 auto;
   }
   .sheet-logo { height: 22px; max-width: 120px; object-fit: contain; }
   .sheet-meta { margin-top: 6px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
-  .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  .kv-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 6px; }
   .kv-table td { padding: 8px 18px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
   .kv-table td.k { color: var(--muted); width: 40%; white-space: nowrap; }
   .kv-table td.v { word-break: break-all; }
   .kv-table tr:last-child td { border-bottom: 0; }
 
   footer {
-    max-width: 1240px; margin: 0 auto; padding: 0 20px 40px; font-size: 12px; color: var(--muted); line-height: 1.8;
+    max-width: 1200px; margin: 0 auto; padding: 0 28px 40px; font-size: 13px; color: var(--muted); line-height: 1.8;
+  }
+
+  /* ---------- 中等宽度（小笔记本）：收紧表格，尽量一屏放下全部列 ---------- */
+  @media (min-width: 861px) and (max-width: 1279px) {
+    table { font-size: 13px; }
+    thead th { font-size: 12px; padding: 10px 8px; }
+    tbody td { padding: 10px 8px; }
+    td.model { font-size: 12.5px; }
+    td.art-cell { padding: 4px 4px 4px 6px; }
+    #thead th:last-child, #tbody td:last-child { padding-right: 12px; }
   }
 
   /* ---------- 移动端 ---------- */
@@ -351,15 +375,16 @@
     .cards { display: flex; }
     /* 类别标签换行铺满，不做横向截断 */
     .tabs { flex-wrap: wrap; }
-    .wrap { padding: 14px 12px 60px; }
-    .topbar { padding: 14px 12px 16px; }
+    .wrap { padding: 12px 12px 48px; }
+    .topbar { padding: 14px 14px; }
+    .tb-title { font-size: 18px; }
     .filters { padding: 10px 12px; gap: 8px 14px; }
     .f-reset { margin-left: 0; }
     .f-num { width: 84px; }
     .tb-row { gap: 8px; }
     /* 导航：窄屏独占一行横滑，不再拆成上下两个按钮 */
     .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
-    .pnav > a, .pnav > .on { font-size: 11.5px; padding: 6px 11px; }
+    .pnav > a, .pnav > .on { font-size: 12.5px; padding: 7px 13px; }
   }
 </style>
 </head>
@@ -636,19 +661,19 @@
   buildEquivalents();
 
   function eqInfo(it) { return EQ.get(it) || null; }
-  // 列表列文案：几款可替换 + 对方品牌
+  // 列表列文案：只给款数，品牌明细见详情
   function eqColText(it) {
     var e = eqInfo(it);
     if (!e) return null;
-    return e.list.length + ' 款（' + e.brandText + '）';
+    return e.list.length + ' 款';
   }
   // 卡片/详情备注
   function eqNoteText(it) {
     var e = eqInfo(it);
     if (!e) return null;
     var first = e.list[0];
-    return '同规格可替换 ' + e.list.length + ' 款（如 ' + brandShort(first.brand) + ' ' +
-      (first.d.model || first.d.series) + '）· 依据：' + e.basis;
+    return '同规格可替换 ' + e.list.length + ' 款 · 如 ' + brandShort(first.brand) + ' ' +
+      (first.d.model || first.d.series);
   }
 
   var COLS = {
@@ -663,7 +688,6 @@
       { h: '', art: true },
       { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
       { h: '品牌', brand: true },
-      { h: '形态', get: V(function (it) { return formText(it.d); }) },
       { h: '分辨率', get: V(function (it) { return resText(it.d); }) },
       { h: '像素', cls: 'num', get: V(function (it) { return mpText(it.d); }) },
       { h: '像元 µm', cls: 'num', get: V(function (it) { return it.d.pxUm; }) },
@@ -671,8 +695,7 @@
       { h: '帧率 fps', cls: 'num', get: V(function (it) { return it.d.fps; }) },
       { h: '接口', get: V(function (it) { return it.d.iface; }) },
       { h: '彩色', get: V(function (it) { return it.d.color; }) },
-      { h: '卡口', get: V(function (it) { return mountText(it.d.mount); }) },
-      { h: '传感器', dim: true, get: V(function (it) { return it.d.sensor; }) }
+      { h: '卡口', get: V(function (it) { return mountText(it.d.mount); }) }
     ],
     line: [
       { h: '', art: true },
@@ -683,8 +706,7 @@
       { h: '行频 kHz', cls: 'num', get: V(function (it) { return it.d.lineRateMax || it.d.lineRate; }) },
       { h: '接口', get: V(function (it) { return it.d.iface; }) },
       { h: '彩色', get: V(function (it) { return it.d.color; }) },
-      { h: '卡口', get: V(function (it) { return mountText(it.d.mount); }) },
-      { h: '传感器', dim: true, get: V(function (it) { return it.d.sensor; }) }
+      { h: '卡口', get: V(function (it) { return mountText(it.d.mount); }) }
     ],
     lens: [
       { h: '', art: true },
@@ -696,8 +718,7 @@
       { h: '靶面', get: V(function (it) { return it.d.fmt; }) },
       { h: '像面 Ø mm', cls: 'num', get: V(function (it) { return it.d.ic; }) },
       { h: '像素', cls: 'num', get: V(function (it) { return it.d.mp != null ? it.d.mp + ' MP' : null; }) },
-      { h: '最近工作距离', get: V(function (it) { return it.d.minDist != null ? it.d.minDist + ' m' : null; }) },
-      { h: '系列', dim: true, get: V(function (it) { return it.d.series; }) }
+      { h: '最近工作距离', get: V(function (it) { return it.d.minDist != null ? it.d.minDist + ' m' : null; }) }
     ],
     tele: [
       { h: '', art: true },
@@ -769,8 +790,7 @@
       { h: '热灵敏度', get: V(function (it) { return it.d.netd; }) },
       { h: '测温范围', get: V(function (it) { return it.d.tempRange; }) },
       { h: '镜头', get: V(function (it) { return irLensText(it.d); }) },
-      { h: '接口', get: V(function (it) { return it.d.iface; }) },
-      { h: '探测器', dim: true, get: V(function (it) { return irSensorText(it.d); }) }
+      { h: '接口', get: V(function (it) { return it.d.iface; }) }
     ]
   };
 
@@ -2292,8 +2312,7 @@
     var ipc = items.filter(function (x) { return x.cat === 'ipc'; }).length;
     var ir = items.filter(function (x) { return x.cat === 'ir'; }).length;
     document.getElementById('stats').innerHTML =
-      '共收录 <b>' + total + '</b> 个型号：面阵相机 <b>' + cam + '</b> · 镜头 <b>' + lens + '</b> · 光源 <b>' + light +
-      '</b> · 3D 传感器 <b>' + prof + '</b> · 工控机 <b>' + ipc + '</b> · 红外相机 <b>' + ir + '</b> 等，来自海康机器人 / 华睿 / Basler / 大恒图像 官方型录与官网数据。';
+      '共 <b>' + total + '</b> 个型号 · 四品牌官方型录';
     var footLines = [];
     allMetas.forEach(function (m) {
       footLines.push(brandShort(m.brand) + '：' + (m.meta.source || '') + (m.meta.generated ? '（更新于 ' + m.meta.generated + '）' : ''));

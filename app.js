@@ -93,7 +93,8 @@
       var on = active.indexOf(k) >= 0;
       html += '<button type="button" class="bf-chip ' + (on ? 'on' : 'off') + '" data-brand="' + esc(k) + '"' +
         ' title="' + esc(m.name) + '：' + (on ? '已纳入，点击排除' : '已排除，点击纳入') + '">' +
-        '<img class="bf-logo" src="' + esc(m.logo) + '" alt="' + esc(m.short) + '" style="--logo-scale:' + (m.logoScale || 1) + '" />' + esc(m.short) +
+        '<img class="bf-logo" src="' + esc(m.logo) + '" alt="' + esc(m.short) + '" style="--logo-scale:' + (m.logoScale || 1) + '" />' +
+        '<span class="bf-txt">' + esc(m.short) + '</span>' +
         '</button>';
     });
     box.innerHTML = html;
@@ -327,6 +328,30 @@
     }).join('');
   }
 
+  /** 结论行：型号已在上方速览里，这里只留最该扫一眼的两个数 */
+  function heroLine(r) {
+    var parts = String(r.summary || '').split('｜');
+    var line = parts.length >= 3 ? parts.slice(-2).join(' · ').trim() : String(r.summary || '');
+    if (line && r.margin != null && r.margin >= 0) line += ' · 精度余量 ' + pct(r.margin);
+    return line;
+  }
+
+  /** 一眼结论：三件套速览（点任意一行跳到详细参数卡） */
+  function quickRows(r) {
+    function row(goto, ico, label, model, meta) {
+      return '<button type="button" class="q-row" data-goto="' + goto + '">' +
+        '<span class="q-k">' + ico + ' ' + label + '</span>' +
+        '<span class="q-v"><b>' + esc(model) + '</b>' + (meta ? '<i>' + esc(meta) + '</i>' : '') + '</span>' +
+        '<span class="q-arw">›</span></button>';
+    }
+    var camMeta = [num(r.camera.w * r.camera.h / 1e6, 1) + 'MP', r.camera.w + '×' + r.camera.h, r.camera.fps + ' fps'].join(' · ');
+    var lensMeta = [r.lens.f + ' mm', 'F' + r.lens.aperture, r.lens.mount + ' 口'].join(' · ');
+    var lightMeta = [r.light.colorName || '', r.light.wavelength || ''].filter(Boolean).join(' · ');
+    return row('cam', '📷', '相机', r.camera.model, camMeta) +
+      row('lens', '🔍', '镜头', r.lens.model, lensMeta) +
+      row('light', '💡', '光源', r.light.sku || r.light.seriesName || '—', lightMeta);
+  }
+
   function readInput() {
     return {
       fovW: readNum('fovW'),
@@ -414,25 +439,25 @@
     var c = r.camera;
     var bmeta = brandMeta(c.brand);
     var blogo = bmeta ? '<img class="card-brand-logo" src="' + esc(bmeta.logo) + '" alt="' + esc(bmeta.short) + '" style="--logo-scale:' + (bmeta.logoScale || 1) + '" />' : '';
-    return '<div class="card cam">' +
-      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span>' + libLink('cam', c.model) + '</div>' +
+    return '<div class="card cam" id="card-cam">' +
+      '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span></div>' +
       '<div class="hero">' + esc(c.model) + '</div>' +
-      '<div class="hero-sub">' + esc(c.series) + '　·　' + c.w + ' × ' + c.h + ' px　·　' + esc(c.brand || '—') + '</div>' +
-      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size || (c.sw > 0 && c.sh > 0) ? '（' + sensorSizeTxt(c) + '）' : '')) +
+      '<div class="hero-sub"><span>' + esc(c.series) + ' · ' + c.w + '×' + c.h + ' px</span>' + libLink('cam', c.model) + '</div>' +
+      kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
+      kv('精度余量', esc(r.margin >= 0 ? pct(r.margin) : '不足')) +
       kv('像元尺寸', esc(c.pxUm) + ' µm') +
-      kv('传感器型号', esc(c.sensor || '—')) +
+      kv('最大帧率', esc(c.maxFps) + ' fps') +
+      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size || (c.sw > 0 && c.sh > 0) ? '（' + sensorSizeTxt(c) + '）' : '')) +
+      kv('镜头接口', esc(c.mount) + ' 口') +
       kv('数据接口', esc(c.interface)) +
+      kv('传感器型号', esc(c.sensor || '—')) +
       kv('快门类型', esc(c.shutter)) +
       kv('动态范围', esc(c.dr == null ? '—' : c.dr + ' dB')) +
       kv('信噪比', esc(c.snr == null ? '—' : c.snr + ' dB')) +
       kv('曝光范围', esc(expoRange(c.expMinUs, c.expMaxUs))) +
       kv('供电', esc(c.poe == null ? '—' : c.poe ? 'PoE / 12V' : '12V')) +
       kv('典型功耗', esc(c.powerW == null ? '—' : c.powerW + ' W')) +
-      kv('最大帧率', esc(c.maxFps) + ' fps') +
       kv('所需带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
-      kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
-      kv('精度余量', esc(r.margin >= 0 ? pct(r.margin) : '不足')) +
-      kv('镜头接口', esc(c.mount) + ' 口') +
       '</div>';
   }
 
@@ -454,18 +479,18 @@
     var lenTxt = l.len
       ? l.len + ' mm（手册图）' + (l.adapter ? ' + 转接环 ≈12 mm' : '')
       : (l.lenEst != null ? '≈' + l.lenEst + ' mm' + (l.adapter ? '（含转接环）' : '') : '—');
-    return '<div class="card lens">' +
+    return '<div class="card lens" id="card-lens">' +
       '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3>' + llogo +
-      '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + libLink('lens', l.model) + '</div>' +
-      '<div class="hero">' + l.f + ' mm<span style="font-size:13px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
-      '<div class="hero-sub">' + esc(l.model) + '　·　' + esc(l.brand || '—') + '</div>' +
-      kv('镜头系列', esc(l.series)) +
-      kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
-      kv('放大倍率', esc(n4(l.m)) + '×') +
-      kv('像面 / 解析力', esc(icTxt)) +
+      '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + '</div>' +
+      '<div class="hero">' + l.f + ' mm<span style="font-size:14px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
+      '<div class="hero-sub"><span>' + esc(l.model) + '</span>' + libLink('lens', l.model) + '</div>' +
       kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
       kv('景深', esc(num(l.dof, 2)) + ' mm') +
       kv('满足景深的最大光圈', esc(apTxt)) +
+      kv('放大倍率', esc(n4(l.m)) + '×') +
+      kv('像面 / 解析力', esc(icTxt)) +
+      kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
+      kv('镜头系列', esc(l.series)) +
       kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
       kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
       kv('镜头总长', esc(lenTxt)) +
@@ -482,21 +507,21 @@
     var g = r.light;
     var gmeta = brandMeta(g.skuBrand);
     var glogo = gmeta ? '<img class="card-brand-logo" src="' + esc(gmeta.logo) + '" alt="' + esc(gmeta.short) + '" style="--logo-scale:' + (gmeta.logoScale || 1) + '" />' : '';
-    return '<div class="card light">' +
-      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span>' + libLink('light', g.sku) + '</div>' +
+    return '<div class="card light" id="card-light">' +
+      '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
       '<div class="hero">' + esc(g.sku || g.seriesName) + '</div>' +
-      '<div class="hero-sub">' + swatch(g.color) + esc(g.colorName) + '　' + esc(g.wavelength) + '　·　' +
-        esc(g.series) + esc(g.suffix) + '　·　' + esc(g.skuBrand || '—') + '</div>' +
-      block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
-      (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
+      '<div class="hero-sub"><span>' + swatch(g.color) + esc(g.colorName) + ' ' + esc(g.wavelength) + ' · ' +
+        esc(g.series) + esc(g.suffix) + '</span>' + libLink('light', g.sku) + '</div>' +
       block('安装 / 打光角度', esc(g.angle)) +
       block('尺寸建议', esc(g.size)) +
-      block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
       block('功率 / 数量',
         esc(g.power == null ? '—' : g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W')) +
       block('控制器型号', esc(g.controllerModel
         ? g.controllerModel + '（' + g.controllerChannels + ' 通道）'
         : '—') + libLink('ctrl', g.controllerModel)) +
+      block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
+      (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
+      block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
       block('控制方式', esc(g.controller)) +
       (g.skuAlts && g.skuAlts.length
         ? block('备选型号', g.skuAlts.map(function (x) {
@@ -505,7 +530,7 @@
         }).join('<br>') + '<br><span style="color:#94a3b8">同一照明方式下尺寸够用的其他款，可在左栏「同系列参数」点选</span>')
         : '') +
       (g.reasons.length
-        ? '<ul class="why">' + g.reasons.slice(0, 4).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
+        ? '<ul class="why kv-extra">' + g.reasons.slice(0, 3).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
         : '') +
       '</div>';
   }
@@ -554,7 +579,84 @@
       items.join('') + '</div>';
   }
 
-  /** 同系列参数表：当前型号高亮，便于换一档/换焦距 */
+  /* ---------------- 同系列参数：标签页切换 + 就地结果 ---------------- */
+  var SIB_TAB = 'camera';
+  var SIB_PULSE = false;
+
+  /** 自动方案基线：清掉手动指定再算一次，用来显示「比自动方案好/差多少」 */
+  function sibBaseline() {
+    var inp = readInput();
+    inp.manualCamera = null;
+    inp.manualLens = null;
+    inp.manualLight = null;
+    try {
+      var x = E.solve(inp);
+      return x && x.ok ? x : null;
+    } catch (e) { return null; }
+  }
+
+  function sibMetricRow(label, text, d) {
+    return '<div class="sl-m"><span>' + label + '</span><b>' + esc(text) + '</b>' +
+      (d ? '<i class="' + (d.g > 0 ? 'good' : d.g < 0 ? 'bad' : 'same') + '">' + esc(d.t) + '</i>' : '') +
+      '</div>';
+  }
+
+  /** 就地结果面板：换型号后分数与关键指标立刻在右侧更新，不必回到页面顶部 */
+  function sibLive(r) {
+    var base = sibBaseline();
+    var m = r.manual || {};
+    var same = !m.camera && !m.lens && !m.light;
+    var d = base ? r.score - base.score : 0;
+
+    function item(kind, label, model, sub, prev) {
+      return '<div class="sl-item' + (SIB_TAB === kind ? ' on' : '') + '" data-kind="' + kind + '">' +
+        '<span class="sl-k">' + label + '</span>' +
+        '<span class="sl-v"><b>' + esc(model) + '</b>' + (sub ? '<i>' + esc(sub) + '</i>' : '') +
+        (prev && prev !== model ? '<i class="sl-prev">自动方案 ' + esc(prev) + '</i>' : '') + '</span>' +
+        (m[kind] ? '<em>手动</em>' : '') +
+        '</div>';
+    }
+
+    function dlt(cur, b, fmt, lowerBetter) {
+      if (b == null || cur == null) return null;
+      var v = cur - b;
+      if (Math.abs(v) < 1e-9) return { t: '持平', g: 0 };
+      return { t: (v > 0 ? '+' : '−') + fmt(Math.abs(v)), g: (lowerBetter ? v < 0 : v > 0) ? 1 : -1 };
+    }
+
+    var rows = sibMetricRow('像素精度', n4(r.camera.pxAcc) + ' mm/px',
+      base ? dlt(r.camera.pxAcc, base.camera.pxAcc, function (v) { return n4(v); }, true) : null);
+    rows += sibMetricRow('精度余量', r.margin >= 0 ? pct(r.margin) : '不足',
+      base ? dlt(r.margin, base.margin, function (v) { return Math.round(v * 100) + 'pt'; }, false) : null);
+    rows += sibMetricRow('景深', num(r.lens.dof, 2) + ' mm',
+      base ? dlt(r.lens.dof, base.lens.dof, function (v) { return num(v, 2) + 'mm'; }, false) : null);
+
+    var badge = same ? '当前即自动方案'
+      : d > 0 ? '比自动方案 +' + d + ' 分'
+      : d < 0 ? '比自动方案 −' + Math.abs(d) + ' 分'
+      : '与自动方案同分 · 看指标';
+    var badgeCls = (same || d === 0) ? 'same' : d > 0 ? 'good' : 'bad';
+
+    return '<div class="sl-head"><span class="sl-title">当前方案</span>' +
+        '<span class="sl-score' + (SIB_PULSE ? ' pulse' : '') + '">' + r.score + '<i>/100</i></span></div>' +
+      '<div class="sl-badge ' + badgeCls + '">' + esc(badge) +
+        (r.feasible ? '' : '　·　需升级') + '</div>' +
+      '<div class="sl-items">' +
+        item('camera', '相机', r.camera.model, num(r.camera.w * r.camera.h / 1e6, 1) + 'MP · ' + r.camera.fps + ' fps',
+          base ? base.camera.model : null) +
+        item('lens', '镜头', r.lens.model, r.lens.f + ' mm · F' + r.lens.aperture,
+          base ? base.lens.model : null) +
+        item('light', '光源', r.light.sku || r.light.seriesName || '—', r.light.colorName || '',
+          base ? (base.light.sku || base.light.seriesName) : null) +
+      '</div>' +
+      '<div class="sl-metrics">' + rows + '</div>' +
+      '<div class="sl-act">' +
+        '<button type="button" data-action="auto"' + (same ? ' disabled' : '') + '>恢复自动</button>' +
+        '<a href="#scoreCard">看完整方案 ↑</a>' +
+      '</div>';
+  }
+
+  /** 同系列参数：一次只显示一类（相机/镜头/光源），点型号即换，右侧同步出结果 */
   function siblingCard(r) {
     var s = r.siblings;
     if (!s) return '';
@@ -603,6 +705,7 @@
       return '<tr class="' + (x.cur ? 'cur' : '') + '" data-kind="light" data-model="' + esc(x.model) + '" title="点击手动指定这个光源">' +
         '<td class="mono">' + brandMiniHtml(x.brand) + esc(x.model) + (x.alt && !x.cur ? '<span class="alt-mark">备选</span>' : '') + '</td>' +
         '<td>' + (x.size && x.size.length ? x.size.join(' × ') + ' mm' : '—') + '</td>' +
+        '<td>' + (x.power == null ? '—' : x.power + ' W') + '</td>' +
         '</tr>';
     }).join('');
 
@@ -629,59 +732,54 @@
         table([{ t: '品牌 / 型号' }, { t: '焦距' }, { t: '像面' }, { t: '最近摄距' }, { t: '畸变' }], lensCrossRows) + '</div>';
     }
 
-    function blk(title, cnt, inner) {
-      return '<div class="sib-block"><h4>' + esc(title) +
-        '<span class="cnt">共 ' + cnt + ' 个</span>' +
-        '</h4><div class="sib-scroll">' + inner + '</div></div>';
-    }
-
-    // 手动指定状态条
-    var m = r.manual || {};
-    var pills = [];
-    if (m.camera) pills.push('相机 ' + (r.camera.brand ? '[' + esc(r.camera.brand) + '] ' : '') + esc(r.camera.model));
-    if (m.lens) pills.push('镜头 ' + (r.lens.brand ? '[' + esc(r.lens.brand) + '] ' : '') + esc(r.lens.model));
-    if (m.light) pills.push('光源 ' + esc(r.light.sku || ''));
-    var bar = '<div class="sib-manual">' +
-      (pills.length
-        ? '<span>已手动指定：</span>' + pills.map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') +
-          '<button type="button" data-action="auto">恢复自动选型</button>'
-        : '<span>点击下面任意型号可手动指定，再点一次取消；高亮行为当前方案。</span>') +
-      '</div>';
-
-    // 相机块标题标注当前品牌（同系列面板内机型一般同品牌，跨品牌机型见下方“跨品牌等价替换”）
     var camBrandShort = (brandMeta(r.camera.brand) || {}).short || '';
+    var panes = [
+      { k: 'camera', t: '相机', n: s.camera.total, inner: camBlockInner,
+        sub: camBrandShort ? camBrandShort + ' · ' + s.camera.label : s.camera.label },
+      { k: 'lens', t: '镜头', n: s.lens.total, inner: lensBlockInner, sub: s.lens.label },
+      { k: 'light', t: '光源', n: s.light.total, inner: table([{ t: '型号' }, { t: '尺寸' }, { t: '功率' }], lightRows), sub: s.light.label }
+    ];
 
-    return '<div class="card"><h2 class="sec">同系列参数 <span class="hint">点型号即可手动指定</span></h2>' +
-      bar +
-      '<div class="sib-grid">' +
-      blk('相机　' + s.camera.label + (camBrandShort ? ' · ' + camBrandShort : ''), s.camera.total, camBlockInner) +
-      blk('镜头　' + s.lens.label, s.lens.total, lensBlockInner) +
-      blk('光源　' + s.light.label, s.light.total,
-        table([{ t: '型号' }, { t: '尺寸' }], lightRows)) +
+    var tabs = '', body = '';
+    panes.forEach(function (p) {
+      tabs += '<button type="button" class="sib-tab' + (SIB_TAB === p.k ? ' on' : '') + '" data-tab="' + p.k + '">' +
+        p.t + '<b>' + p.n + '</b></button>';
+      body += '<div class="sib-pane' + (SIB_TAB === p.k ? ' on' : '') + '" data-pane="' + p.k + '">' +
+        '<div class="sib-pane-h">' + esc(p.sub) + '</div>' +
+        '<div class="sib-scroll">' + p.inner + '</div></div>';
+    });
+
+    var live = sibLive(r);
+    SIB_PULSE = false;
+
+    return '<div class="sib-wrap">' +
+      '<div class="sib-main">' +
+        '<div class="sib-tabs">' + tabs +
+          '<span class="sib-hint">点型号切换，再点一次取消 · 高亮行是当前方案</span></div>' +
+        body +
+        '<div class="sib-note">「够用?」= 单看像素数是否达标，实际还看镜头、景深与带宽；标「备选」的是同样走得通的替代款。</div>' +
       '</div>' +
-      '<div class="sib-note">「够用?」表示该型号单看像素数是否满足当前需求；实际能否用还要看镜头、景深与带宽。' +
-      '标了<span class="alt-mark">备选</span>的属于还走得通的另一条路——备选方案的相机、同一台相机下另一支仍达标的镜头、' +
-      '同一照明方式下另一款尺寸够用的灯具，点它即可切换比较。' +
-      '型号已全部列出，表内可滚动浏览；手动指定后若精度或视场不达标，风险区会给出提示。</div>' +
+      '<aside class="sib-live">' + live + '</aside>' +
       '</div>';
   }
 
-  /** 把每个列表滚动到当前型号附近 */
-  function scrollSiblingsToCurrent() {
-    Array.prototype.forEach.call(document.querySelectorAll('#siblings .sib-scroll'), function (box) {
-      var cur = box.querySelector('tr.cur');
-      if (!cur) return;
-      var top = cur.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
-      box.scrollTop = Math.max(0, top - box.clientHeight / 2 + cur.offsetHeight / 2);
-    });
+  /** 当前行滚出可视区时才拉回中间，避免每次点选表格都跳一下 */
+  function sibEnsureCurrent() {
+    var box = document.querySelector('#siblings .sib-pane.on .sib-scroll');
+    if (!box) return;
+    var cur = box.querySelector('tr.cur');
+    if (!cur) return;
+    var b = box.getBoundingClientRect(), c = cur.getBoundingClientRect();
+    if (c.top < b.top + 34 || c.bottom > b.bottom - 4) {
+      box.scrollTop += (c.top - b.top) - box.clientHeight / 2 + cur.offsetHeight / 2;
+    }
   }
-
 
   /* ---------------- 选型依据（与次优对比） ---------------- */
   function rationaleCard(r) {
     var q = r.rationale;
     if (!q) return '';
-    var head = '<div class="rationale"><div class="why-title">选型依据 <span class="hint">与次优方案逐项对比</span></div>';
+    var head = '<div class="rationale">';
     if (q.manual || q.none) {
       return head + '<div class="why-sum">' + esc(q.note) + '</div></div>';
     }
@@ -693,8 +791,8 @@
       '<div class="why-sum">' + esc(q.summary) + '</div>' +
       '<table class="mini wrap why-table"><thead><tr><th>项目</th><th>本方案</th><th>次优（' + esc(q.altCamera) + '）</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
-      '<div class="sib-note">次优方案的镜头为 ' + esc(q.altLens) +
-      '；两项硬指标持平时，按「像素更少 → 接口更常用 → 镜头可直连」的次序取舍。分数口径与上方匹配度一致。</div></div>';
+      '<div class="sib-note">次优镜头 ' + esc(q.altLens) +
+      '；硬指标持平时按「像素更少 → 接口更常用 → 镜头可直连」取舍。</div></div>';
   }
 
   /* ---------------- 现场参数建议 ---------------- */
@@ -721,7 +819,7 @@
     }).join('');
     return '<table class="mini wrap"><thead><tr><th>项目</th><th>建议设置</th><th>说明</th></tr></thead><tbody>' +
       body + '</tbody></table>' +
-      '<div class="sib-note">给的是「可照抄的起始值」，不是最终参数：现场用直方图与标准件微调后固定下来，并记录在设备参数表里。</div>';
+      '<div class="sib-note">可照抄的起始值，现场按直方图与标准件微调后固定。</div>';
   }
 
   /* ---------------- 安装与配套清单 ---------------- */
@@ -755,7 +853,7 @@
       : '';
     return '<table class="mini wrap"><thead><tr><th>检查项</th><th>验收指标</th><th>测法</th></tr></thead><tbody>' +
       body + '</tbody></table>' + focus +
-      '<div class="sib-note">验收顺序：先机械与打光（图像对比度达标）→ 再标定 → 最后测重复性与偏差；任何一项不达标先回查上一环节。</div>';
+      '<div class="sib-note">顺序：机械与打光（图像对比度达标）→ 标定 → 重复性与偏差。</div>';
   }
 
   /* ---------------- 精度预算 ---------------- */
@@ -773,7 +871,7 @@
       '<div class="budget-sum">合成 <b>± ' + n4(b.total) + ' mm</b>' +
       '<span>占像素精度要求 ' + pct + '%</span>' +
       '<span class="tag ' + (b.pass ? 'ok' : 'bad') + '">' + (b.pass ? '满足' : '超限') + '</span></div>' +
-      '<div class="sib-note">按均方根合成。实际还受温漂、振动、工件表面特性影响，测量类建议用标准件实测复核。</div>';
+      '<div class="sib-note">按均方根合成，未含温漂与振动；测量类建议用标准件实测复核。</div>';
   }
 
   /* ---------------- 光路与安装示意 ---------------- */
@@ -843,11 +941,9 @@
           (sp.pass ? '放得下' : '超出 ' + num(sp.over, 0) + ' mm') + '</span>'
         : '<span class="hint">未填可用安装空间，仅列出总长</span>') +
       '</div>' +
-      '<div class="sib-note">相机厚度取自官方外形尺寸' +
-      (sp.estimated ? '（该型号缺尺寸，按 45 mm 估）' : '') +
-      '；镜头长度' + (sp.lensLenReal ? '取自手册外形尺寸图' : '按系列典型值估算') +
-      (sp.adapter ? '（另加转接环 12 mm）' : '') +
-      '；线缆与接插件预留 25 mm。</div>';
+      '<div class="sib-note">相机厚度取自官方尺寸（缺项按 45 mm 估）；镜头长度按手册或系列典型值' +
+      (sp.adapter ? '（含转接环 12 mm）' : '') +
+      '；线缆预留 25 mm。</div>';
 
     return s.join('') + spaceLine;
   }
@@ -862,8 +958,9 @@
     }
 
     var r = E.solve(readInput());
-    var comboLink = $('comboLink');
-    if (comboLink) comboLink.href = comboLinkHref();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-combo-link]'), function (a) {
+      a.href = comboLinkHref();
+    });
 
     if (!r.ok) {
       $('scoreNum').innerHTML = '--<small>/100</small>';
@@ -872,6 +969,7 @@
       $('stateChip').textContent = '输入有误';
       $('summary').innerHTML = '<span style="color:#b91c1c">' + esc(r.error) + '</span>';
       $('scoreItems').innerHTML = '';
+      $('quick').innerHTML = '';
       $('rationale').innerHTML = '';
       $('cards').innerHTML = '';
       $('bom').innerHTML = '';
@@ -888,48 +986,37 @@
     $('scoreBar').style.width = r.score + '%';
     $('stateChip').className = 'tag ' + (r.feasible ? 'ok' : 'bad');
     $('stateChip').textContent = r.feasible ? '方案可行' : '需升级方案';
-    $('summary').innerHTML = esc(r.summary);
+    $('summary').innerHTML = esc(heroLine(r));
+    $('quick').innerHTML = quickRows(r);
     $('scoreItems').innerHTML = scoreItemsHtml(r);
     $('rationale').innerHTML = rationaleCard(r);
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
     $('bom').innerHTML = bomCard(r);
     $('suggest').innerHTML = suggestCard(r);
+    // 同系列面板重绘时保留表格滚动位置，避免每次点选都跳回顶部
+    var sibBox = document.querySelector('#siblings .sib-pane.on .sib-scroll');
+    var sibTop = sibBox ? sibBox.scrollTop : 0;
     $('siblings').innerHTML = siblingCard(r);
-    scrollSiblingsToCurrent();
+    var sibBox2 = document.querySelector('#siblings .sib-pane.on .sib-scroll');
+    if (sibBox2) { sibBox2.scrollTop = sibTop; sibEnsureCurrent(); }
     $('site').innerHTML = siteCard(r);
     $('install').innerHTML = installCard(r);
     $('accept').innerHTML = acceptCard(r);
     $('budget').innerHTML = budgetCard(r);
     $('diagram').innerHTML = diagramCard(r);
 
-    var byBrand = {};
-    CAT.CAMERAS.forEach(function (c) { var b = c.brand || '未知'; byBrand[b] = (byBrand[b] || 0) + 1; });
     var bLogos = Object.keys(BRANDS).filter(function (k) {
       return activeBrands.indexOf(k) >= 0 && window[BRANDS[k].global];
     }).map(function (k) {
-      return '<img src="' + esc(BRANDS[k].logo) + '" alt="' + esc(BRANDS[k].short) + '" style="--logo-scale:' + (BRANDS[k].logoScale || 1) + ';height:calc(13px * var(--logo-scale,1));vertical-align:-1px;margin-right:6px" />';
+      return '<img src="' + esc(BRANDS[k].logo) + '" alt="' + esc(BRANDS[k].short) + '" style="--logo-scale:' + (BRANDS[k].logoScale || 1) + ';height:calc(14px * var(--logo-scale,1));vertical-align:-2px;margin-right:8px" />';
     }).join('');
-    var bCounts = Object.keys(byBrand).map(function (b) { return esc(b) + ' ' + byBrand[b] + ' 台'; }).join('、');
-    var lensByBrand = {};
-    CAT.LENSES.forEach(function (l) { var b = l.brand || '未知'; lensByBrand[b] = (lensByBrand[b] || 0) + 1; });
-    var lensTxt = Object.keys(lensByBrand).map(function (b) { return esc(b) + ' ' + lensByBrand[b] + ' 支'; }).join('、');
-    var lightByBrand = {};
-    ((CAT && CAT.LIGHTS) || []).forEach(function (l) { var b = l.brand || '未知'; lightByBrand[b] = (lightByBrand[b] || 0) + 1; });
-    var lightTxt = Object.keys(lightByBrand).map(function (b) { return esc(b) + ' ' + lightByBrand[b] + ' 款'; }).join('、');
-    // 数据健康度：靶面/传感器标注覆盖率（缺字段机型在方案卡按“估算”展示，不影响选型）
-    var nCam = CAT.CAMERAS.length || 1;
-    var sizeCov = CAT.CAMERAS.filter(function (c) { return c.size; }).length;
-    var sensorCov = CAT.CAMERAS.filter(function (c) { return c.sensor; }).length;
     $('catalogNote').innerHTML =
       bLogos +
-      '已启用型号库：<b>' + bCounts + '</b>　' +
-      '面阵合计 <b>' + CAT.CAMERAS.length + '</b> 台（含板级 ' + CAT.CAMERAS.filter(function (c) { return c.kind === 'board'; }).length + '）、' +
-      '线扫 <b>' + (CAT.LINESCAN || []).length + '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支（' + lensTxt + '）、' +
-      '远心 <b>' + (CAT.TELECENTRIC || []).length + '</b> 个系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款（' + lightTxt + '）、' +
-      '控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。<br>' +
-      '<span style="color:#94a3b8">靶面标注覆盖率 ' + Math.round(sizeCov / nCam * 100) + '%、传感器型号覆盖率 ' + Math.round(sensorCov / nCam * 100) +
-      '%（缺项按 sw/sh 推导显示“估算”，不影响选型计算）。本项目为非官方选型辅助工具；各品牌标识仅用于标注数据来源，归各自权利人所有。</span>';
+      '已启用：面阵 <b>' + CAT.CAMERAS.length + '</b> 台、线扫 <b>' + (CAT.LINESCAN || []).length +
+      '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支、远心 <b>' + (CAT.TELECENTRIC || []).length +
+      '</b> 系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款、控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。' +
+      '<span style="color:#94a3b8">数据来自四品牌官方型录；靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +
@@ -948,16 +1035,16 @@
     $('risks').innerHTML = risks;
     var warns = r.warnings.filter(function (w) { return w.level === 'warn'; }).length;
     $('riskCount').textContent = warns > 0 ? warns + ' 项需注意' : '全部通过';
+    $('riskCount').className = warns > 0 ? 'sum-hint warn' : 'sum-hint';
 
     // 移动端（仿小程序）：更新表单摘要 / 折叠方案卡 / 刷新分段高亮
     var fs = [];
-    fs.push('视野 ' + r.input.fovW + '×' + r.input.fovH + 'mm');
-    fs.push('精度 ' + r.input.precision + 'mm');
-    fs.push(r.task.label);
+    fs.push(r.input.fovW + '×' + r.input.fovH + 'mm');
+    fs.push('δ ' + r.input.precision + 'mm');
+    fs.push(String(r.task.label).split('（')[0]);
     fs.push('WD ' + r.input.wd + 'mm');
     if (r.input.needColor) fs.push('彩色');
     if (r.input.speed > 0) fs.push(r.input.speed + 'mm/s');
-    if (r.input.lineScanFirst) fs.push('优先线扫');
     $('fsTxt').textContent = fs.join(' · ');
     foldCards();
     updateSegbar();
@@ -965,7 +1052,7 @@
 
   /* ---------------- 复制方案 ---------------- */
   /* 移动端（仿小程序）：分段导航锚点 / 滚动高亮 / 方案卡折叠后处理（render 与 init 共用） */
-  var SEGS = { form: '#sec-form', sol: '[data-anchor="sol"]', sib: '[data-anchor="sib"]', calc: '[data-anchor="calc"]', risk: '[data-anchor="risk"]' };
+  var SEGS = { form: '#sec-form', sol: '[data-anchor="sol"]', detail: '[data-anchor="detail"]' };
   function updateSegbar() {
     if (!window.matchMedia('(max-width: 760px)').matches) return;
     var best = null, bestTop = -1e9;
@@ -983,9 +1070,9 @@
     Array.prototype.forEach.call(document.querySelectorAll('#cards .card'), function (card) {
       if (card.querySelector('.sol-toggle')) return;
       var kvs = card.querySelectorAll('.kv'), blocks = card.querySelectorAll('.kv-block');
-      if (kvs.length + blocks.length < 8) return;
+      if (kvs.length + blocks.length < 7) return;
       Array.prototype.forEach.call(kvs, function (kv, i) { if (i >= 6) kv.classList.add('kv-extra'); });
-      Array.prototype.forEach.call(blocks, function (b, j) { if (j >= 3) b.classList.add('kv-extra'); });
+      Array.prototype.forEach.call(blocks, function (b, j) { if (j >= 4) b.classList.add('kv-extra'); });
       var t = document.createElement('div');
       t.className = 'sol-toggle';
       t.textContent = '展开全部参数 ▾';
@@ -1142,7 +1229,7 @@
     var btn = $('copyBtn');
     var done = function () {
       btn.textContent = '已复制 ✓';
-      setTimeout(function () { btn.textContent = '复制方案文本'; }, 1600);
+      setTimeout(function () { btn.textContent = '复制方案'; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
@@ -1198,6 +1285,74 @@
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
     $('copyBtn').addEventListener('click', copyText);
 
+    /* ---------------- 详细方案：大屏默认摊开，手机按需展开 ---------------- */
+    var detailWrap = $('detailWrap');
+    function jumpTo(el) {
+      if (!el) return;
+      var top = el.getBoundingClientRect().top + window.pageYOffset - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+    if (detailWrap) {
+      var syncDetailBtn = function () {
+        var b = $('detailBtn');
+        if (b) b.textContent = detailWrap.open ? '收起详细 ▴' : '详细方案 ▾';
+      };
+      // 大屏空间充足：详细方案 / 同系列 / 验算默认展开，只保留「工程细节」折叠
+      var mqWide = window.matchMedia('(min-width: 1021px)');
+      var wideFolds = ['sib', 'calc'];
+      function applyWideFolds() {
+        if (!mqWide.matches) return;
+        detailWrap.open = true;
+        wideFolds.forEach(function (k) {
+          var d = document.querySelector('details[data-anchor="' + k + '"]');
+          if (d) d.open = true;
+        });
+      }
+      applyWideFolds();
+      syncDetailBtn();
+      if (mqWide.addEventListener) mqWide.addEventListener('change', applyWideFolds);
+      detailWrap.addEventListener('toggle', syncDetailBtn);
+      if ($('detailBtn')) {
+        $('detailBtn').addEventListener('click', function () {
+          detailWrap.open = !detailWrap.open;
+          syncDetailBtn();
+          jumpTo(detailWrap);
+        });
+      }
+      // 速览行：展开详细方案并跳到对应参数卡
+      if ($('quick')) {
+        $('quick').addEventListener('click', function (e) {
+          var row = e.target.closest('[data-goto]');
+          if (!row) return;
+          detailWrap.open = true;
+          syncDetailBtn();
+          jumpTo(document.getElementById('card-' + row.getAttribute('data-goto')));
+        });
+      }
+    }
+
+    // 桌面端「更多参数」折叠：默认只留 6 项常用需求，降低首屏密度
+    var moreBtn = $('moreBtn');
+    if (moreBtn) {
+      moreBtn.addEventListener('click', function () {
+        var card = document.querySelector('.req-card');
+        if (!card) return;
+        var open = card.classList.toggle('more-open');
+        this.textContent = open ? '收起更多参数 －' : '更多参数 ＋';
+      });
+    }
+
+    // 品牌范围折叠：默认收起，需要时再选品牌
+    var brandsToggle = $('brandsToggle');
+    if (brandsToggle) {
+      brandsToggle.addEventListener('click', function () {
+        var card = document.querySelector('.req-card');
+        if (!card) return;
+        var open = card.classList.toggle('brands-open');
+        this.textContent = open ? '收起品牌范围 ▴' : '品牌范围（默认四品牌全部启用）▾';
+      });
+    }
+
     /* ---------------- 仿小程序移动端交互 ---------------- */
     var mqMobile = window.matchMedia('(max-width: 760px)');
 
@@ -1215,6 +1370,8 @@
       if (!seg) return;
       var el = document.querySelector(SEGS[seg.getAttribute('data-seg')]);
       if (!el) return;
+      // 折叠区被跳转时自动展开
+      if (el.tagName === 'DETAILS' && !el.open) el.open = true;
       var top = el.getBoundingClientRect().top + window.pageYOffset - 44;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     });
@@ -1275,13 +1432,29 @@
       }
     });
 
-    // 同系列表格：点型号 = 手动指定，再点一次 = 取消
+    // 同系列面板：切标签 / 点型号 = 手动指定（再点取消）/ 恢复自动
     $('siblings').addEventListener('click', function (e) {
+      var tab = e.target.closest('[data-tab]');
+      if (tab) {
+        SIB_TAB = tab.getAttribute('data-tab');
+        Array.prototype.forEach.call($('siblings').querySelectorAll('.sib-tab'), function (b) {
+          b.classList.toggle('on', b === tab);
+        });
+        Array.prototype.forEach.call($('siblings').querySelectorAll('.sib-pane'), function (p) {
+          p.classList.toggle('on', p.getAttribute('data-pane') === SIB_TAB);
+        });
+        Array.prototype.forEach.call($('siblings').querySelectorAll('.sl-item'), function (it) {
+          it.classList.toggle('on', it.getAttribute('data-kind') === SIB_TAB);
+        });
+        sibEnsureCurrent();
+        return;
+      }
       var auto = e.target.closest('[data-action="auto"]');
       if (auto) {
         manual.camera = null;
         manual.lens = null;
         manual.light = null;
+        SIB_PULSE = true;
         render();
         return;
       }
@@ -1291,6 +1464,7 @@
       var model = tr.getAttribute('data-model');
       if (!kind || !model) return;
       manual[kind] = manual[kind] === model ? null : model;
+      SIB_PULSE = true;
       render();
     });
 

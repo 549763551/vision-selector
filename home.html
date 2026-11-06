@@ -25,113 +25,146 @@
       var(--bg);
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 14px;
+    font-size: 15px; line-height: 1.65;
     -webkit-font-smoothing: antialiased;
   }
 
   .topbar {
     background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
-    color: #fff; padding: 26px 20px 30px;
+    color: #fff; padding: 20px 28px 18px;
+    border-top: 3px solid #e60012;
   }
-  .topbar-inner { max-width: 1080px; margin: 0 auto; }
-  .tb-title { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
-  .tb-sub { margin-top: 8px; font-size: 13px; color: #93a4bd; line-height: 1.7; }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px 24px; flex-wrap: wrap;
+  }
+  .tb-brand { min-width: 0; }
+  .tb-title { font-size: 22px; font-weight: 700; letter-spacing: .3px; }
+  .tb-sub { margin-top: 7px; font-size: 13.5px; color: #93a4bd; line-height: 1.7; }
   .tb-sub b { color: #fff; font-weight: 600; }
+  /* ---------- 全站导航（与选型助手 / 产品库 / 自定义搭配同一套） ---------- */
+  .pnav { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .pnav > a, .pnav > .on {
+    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
+    font-size: 13px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 8px 15px;
+    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    transition: .15s;
+  }
+  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > .on {
+    color: #fff; font-weight: 600;
+    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
+    border-color: rgba(56, 189, 248, .7);
+  }
 
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 60px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
 
-  /* 两个入口卡 */
-  .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  @media (max-width: 760px) { .entries { grid-template-columns: 1fr; } }
+  /* 三个入口卡 */
+  .entries { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   a.entry {
-    display: block; text-decoration: none; color: var(--ink);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
+    display: flex; flex-direction: column; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 18px;
     transition: all .15s;
   }
   a.entry:hover { border-color: #93c5fd; box-shadow: 0 10px 30px -18px rgba(37, 99, 235, .55); transform: translateY(-1px); }
   .entry-head { display: flex; align-items: center; gap: 12px; }
   .entry-ico {
-    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
-    font-size: 21px; color: #fff; flex: 0 0 auto;
+    width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 20px; color: #fff; flex: 0 0 auto;
   }
   .entry-ico.sel { background: linear-gradient(135deg, #38bdf8, #2563eb); }
   .entry-ico.lib { background: linear-gradient(135deg, #34d399, #059669); }
   .entry-ico.cmb { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-  .entry h2 { margin: 0; font-size: 17px; }
-  .entry .go { margin-left: auto; color: var(--accent); font-size: 13px; white-space: nowrap; }
-  .entry p.desc { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.75; }
-  .entry ul { margin: 10px 0 0; padding: 0; list-style: none; }
-  .entry ul li { font-size: 12.5px; color: #475569; padding: 3px 0; }
+  .entry h2 { margin: 0; font-size: 18px; }
+  .entry .go { margin-left: auto; color: var(--accent); font-size: 13.5px; white-space: nowrap; }
+  .entry p.desc { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.75; flex: 1 1 auto; }
+  .entry ul { margin: 12px 0 0; padding: 0; list-style: none; }
+  .entry ul li { font-size: 13px; color: #475569; padding: 2px 0; }
   .entry ul li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 7px; }
 
-  .sec-h { margin: 26px 0 12px; font-size: 15px; font-weight: 700; }
-  .sec-h small { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 8px; }
+  .sec-h { margin: 30px 0 12px; font-size: 16px; font-weight: 700; display: flex; align-items: baseline; gap: 8px; }
+  .sec-h small { font-weight: 400; font-size: 12.5px; color: var(--muted); }
 
-  /* 数据速览 */
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  @media (max-width: 760px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-  .stat {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+  /* 数据速览：一行数字，不铺卡片墙 */
+  .stats {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 6px 30px;
   }
-  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
-  .stat span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
-
-  /* 品牌行 */
+  .stat { display: flex; align-items: baseline; gap: 8px; }
+  .stat b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  .stat.total b { color: var(--accent); }
   .brand-row {
-    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center;
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 22px; display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: center;
   }
   .brand-item { display: flex; align-items: center; gap: 9px; }
-  .brand-item img { height: 16px; max-width: 110px; object-fit: contain; }
-  .brand-item small { font-size: 11.5px; color: var(--muted); }
+  .brand-item img { height: 17px; max-width: 120px; object-fit: contain; }
+  .brand-item small { font-size: 12.5px; color: var(--muted); }
 
   /* 使用步骤 */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
   .step {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
-    font-size: 12.5px; color: #475569; line-height: 1.7;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+    font-size: 13.5px; color: #475569; line-height: 1.7;
   }
-  .step b { display: block; color: var(--ink); font-size: 13px; margin-bottom: 4px; }
+  .step b { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14.5px; margin-bottom: 6px; }
   .step .n {
-    display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
-    background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700;
-    margin-right: 7px; vertical-align: -4px;
+    display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 700; flex: 0 0 auto;
   }
 
   /* 资料下载 */
-  .docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-  @media (max-width: 760px) { .docs { grid-template-columns: 1fr; } }
+  .docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
   .docs a {
-    display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--ink);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px;
-    font-size: 12.5px;
+    display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 15px;
+    font-size: 14px;
   }
   .docs a:hover { border-color: #93c5fd; color: var(--accent); }
-  .docs .pdf-ico { color: #dc2626; font-size: 15px; flex: 0 0 auto; }
+  .docs .pdf-ico { color: #dc2626; font-size: 16px; flex: 0 0 auto; }
+  .docs .d-name { min-width: 0; }
+  .docs .d-name small { display: block; font-size: 11.5px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* 公众号 / 小程序二维码 */
-  .qrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 480px; }
+  /* 关注二维码 */
+  .qrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 440px; }
   .qr-card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 14px 14px 12px; text-align: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px 14px 14px; text-align: center;
   }
-  .qr-card img {
-    display: block; width: 100%; max-width: 190px; margin: 0 auto 9px;
-    aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px;
-  }
-  .qr-card b { display: block; font-size: 13px; }
-  .qr-card span { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); line-height: 1.6; }
-  @media (max-width: 560px) {
-    .qrs { grid-template-columns: 1fr; max-width: 300px; }
-    .qr-card img { max-width: 200px; }
-  }
+  .qr-card img { display: block; width: 100%; max-width: 170px; margin: 0 auto 10px; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px; }
+  .qr-card b { display: block; font-size: 14px; }
+  .qr-card span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 
-  footer { max-width: 1080px; margin: 0 auto; padding: 0 20px 46px; font-size: 12px; color: var(--muted); line-height: 1.8; }
+  footer { max-width: 1200px; margin: 0 auto; padding: 4px 28px 40px; font-size: 13px; color: var(--muted); line-height: 1.8; }
 
+  @media (max-width: 900px) {
+    .entries { grid-template-columns: minmax(0, 1fr); }
+    .steps { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (min-width: 861px) and (max-width: 1020px) {
+    .topbar { padding: 16px; }
+    .wrap { padding: 16px; }
+    .tb-sub { display: none; }
+  }
+  @media (max-width: 860px) {
+    .topbar { padding: 14px 14px; }
+    .tb-title { font-size: 18px; }
+    .tb-sub { font-size: 13px; margin-top: 6px; }
+    .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .pnav > a, .pnav > .on { font-size: 12.5px; padding: 7px 13px; }
+  }
   @media (max-width: 760px) {
-    .topbar { padding: 20px 14px 24px; }
-    .wrap { padding: 16px 14px 60px; }
+    body { font-size: 15px; }
+    .wrap { padding: 12px 12px 48px; }
+    .tb-sub { display: none; }
+    .stats { padding: 16px; gap: 4px 22px; }
+    .stat b { font-size: 18px; }
+    .stats .stat { flex: 0 0 calc(50% - 11px); }
+    .docs { grid-template-columns: minmax(0, 1fr); }
+    .qrs { max-width: 320px; }
+    .qr-card img { max-width: 150px; }
+    .brand-row { padding: 14px 16px; gap: 8px 20px; }
   }
 </style>
 </head>
@@ -139,11 +172,18 @@
 
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="tb-title">机器视觉选型工具集</div>
-    <div class="tb-sub">
-      海康机器人 / 华睿 / Basler / 大恒图像 四品牌型号数据，<b>纯前端、离线可用</b>：双击打开即可，
-      所有计算与查询都在本地浏览器完成，数据不上传。
+    <div class="tb-brand">
+      <div class="tb-title">机器视觉选型工具集</div>
+      <div class="tb-sub">
+        海康机器人 / 华睿 / Basler / 大恒图像 四品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
+      </div>
     </div>
+    <nav class="pnav" aria-label="页面导航">
+      <span class="on" aria-current="page">主页</span>
+      <a href="index.html">选型助手</a>
+      <a href="library.html">产品库</a>
+      <a href="combo.html">自定义搭配</a>
+    </nav>
   </div>
 </div>
 
@@ -155,11 +195,10 @@
         <h2>选型助手</h2>
         <span class="go">进入 →</span>
       </div>
-      <p class="desc">输入视野、精度、检测任务、材质、节拍，自动推导一套可直接询价的「相机 + 镜头 + 光源」方案，并把每一步算术摊开供复核。</p>
+      <p class="desc">填视野、精度、任务与材质，自动推导一套可直接询价的「相机 + 镜头 + 光源」方案，每一步算术都能复核。</p>
       <ul>
-        <li>四品牌自动比选，按匹配度选最优，支持手动指定</li>
-        <li>跨品牌等价替换、转接环、景深光圈建议</li>
-        <li>线扫 / 远心自动建议，精度预算与验算过程全展示</li>
+        <li>四品牌自动比选，支持手动指定与跨品牌替换</li>
+        <li>线扫 / 远心建议，精度预算与验算全展示</li>
       </ul>
     </a>
     <a class="entry" href="library.html">
@@ -168,11 +207,10 @@
         <h2>产品库</h2>
         <span class="go">进入 →</span>
       </div>
-      <p class="desc">全部型号的一站式查询：按类别、品牌、接口、卡口、焦距、颜色等筛选，点开看全参数，手机电脑都能用。</p>
+      <p class="desc">全部型号一站式查询：按类别、品牌、接口、卡口、焦距、颜色筛选，点开看全参数。</p>
       <ul>
-        <li>面阵 / 线阵相机、镜头、远心、光源、控制器全覆盖，另含 3D 传感器、工控机与红外相机</li>
-        <li>型号 / 系列 / 传感器关键词即时搜索</li>
-        <li>每个型号带示意图与数据来源标注</li>
+        <li>面阵 / 线阵 / 镜头 / 远心 / 光源 / 3D / 工控机全覆盖</li>
+        <li>型号与传感器关键词即时搜索，支持对比与询价</li>
       </ul>
     </a>
     <a class="entry" href="combo.html">
@@ -181,24 +219,23 @@
         <h2>自定义搭配</h2>
         <span class="go">进入 →</span>
       </div>
-      <p class="desc">不想只看自动结果？从四品牌型号库里自选相机、镜头、光源，按当前需求逐项评定，不合适的项直接给出替换型号。</p>
+      <p class="desc">不想只看自动结果？从型号库里自选相机、镜头、光源，按当前需求逐项评定。</p>
       <ul>
-        <li>卡口 / 像面 / 解析力 / 精度 / 景深 / 曝光逐项判定</li>
-        <li>分数 + 等级 + 每项扣分原因，与自动选型同一套公式</li>
-        <li>产品库「加入搭配」可把型号带进来，评定后一键回填选型助手</li>
+        <li>卡口 / 像面 / 解析力 / 景深 / 曝光逐项判定</li>
+        <li>不合适的项直接给出可替换型号</li>
       </ul>
     </a>
   </div>
 
   <h3 class="sec-h">数据速览 <small id="genNote"></small></h3>
-  <div class="stats-grid" id="statsGrid"></div>
+  <div class="stats" id="statsGrid"></div>
   <div class="brand-row" id="brandRow"></div>
 
   <h3 class="sec-h">怎么用</h3>
   <div class="steps">
-    <div class="step"><b><span class="n">1</span>先试快速预设</b>在选型助手顶栏点「铜线检测 / 精密测量 / 二维码读取」等预设，看方案长什么样，再换成自己的参数。</div>
-    <div class="step"><b><span class="n">2</span>填检测需求出方案</b>视野、精度、任务、节拍按实际情况填；方案卡里每个型号都能点开看参数与备选。</div>
-    <div class="step"><b><span class="n">3</span>去产品库核对与比价</b>对方案里的型号拿不准时，到产品库搜型号或按条件筛选同类，对比后询价。</div>
+    <div class="step"><b><span class="n">1</span>先试快速预设</b>在选型助手顶栏点「铜线检测 / 精密测量」等预设，看方案长什么样，再换成自己的参数。</div>
+    <div class="step"><b><span class="n">2</span>填需求出方案</b>视野、精度、任务按实际填；方案卡可展开全部参数，型号能点开看备选。</div>
+    <div class="step"><b><span class="n">3</span>去产品库核对</b>拿不准的型号到产品库搜或按条件筛同类，对比后再询价。</div>
   </div>
 
   <h3 class="sec-h">常用资料 <small>manuals/ 目录，点开即读</small></h3>
@@ -274,14 +311,13 @@
 
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
-    ['远心镜头系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
-    ['3D 传感器', n.prof], ['工控机 / 主板', n.ipc], ['红外相机', n.ir]
+    ['远心系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
+    ['3D 传感器', n.prof], ['工控机', n.ipc], ['红外相机', n.ir]
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
-  }).join('') + '<div class="stat"><b style="color:var(--accent)">' + total + '</b><span>型号总数</span></div>';
+  }).join('') + '<div class="stat total"><b>' + total + '</b><span>型号总数</span></div>';
 
   document.getElementById('brandRow').innerHTML = Object.keys(metas).map(function (bk) {
-    var m = metas[bk];
     var cnt = allMetas.filter(function (x) { return x.brand === bk; })
       .reduce(function (s, x) {
         return s + (x.meta.cameras || 0) + (x.meta.linescan || 0) + (x.meta.lenses || 0) +
@@ -292,7 +328,7 @@
       .map(function (x) { return x.meta.generated; }).sort().pop();
     return '<div class="brand-item">' +
       (logo(bk) ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" />' : '<b>' + esc(short(bk)) + '</b>') +
-      '<small>' + cnt + ' 个型号' + (gen ? ' · ' + esc(gen) + ' 更新' : '') + '</small></div>';
+      '<small>' + cnt + ' 个型号' + (gen ? ' · ' + esc(gen) : '') + '</small></div>';
   }).join('');
 
   var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();
@@ -307,12 +343,13 @@
     ['机器视觉3D产品手册26年Q3.pdf', '3D 视觉产品手册'],
     ['机器视觉工控机产品手册-V.151.CN.26Q2.1(阅读版).pdf', '工控机产品手册']
   ].map(function (p) {
-    return '<a href="manuals/' + encodeURIComponent(p[0]) + '"><span class="pdf-ico">📄</span><span><b>' + esc(p[1]) + '</b><br><span style="color:var(--muted);font-size:11.5px">' + esc(p[0]) + '</span></span></a>';
+    return '<a href="manuals/' + encodeURIComponent(p[0]) + '" title="' + esc(p[0]) + '">' +
+      '<span class="pdf-ico">📄</span><span class="d-name">' + esc(p[1]) + '<small>PDF</small></span></a>';
   }).join('');
 
   document.getElementById('foot').innerHTML =
-    '数据来源：各品牌官方型录与官网产品数据（详见产品库页脚）。参数以厂商官方最新资料为准。' +
-    '<br>本工具集为纯前端页面：home.html 主页 · index.html 选型助手 · library.html 产品库 · combo.html 自定义搭配，可整目录拷贝离线使用。';
+    '数据来源：各品牌官方型录与官网产品数据（详见产品库页脚），参数以厂商最新资料为准。' +
+    '<br>纯前端页面：home.html 主页 · index.html 选型助手 · library.html 产品库 · combo.html 自定义搭配，可整目录拷贝离线使用。';
 })();
 </script>
 </body>
