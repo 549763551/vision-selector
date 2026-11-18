@@ -666,7 +666,10 @@
     // （当前数据无重叠 —— acA2000-165u* 已从在售型录删除；留着这层防止将来重新收进已停产型号）
     var liveKey = {};
     items.forEach(function (it) {
-      if (it.cat === 'cam') liveKey[it.brand + '|' + String(it.d.model || '').toLowerCase()] = it;
+      var cat = it.cat;
+      if (cat === 'cam' || cat === 'line' || cat === 'prof') {
+        liveKey[it.brand + '|' + String(it.d.model || '').toLowerCase()] = it;
+      }
     });
     Object.keys(RETIRED.BRANDS).forEach(function (bk) {
       var rb = RETIRED.BRANDS[bk], list = rb.CAMERAS || [], mounted = 0;
@@ -675,7 +678,7 @@
         var k = bk + '|' + String(d.model || '').toLowerCase();
         var hit = liveKey[k];
         if (hit) { retiredInfo.skipped.push(d.model); hit.eolRef = d; return; }
-        items.push({ cat: 'cam', brand: bk, d: d, retired: true });
+        items.push({ cat: d.cat || 'cam', brand: bk, d: d, retired: true });
         mounted++;
       });
       retiredInfo.total += mounted;
@@ -2890,8 +2893,10 @@
       '<b>数据来源</b><br>' + footLines.map(esc).join('<br>') +
       (retiredInfo.total
         ? '<br>退市型号：' + esc((window.RetiredCatalog.META || {}).scope || '官方停产 / 退市公告') +
-          '，共 ' + retiredInfo.total + ' 个（海康 CA/CE 系列、Basler ace Classic、大恒水星一代等），' +
-          '仅用于查型号与替代关系，不进入选型推荐。' +
+          '，共 ' + retiredInfo.total + ' 个（' +
+          Object.keys(retiredInfo.brands).filter(function (k) { return retiredInfo.brands[k].n; })
+            .map(function (k) { return esc(brandShort(k)) + ' ' + retiredInfo.brands[k].n; }).join(' · ') +
+          '），仅用于查型号与替代关系，不进入选型推荐。' +
           (retiredInfo.skipped.length
             ? '另有 ' + retiredInfo.skipped.length + ' 个型号（' + esc(retiredInfo.skipped.join(' / ')) +
               '）在售型录中已有参数记录，未重复列出，详情里同样标注官方停产与替代型号。'
