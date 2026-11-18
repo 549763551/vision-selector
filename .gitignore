@@ -33,5 +33,7 @@ tools/huashu-motion/
 # 功能介绍片工程与渲染产物（约 152MB 本地素材，不入库不推送）
 功能片/
 功能片-*/
+# 版本更新片工程与渲染产物（159MB，不入库不推送）
+版本更新片/
 # 功能片用的硬件示意图原图（9.6MB，仅 功能片/tools/cutout_hardware.py 引用）
 vibe_images/
