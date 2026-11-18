@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉选型工具集 · 主页</title>
-<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询五品牌 3799 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
+<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询五品牌 8122 个产品的全参数（含 3D 相机 / 工控机 / 红外相机 / 智能相机 / 传感器，同规格跨品牌互标备注）。纯前端离线可用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -272,13 +272,17 @@
 <script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
 <script src="opt-catalog.js"></script>
+<script src="opt-lens-catalog.js"></script>
+<script src="opt-light-catalog.js"></script>
+<script src="opt-ctrl-catalog.js"></script>
+<script src="opt-misc-catalog.js"></script>
 <script>
 (function () {
   'use strict';
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
   var metas = {};
   var allMetas = [];
-  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0 };
+  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0, smart: 0, sensor: 0, meas: 0 };
   var total = 0;
   Object.keys(SRC).forEach(function (bk) {
     var c = window[SRC[bk]];
@@ -292,22 +296,27 @@
     n.light += (c.LIGHTS || []).length;
     n.ctrl += (c.CONTROLLERS || []).length;
   });
-  // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光
-  [[window.Hikrobot3DCatalog, 'hikrobot'], [window.HikrobotIpcCatalog, 'hikrobot'],
-   [window.HikrobotIrCatalog, 'hikrobot'],
-   [window.BaslerLensCatalog, 'basler'], [window.BaslerLightCatalog, 'basler']].forEach(function (p) {
-    var c = p[0], bk = p[1];
+  // 附加库：数组 → 类别必须逐个写明。海康 3D 库的 SMART 是 3D 相机，不能算进"智能相机"，
+  // 因此按「库 × 数组」精确归属，而不是见到 SMART 就往 smart 上加。
+  [[window.Hikrobot3DCatalog, 'hikrobot', { prof: ['PROFILERS', 'SMART'] }],
+   [window.HikrobotIpcCatalog, 'hikrobot', { ipc: ['CHASSIS', 'BOARDS'] }],
+   [window.HikrobotIrCatalog, 'hikrobot', { ir: ['IR'] }],
+   [window.BaslerLensCatalog, 'basler', { lens: ['LENSES'], tele: ['TELECENTRIC'] }],
+   [window.BaslerLightCatalog, 'basler', { light: ['LIGHTS'], ctrl: ['CONTROLLERS'] }],
+   [window.OptLensCatalog, 'opt', { lens: ['LENSES'], tele: ['TELECENTRIC'] }],
+   [window.OptLightCatalog, 'opt', { light: ['LIGHTS'] }],
+   [window.OptCtrlCatalog, 'opt', { ctrl: ['CONTROLLERS'], ipc: ['IPC'] }],
+   [window.OptMiscCatalog, 'opt', { smart: ['SMART'], sensor: ['SENSORS'], meas: ['MEAS'] }]
+  ].forEach(function (p) {
+    var c = p[0], bk = p[1], map = p[2];
     if (!c) return;
     if (c.META) allMetas.push({ brand: bk, meta: c.META });
-    n.prof += (c.PROFILERS || []).length + (c.SMART || []).length;
-    n.ipc += (c.CHASSIS || []).length + (c.BOARDS || []).length;
-    n.ir += (c.IR || []).length;
-    n.lens += (c.LENSES || []).length;
-    n.tele += (c.TELECENTRIC || []).length;
-    n.light += (c.LIGHTS || []).length;
-    n.ctrl += (c.CONTROLLERS || []).length;
+    Object.keys(map).forEach(function (cat) {
+      map[cat].forEach(function (arr) { n[cat] += (c[arr] || []).length; });
+    });
   });
-  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir;
+  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir +
+    n.smart + n.sensor + n.meas;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
@@ -316,7 +325,8 @@
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
     ['远心系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
-    ['3D 传感器', n.prof], ['工控机', n.ipc], ['红外相机', n.ir]
+    ['3D 传感器', n.prof], ['工控机', n.ipc], ['红外相机', n.ir],
+    ['智能相机 / 读码器', n.smart], ['传感器', n.sensor], ['测量 / 运控', n.meas]
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
   }).join('') + '<div class="stat total"><b>' + total + '</b><span>型号总数</span></div>';
@@ -326,7 +336,8 @@
       .reduce(function (s, x) {
         return s + (x.meta.cameras || 0) + (x.meta.linescan || 0) + (x.meta.lenses || 0) +
           (x.meta.telecentric || 0) + (x.meta.lights || 0) + (x.meta.controllers || 0) +
-          (x.meta.profilers || 0) + (x.meta.smart || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0) + (x.meta.ir || 0);
+          (x.meta.profilers || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0) + (x.meta.ipc || 0) +
+          (x.meta.smart || 0) + (x.meta.sensors || 0) + (x.meta.meas || 0) + (x.meta.ir || 0);
       }, 0);
     var gen = allMetas.filter(function (x) { return x.brand === bk && x.meta.generated; })
       .map(function (x) { return x.meta.generated; }).sort().pop();

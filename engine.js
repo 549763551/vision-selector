@@ -631,7 +631,10 @@
     backlight: '面光源（背光）', backlight_parallel: '平行面光源', backlight_hole: '中孔面光源',
     backlight_side: '侧导面光源', dome: '穹顶光源', coaxial: '同轴光源',
     line: '线光源', line_high: '高亮线光源', line_focus: '聚光线光源', line_coax: '同轴线光源',
-    point: '点光源', flat_shadowless: '平面无影光源'
+    point: '点光源', flat_shadowless: '平面无影光源',
+    // 奥普特（OPT）标准光源的细分类，海康/Basler 型录里没有这些子类
+    fiber: '光纤光源', pattern: '程控图案光源', struct: '结构光源', zone: '分区照明光源',
+    high_cri: '高显色指数光源', ir: '红外光源', uv: '紫外光源'
   };
 
   /**
