@@ -564,7 +564,8 @@
 <script src="opt-lens-catalog.js"></script>
 <script src="opt-light-catalog.js"></script>
 <script src="opt-ctrl-catalog.js"></script>
-<script src="opt-misc-catalog.js"></script>
+<!-- opt-misc-catalog.js（智能相机 80 / 读码器 65 / 传感器 1057 / 测量运控 26）：
+     数据已抓取、留在仓库里备份；产品线类型不扩张，暂不加载也不挂载。 -->
 <script src="retired-catalog.js"></script>
 <script>
 (function () {
@@ -582,15 +583,14 @@
     { key: 'prof',  name: '3D 相机',  catName: '3D 传感器' },
     { key: 'ipc',   name: '工控机',   catName: '工控机' },
     { key: 'ir',    name: '红外相机', catName: '红外相机' },
-    { key: 'smart', name: '智能相机', catName: '智能相机 / 读码器' },
-    { key: 'sensor',name: '传感器',   catName: '传感器' },
-    { key: 'meas',  name: '测量 / 运控', catName: '测量系统 / 运控 / 具身智能' },
     { key: 'fav',   name: '★ 收藏',   catName: '收藏' },
     { key: 'all',   name: '全部',     catName: '全部类别' }
   ];
 
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
-  // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光；奥普特 镜头 / 光源 / 控制器 / 智能相机与传感器
+  // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光；奥普特 镜头 / 光源 / 控制器
+  // 暂无挂载（数据已抓取、仅作备份，产品线类型不扩张）：
+  //   OptMiscCatalog = opt-misc-catalog.js（智能相机 / 读码器 145、传感器 1057、测量运控 26）
   var EXTRA_SRC = [
     { global: 'Hikrobot3DCatalog', brand: 'hikrobot', arrays: { PROFILERS: 'prof', SMART: 'prof' } },
     { global: 'HikrobotIpcCatalog', brand: 'hikrobot', arrays: { CHASSIS: 'ipc', BOARDS: 'ipc' } },
@@ -599,8 +599,7 @@
     { global: 'BaslerLightCatalog', brand: 'basler', arrays: { LIGHTS: 'light', CONTROLLERS: 'ctrl' } },
     { global: 'OptLensCatalog', brand: 'opt', arrays: { LENSES: 'lens', TELECENTRIC: 'tele' } },
     { global: 'OptLightCatalog', brand: 'opt', arrays: { LIGHTS: 'light' } },
-    { global: 'OptCtrlCatalog', brand: 'opt', arrays: { CONTROLLERS: 'ctrl', IPC: 'ipc' } },
-    { global: 'OptMiscCatalog', brand: 'opt', arrays: { SMART: 'smart', SENSORS: 'sensor', MEAS: 'meas' } }
+    { global: 'OptCtrlCatalog', brand: 'opt', arrays: { CONTROLLERS: 'ctrl', IPC: 'ipc' } }
   ];
 
   var LIGHT_TYPE_LABEL = {
@@ -954,38 +953,6 @@
       { h: '测温范围', get: V(function (it) { return it.d.tempRange; }) },
       { h: '镜头', get: V(function (it) { return irLensText(it.d); }) },
       { h: '接口', get: V(function (it) { return it.d.iface; }) }
-    ],
-    // 智能相机 / 读码器：自带算法与镜头的一体机，没有「同规格可替换」概念（不参与跨品牌互换）
-    smart: [
-      { h: '', art: true },
-      { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
-      { h: '品牌', brand: true },
-      { h: '形态', get: V(function (it) { return it.d.kind; }) },
-      { h: '分辨率', get: V(function (it) { return it.d.w ? it.d.w + '×' + it.d.h : null; }) },
-      { h: '像元 µm', cls: 'num', get: V(function (it) { return it.d.pxUm; }) },
-      { h: '靶面', get: V(function (it) { return it.d.size; }) },
-      { h: '帧率 fps', cls: 'num', get: V(function (it) { return it.d.fps; }) },
-      { h: '黑白 / 彩色', get: V(function (it) { return it.d.color; }) },
-      { h: '镜头焦距', get: V(function (it) { return it.d.focal != null ? it.d.focal + ' mm' : null; }) },
-      { h: '读取距离 mm', get: V(function (it) { return it.d.read; }) },
-      { h: '接口', get: V(function (it) { return it.d.iface; }) }
-    ],
-    // 传感器：小类差异极大（激光位移/光谱共焦/光电/光栅/门锁…），只统一展示「产品线 + 关键三项」
-    sensor: [
-      { h: '', art: true },
-      { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
-      { h: '品牌', brand: true },
-      { h: '产品线', get: V(function (it) { return it.d.group; }) },
-      { h: '系列', get: V(function (it) { return it.d.series; }), dim: true },
-      { h: '关键参数', get: V(function (it) { return it.d.brief; }), raw: true, dim: true }
-    ],
-    meas: [
-      { h: '', art: true },
-      { h: '型号', cls: 'model', get: V(function (it) { return it.d.model; }), raw: true },
-      { h: '品牌', brand: true },
-      { h: '产品线', get: V(function (it) { return it.d.group; }) },
-      { h: '系列', get: V(function (it) { return it.d.series; }), dim: true },
-      { h: '关键参数', get: V(function (it) { return it.d.brief; }), raw: true, dim: true }
     ]
   };
 
@@ -1089,15 +1056,6 @@
     }
     else if (it.cat === 'ipc') { s.push(d.series); s.push(d.cpu || d.board); s.push(d.form || d.size); }
     else if (it.cat === 'ir') { s.push(irBandText(d)); s.push(d.thermalType); s.push(irResText(d)); s.push(irRateText(d)); s.push(d.netd); s.push(d.tempRange); }
-    else if (it.cat === 'smart') {
-      s.push(d.kind);
-      if (d.w) s.push(d.w + '×' + d.h);
-      if (d.pxUm) s.push(d.pxUm + ' µm');
-      if (d.fps) s.push(d.fps + ' fps');
-      s.push(d.color || (d.size ? '靶面 ' + d.size : null));
-      if (d.focal) s.push(d.focal + ' mm 镜头');
-    }
-    else if (it.cat === 'sensor' || it.cat === 'meas') { s.push(d.group); s.push(d.brief); }
     return s.filter(Boolean).join(' · ');
   }
 
@@ -1301,11 +1259,6 @@
     if (it.cat === 'cam') parts.push(d.color, d.iface, formText(d));
     if (it.cat === 'ir') parts.push(d.band, d.wave, d.thermalType, d.shape, d.iface);
     if (it.cat === 'prof') parts.push(profKind(d), d.series, d.iface, d.output, d.light, d.laser, d.laserClass, d.ip, d.note);
-    if (it.cat === 'smart' || it.cat === 'sensor' || it.cat === 'meas') {
-      parts.push(d.group, d.kind, d.brief, d.color, d.iface, d.sensorType);
-      // 传感器/测量类参数差异大，把原始规格值也纳入搜索（搜「±12」「IP67」这类能命中）
-      if (d.spec) parts.push(Object.keys(d.spec).join(' '), Object.keys(d.spec).map(function (k) { return d.spec[k]; }).join(' '));
-    }
     return parts.filter(Boolean).join(' ').toLowerCase();
   }
 
@@ -1538,13 +1491,13 @@
       if (it.cat === 'prof') return artProf(d, bk);
       if (it.cat === 'ipc') return artIpc(d, bk);
       if (it.cat === 'ir') return artIr(d, bk);
-      if (it.cat === 'smart') return artSmart(d, bk);
-      if (it.cat === 'sensor') return artSensor(d, bk);
-      if (it.cat === 'meas') return artMeas(d, bk);
     } catch (e) { /* 兜底：画品牌色块 */ }
     return artWrap('<rect x="16" y="16" width="32" height="32" rx="6" fill="' + brandC(bk) + '"/>');
   }
 
+  // 【暂未挂载】以下三个绘图函数对应「智能相机 / 传感器 / 测量运控」三类，
+  // 数据（opt-misc-catalog.js）已抓取备份，但产品线类型不扩张，故暂不进产品库。
+  // 将来启用时：CATS 加类目 → EXTRA_SRC 挂 OptMiscCatalog → artFor 恢复分派。
   // 智能相机 / 读码器：带镜头的小方盒 + 采集指示灯（读码器多一道读数窗口）
   function artSmart(d, bk) {
     var reader = d.kind === '智能读码器';
@@ -1629,19 +1582,6 @@
       } },
       { k: 'pxum', t: '像元 大→小', fn: function (a, b) { return (b.d.pxUm || 0) - (a.d.pxUm || 0); } }
     ],
-    smart: [
-      { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } },
-      { k: 'kind', t: '按形态', fn: function (a, b) { return String(a.d.kind).localeCompare(String(b.d.kind)) || String(a.d.model).localeCompare(String(b.d.model)); } },
-      { k: 'res', t: '分辨率 高→低', fn: function (a, b) { return (b.d.w * (b.d.h || 1)) - (a.d.w * (a.d.h || 1)); } }
-    ],
-    sensor: [
-      { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } },
-      { k: 'group', t: '按产品线', fn: function (a, b) { return String(a.d.group).localeCompare(String(b.d.group)) || String(a.d.model).localeCompare(String(b.d.model)); } }
-    ],
-    meas: [
-      { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || String(a.d.model).localeCompare(String(b.d.model)); } },
-      { k: 'group', t: '按产品线', fn: function (a, b) { return String(a.d.group).localeCompare(String(b.d.group)) || String(a.d.model).localeCompare(String(b.d.model)); } }
-    ],
     all: [
       { k: 'brand', t: '按品牌 / 型号', fn: function (a, b) { return a.brand.localeCompare(b.brand) || a.cat.localeCompare(b.cat) || String(a.d.model).localeCompare(String(b.d.model)); } }
     ]
@@ -1685,19 +1625,6 @@
       { k: 'thermal', label: '观测 / 测温', get: function (it) { return it.d.thermalType; } },
       { k: 'iface', label: '接口', get: function (it) { return it.d.iface; } },
       { k: 'shape', label: '形态', get: function (it) { return it.d.shape; } }
-    ],
-    smart: [
-      { k: 'kind', label: '形态', get: function (it) { return it.d.kind; } },
-      { k: 'series', label: '系列', get: function (it) { return it.d.series; } },
-      { k: 'color', label: '黑白 / 彩色', get: function (it) { return it.d.color; } }
-    ],
-    sensor: [
-      { k: 'group', label: '产品线', get: function (it) { return it.d.group; } },
-      { k: 'series', label: '系列', get: function (it) { return it.d.series; } }
-    ],
-    meas: [
-      { k: 'group', label: '产品线', get: function (it) { return it.d.group; } },
-      { k: 'series', label: '系列', get: function (it) { return it.d.series; } }
     ],
     all: []
   };
@@ -2279,26 +2206,6 @@
       ['测温范围', d.tempRange || '—'], ['镜头', irLensText(d) || '—'],
       ['接口', d.iface || '—']
     ];
-    if (it.cat === 'smart') return [
-      ['类别', d.kind || '—'],
-      ['分辨率', d.w ? d.w + '×' + d.h : '—'],
-      ['像元', d.pxUm != null ? d.pxUm + ' µm' : '—'],
-      ['靶面', d.size || '—'],
-      ['帧率', d.fps != null ? d.fps + ' fps' : '—'],
-      ['黑白 / 彩色', d.color || '—'],
-      ['镜头焦距', d.focal != null ? d.focal + ' mm' : '—'],
-      ['读取距离', d.read || '—'],
-      ['接口', d.iface || '—']
-    ];
-    if (it.cat === 'sensor' || it.cat === 'meas') {
-      var out = [['产品线', d.group || '—'], ['系列', d.series || '—']];
-      if (d.spec) {
-        Object.keys(d.spec).forEach(function (k) {
-          if (out.length < 9) out.push([k.replace(/\((mm|μm|kg|s|m|KHz|Hz|nm|°|W|V|A)\)/g, ''), d.spec[k]]);
-        });
-      }
-      return out;
-    }
     return [];
   }
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉选型工具集 · 主页</title>
-<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询五品牌 8122 个产品的全参数（含 3D 相机 / 工控机 / 红外相机 / 智能相机 / 传感器，同规格跨品牌互标备注）。纯前端离线可用。" />
+<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询五品牌 6894 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -275,14 +275,14 @@
 <script src="opt-lens-catalog.js"></script>
 <script src="opt-light-catalog.js"></script>
 <script src="opt-ctrl-catalog.js"></script>
-<script src="opt-misc-catalog.js"></script>
+<!-- opt-misc-catalog.js（智能相机/传感器/测量运控 1228 款）数据已备份，产品线类型不扩张，暂不引入 -->
 <script>
 (function () {
   'use strict';
   var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
   var metas = {};
   var allMetas = [];
-  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0, smart: 0, sensor: 0, meas: 0 };
+  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0 };
   var total = 0;
   Object.keys(SRC).forEach(function (bk) {
     var c = window[SRC[bk]];
@@ -305,8 +305,7 @@
    [window.BaslerLightCatalog, 'basler', { light: ['LIGHTS'], ctrl: ['CONTROLLERS'] }],
    [window.OptLensCatalog, 'opt', { lens: ['LENSES'], tele: ['TELECENTRIC'] }],
    [window.OptLightCatalog, 'opt', { light: ['LIGHTS'] }],
-   [window.OptCtrlCatalog, 'opt', { ctrl: ['CONTROLLERS'], ipc: ['IPC'] }],
-   [window.OptMiscCatalog, 'opt', { smart: ['SMART'], sensor: ['SENSORS'], meas: ['MEAS'] }]
+   [window.OptCtrlCatalog, 'opt', { ctrl: ['CONTROLLERS'], ipc: ['IPC'] }]
   ].forEach(function (p) {
     var c = p[0], bk = p[1], map = p[2];
     if (!c) return;
@@ -315,8 +314,7 @@
       map[cat].forEach(function (arr) { n[cat] += (c[arr] || []).length; });
     });
   });
-  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir +
-    n.smart + n.sensor + n.meas;
+  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
@@ -325,8 +323,7 @@
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
     ['远心系列', n.tele], ['光源', n.light], ['光源控制器', n.ctrl],
-    ['3D 传感器', n.prof], ['工控机', n.ipc], ['红外相机', n.ir],
-    ['智能相机 / 读码器', n.smart], ['传感器', n.sensor], ['测量 / 运控', n.meas]
+    ['3D 传感器', n.prof], ['工控机', n.ipc], ['红外相机', n.ir]
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
   }).join('') + '<div class="stat total"><b>' + total + '</b><span>型号总数</span></div>';
@@ -337,7 +334,7 @@
         return s + (x.meta.cameras || 0) + (x.meta.linescan || 0) + (x.meta.lenses || 0) +
           (x.meta.telecentric || 0) + (x.meta.lights || 0) + (x.meta.controllers || 0) +
           (x.meta.profilers || 0) + (x.meta.chassis || 0) + (x.meta.boards || 0) + (x.meta.ipc || 0) +
-          (x.meta.smart || 0) + (x.meta.sensors || 0) + (x.meta.meas || 0) + (x.meta.ir || 0);
+          (x.meta.smart || 0) + (x.meta.ir || 0);   // smart 为海康 3D 库的 META 字段（47 台 3D 相机），非智能相机类目
       }, 0);
     var gen = allMetas.filter(function (x) { return x.brand === bk && x.meta.generated; })
       .map(function (x) { return x.meta.generated; }).sort().pop();
