@@ -496,14 +496,14 @@ function mergeMulti(brands, lensBrands) {
   };
 }
 
-test('多品牌目录合并 = 海康406 + 华睿288 + Basler233 + 大恒688', () => {
+test('多品牌目录合并 = 海康406 + 华睿288 + Basler231 + 大恒688', () => {
   const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
-  assert.strictEqual(CAT3.CAMERAS.length, 1615, '合并后相机数');
+  assert.strictEqual(CAT3.CAMERAS.length, 1613, '合并后相机数');
   const byBrand = {};
   CAT3.CAMERAS.forEach((c) => { byBrand[c.brand] = (byBrand[c.brand] || 0) + 1; });
   assert.strictEqual(byBrand['海康机器人 HIKROBOT'], 406);
   assert.strictEqual(byBrand['华睿'], 288);
-  assert.strictEqual(byBrand['Basler'], 233);
+  assert.strictEqual(byBrand['Basler'], 231);
   assert.strictEqual(byBrand['大恒图像'], 688);
 });
 
