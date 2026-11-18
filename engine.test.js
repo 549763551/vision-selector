@@ -438,6 +438,7 @@ loadGlobal('./hikrobot-3d-catalog.js');
 loadGlobal('./huarui-catalog.js');
 loadGlobal('./basler-catalog.js');
 loadGlobal('./daheng-catalog.js');
+loadGlobal('./opt-catalog.js');
 loadGlobal('./engine.js');
 const EngineFactory = global.VisionEngineFactory;
 const HIK = global.HikrobotCatalog;
@@ -445,6 +446,7 @@ const HIK3D = global.Hikrobot3DCatalog;
 const HUA = global.HuaruiCatalog;
 const BAS = global.BaslerCatalog;
 const DAH = global.DahengCatalog;
+const OPT = global.OptCatalog;
 
 function mergeMulti(brands, lensBrands) {
   const cam = [];
@@ -456,6 +458,8 @@ function mergeMulti(brands, lensBrands) {
     BAS.CAMERAS.forEach((x) => cam.push(Object.assign({}, x, { brand: x.brand || 'Basler' })));
   if (brands.indexOf('daheng') >= 0)
     DAH.CAMERAS.forEach((x) => cam.push(Object.assign({}, x, { brand: x.brand || '大恒图像' })));
+  if (brands.indexOf('opt') >= 0)
+    OPT.CAMERAS.forEach((x) => cam.push(Object.assign({}, x, { brand: x.brand || '奥普特 OPT' })));
   // 镜头品牌：默认合并全部有镜头的品牌（与顶栏“镜头品牌筛选”默认全选一致）；可单独指定
   const lb = lensBrands || ['hikrobot', 'huarui', 'daheng'];
   let lenses = [];
@@ -471,6 +475,7 @@ function mergeMulti(brands, lensBrands) {
   if (brands.indexOf('hikrobot') >= 0) stamp(HIK.LINESCAN, '海康机器人 HIKROBOT');
   if (brands.indexOf('huarui') >= 0) stamp(HUA.LINESCAN, '华睿');
   if (brands.indexOf('basler') >= 0) stamp(BAS.LINESCAN, 'Basler');
+  if (brands.indexOf('opt') >= 0) stamp(OPT.LINESCAN, '奥普特 OPT');
   // 光源 / 控制器：海康 + 华睿（华睿型录含独立光源与光源控制器章节）
   let lights = [];
   if (brands.indexOf('hikrobot') >= 0)
@@ -496,15 +501,50 @@ function mergeMulti(brands, lensBrands) {
   };
 }
 
-test('多品牌目录合并 = 海康406 + 华睿300 + Basler231 + 大恒688', () => {
-  const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
-  assert.strictEqual(CAT3.CAMERAS.length, 1625, '合并后相机数');
+test('多品牌目录合并 = 海康406 + 华睿300 + Basler231 + 大恒688 + 奥普特118', () => {
+  const CAT5 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng', 'opt']);
+  assert.strictEqual(CAT5.CAMERAS.length, 1743, '合并后相机数');
   const byBrand = {};
-  CAT3.CAMERAS.forEach((c) => { byBrand[c.brand] = (byBrand[c.brand] || 0) + 1; });
+  CAT5.CAMERAS.forEach((c) => { byBrand[c.brand] = (byBrand[c.brand] || 0) + 1; });
   assert.strictEqual(byBrand['海康机器人 HIKROBOT'], 406);
   assert.strictEqual(byBrand['华睿'], 300);
   assert.strictEqual(byBrand['Basler'], 231);
   assert.strictEqual(byBrand['大恒图像'], 688);
+  assert.strictEqual(byBrand['奥普特 OPT'], 118);
+});
+
+test('奥普特型录：字段完整、靶面与像元×分辨率自洽、线阵行频齐全', () => {
+  assert.strictEqual(OPT.CAMERAS.length, 118, '面阵数');
+  assert.strictEqual(OPT.LINESCAN.length, 24, '线阵数');
+  // 引擎算靶面对角线只用 sw/sh（不用 size 字符串），因此这两项必须齐全且与标称靶面一致
+  const STD = { '1/4': 4, '1/3': 5.33, '1/2.9': 5.52, '1/2.8': 5.71, '1/2.7': 5.93, '1/2.5': 6.4,
+    '1/2.3': 6.96, '1/2.2': 7.27, '1/2': 8, '1/1.8': 8.89, '1/1.7': 9.41, '1/1.6': 10,
+    '1/1.4': 11.43, '1/1.2': 13.33, '2/3': 10.67, '1': 16, '1.1': 17.6, '1.2': 19.2,
+    '4/3': 21.33, '1.8': 28.8, '2.3': 36.8 };
+  OPT.CAMERAS.forEach((c) => {
+    assert.ok(c.w > 0 && c.h > 0, c.model + ' 分辨率');
+    assert.ok(c.pxUm > 0, c.model + ' 像元');
+    assert.ok(c.sw > 0 && c.sh > 0, c.model + ' 传感器尺寸');
+    assert.ok(Math.abs(c.sw - c.w * c.pxUm / 1000) < 0.01, c.model + ' sw 与 w×px 不符');
+    assert.ok(['USB3', 'GigE', '10GigE', '2.5GigE', 'CoaXPress', 'CameraLink'].indexOf(c.iface) >= 0,
+      c.model + ' 接口未归一：' + c.iface);
+    assert.ok(c.mount && !/Mount/.test(c.mount), c.model + ' 镜头口未归一：' + c.mount);
+    assert.ok(c.fps > 0, c.model + ' 帧率');
+    if (c.size && c.size.indexOf('mm') < 0) {
+      const k = c.size.replace(/"/g, '');
+      const inch = (k.indexOf('/') >= 0 ? (function () { const p = k.split('/'); return p[0] / p[1]; })() : Number(k)) * 16;
+      const diag = Math.sqrt(c.sw * c.sw + c.sh * c.sh);
+      assert.ok(Math.abs(inch - diag) / Math.max(inch, diag) < 0.12,
+        c.model + ' 靶面 ' + c.size + ' 与对角线 ' + diag.toFixed(2) + 'mm 差太多');
+      assert.ok(STD[k] != null, c.model + ' 靶面档位不认识：' + k);
+    }
+  });
+  OPT.LINESCAN.forEach((l) => {
+    assert.ok(l.w >= 512 && l.pxH > 0 && l.lineRate > 0, l.model + ' 线阵基本字段');
+    assert.ok(['GigE', '10GigE', 'CoaXPress', 'CameraLink'].indexOf(l.iface) >= 0,
+      l.model + ' 线阵接口未归一：' + l.iface);
+    assert.ok(l.mount && !/Mount/.test(l.mount), l.model + ' 线阵镜头口未归一');
+  });
 });
 
 test('镜头库合并 = 海康101 + 华睿63 + 大恒578；线扫 = 海康33 + 华睿26 + Basler17', () => {

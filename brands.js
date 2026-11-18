@@ -39,6 +39,14 @@
       logo: 'assets/daheng-logo.svg',
       color: '#0075c2',
       global: 'DahengCatalog'
+    },
+    opt: {
+      key: 'opt',
+      name: '奥普特 OPT',
+      short: '奥普特',
+      logo: 'assets/opt-logo.svg',
+      color: '#12429b',
+      global: 'OptCatalog'
     }
   };
 

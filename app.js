@@ -4,6 +4,8 @@
 
   var BRANDS = window.BRANDS || {};
   var $ = function (id) { return document.getElementById(id); };
+  // 品牌数量的中文写法（加品牌不用改文案）
+  var CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
   // 已加载且默认启用的品牌（脚本引入即视为可用）
   var activeBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).slice();
@@ -1016,7 +1018,7 @@
       '已启用：面阵 <b>' + CAT.CAMERAS.length + '</b> 台、线扫 <b>' + (CAT.LINESCAN || []).length +
       '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支、远心 <b>' + (CAT.TELECENTRIC || []).length +
       '</b> 系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款、控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。' +
-      '<span style="color:#94a3b8">数据来自四品牌官方型录；靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
+      '<span style="color:#94a3b8">数据来自' + (CN_NUM[activeBrands.length] || activeBrands.length) + '品牌官方型录；靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +
@@ -1349,7 +1351,7 @@
         var card = document.querySelector('.req-card');
         if (!card) return;
         var open = card.classList.toggle('brands-open');
-        this.textContent = open ? '收起品牌范围 ▴' : '品牌范围（默认四品牌全部启用）▾';
+        this.textContent = open ? '收起品牌范围 ▴' : '品牌范围（默认' + (CN_NUM[activeBrands.length] || activeBrands.length) + '品牌全部启用）▾';
       });
     }
 

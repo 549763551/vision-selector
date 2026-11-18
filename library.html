@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>产品库 · 机器视觉选型助手</title>
-<meta name="description" content="四品牌机器视觉产品库：面阵 / 线阵相机、镜头、远心镜头、光源与控制器、3D 传感器、工控机、红外相机全量型号，支持分类筛选、关键词查询与全参数查看，手机 / 电脑均可使用。" />
+<meta name="description" content="五品牌机器视觉产品库：面阵 / 线阵相机、镜头、远心镜头、光源与控制器、3D 传感器、工控机、红外相机全量型号，支持分类筛选、关键词查询与全参数查看，手机 / 电脑均可使用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -557,6 +557,7 @@
 <script src="basler-lens-catalog.js"></script>
 <script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
+<script src="opt-catalog.js"></script>
 <script src="retired-catalog.js"></script>
 <script>
 (function () {
@@ -578,7 +579,7 @@
     { key: 'all',   name: '全部',     catName: '全部类别' }
   ];
 
-  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog' };
+  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
   // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光（挂到对应品牌与类别）
   var EXTRA_SRC = [
     { global: 'Hikrobot3DCatalog', brand: 'hikrobot', arrays: { PROFILERS: 'prof', SMART: 'prof' } },
@@ -1694,14 +1695,44 @@
     return sortItems(baseFilter(currentQ()));
   }
 
-  /* ============ 3.5 搜不到时的两级回退 + 未收录型号说明 ============ */
+  /* ============ 3.5 搜不到时的回退 + 未收录型号说明 ============ */
   // 手册里抄错的常见形态：漏写/多写 -PRO、-V5，或只写了系列主体。
   // 能救回来就照常出结果并在结果行注明，救不回来才说明「未收录」并给现售替代。
+  function catLabel(k) {
+    for (var i = 0; i < CATS.length; i++) if (CATS[i].key === k) return CATS[i].name;
+    return k;
+  }
+  // 页签也会「挡住」结果：默认停在面阵相机，搜线阵 / 镜头 / 光源型号会一条不出，
+  // 然后被当成「库里没有」。这里先跨类别找一遍，型号存在就切过去。
+  function findCatWith(q) {
+    var keep = state.cat;
+    for (var i = 0; i < CATS.length; i++) {
+      var k = CATS[i].key;
+      if (k === keep || k === 'all' || k === 'fav') continue;
+      state.cat = k;
+      var n = baseFilter(q).length;
+      state.cat = keep;
+      if (n) return k;
+    }
+    return '';
+  }
   var TAIL_RX = /-(pro|v5|n|r|f)$/;
+  var autoCatQ = '';   // 已经为哪个关键词自动切过页签（避免用户手动切走后又被拽回来）
   function resolveQuery(raw) {
     var q = normQ(raw);
     if (!q) return { q: '', note: '' };
     if (baseFilter(q).length) return { q: q, note: '' };
+    // 收藏页签保持原行为（未收录面板里有「在全库搜索」按钮），其余页签自动切类别
+    if (state.cat !== 'fav' && q !== autoCatQ) {
+      var alt = findCatWith(q);
+      if (alt) {
+        autoCatQ = q;
+        return {
+          q: q, cat: alt,
+          note: '已从「' + catLabel(state.cat) + '」切到「' + catLabel(alt) + '」'
+        };
+      }
+    }
     var s = q.replace(TAIL_RX, '');
     if (s !== q && s.length >= 5 && baseFilter(s).length) {
       return { q: s, note: '已忽略型号后缀「' + q.slice(s.length) + '」' };
@@ -1750,6 +1781,7 @@
 
   var BRAND_OF = [
     { k: 'hikrobot', rx: /^MV-C/ },
+    { k: 'opt', rx: /^OPT-/ },
     { k: 'basler', rx: /^(AC|A2|BO|BA|BC|PU)[A-Z]?\d/ },
     { k: 'daheng', rx: /^(MARS|MER|ME2|VEN|VE2|SIRIUS|SWIR|HN|LM|FL|HS|BV|ELM|FTV|FT|TL|MGTL|LSTL|TCEL)/ },
     { k: 'huarui', rx: /^A[HX]?\d{3,4}/ }
@@ -1860,7 +1892,7 @@
 
     var html =
       '<div class="miss-h"><span class="m-tag">库里没有</span><code>' + esc(raw) + '</code></div>' +
-      '<p class="miss-p">产品库收录四品牌的 <b>' + (items.length - retiredInfo.total) + ' 个在售型号</b>' +
+      '<p class="miss-p">产品库收录' + (['零','一','二','三','四','五','六','七','八','九'][(window.availableBrands ? window.availableBrands() : Object.keys(SRC)).length] || '多') + '品牌的 <b>' + (items.length - retiredInfo.total) + ' 个在售型号</b>' +
       (retiredInfo.total ? '，以及 <b>' + retiredInfo.total + ' 个已退市型号</b>' : '') + '。这个型号两边都没有，' +
       '通常是被改型改名、或是手册从未列过的渠道专供型号。' +
       (dec ? '下面按它的型号编码拆出规格，再从库里找现售的同等型号。' : '') + '</p>' +
@@ -2119,8 +2151,20 @@
   }
 
   var filtered = [];
+  var switchNote = '';   // 自动切页签后要保留一次的提示语
   function render() {
-    state._qr = resolveQuery(state.q);
+    if (!state.q.trim()) autoCatQ = '';
+    var qr = resolveQuery(state.q);
+    if (qr.cat && qr.cat !== state.cat) {
+      // 搜到的型号在别的类别：切过去并整体重画（页签高亮、筛选下拉都要跟着换）
+      state.cat = qr.cat;
+      state.page = 1;
+      switchNote = qr.note;
+      renderAll();
+      return;
+    }
+    state._qr = { q: qr.q, note: qr.note || switchNote };
+    switchNote = '';
     filtered = currentItems();
     var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (state.page > totalPages) state.page = totalPages;
@@ -2882,9 +2926,14 @@
     var prof = items.filter(function (x) { return x.cat === 'prof' && !x.retired; }).length;
     var ipc = items.filter(function (x) { return x.cat === 'ipc' && !x.retired; }).length;
     var ir = items.filter(function (x) { return x.cat === 'ir' && !x.retired; }).length;
+    // 品牌数动态取（加品牌不用改文案）
+    var CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    var nBrand = (window.availableBrands ? window.availableBrands() : Object.keys(SRC)).length;
+    var brandCn = CN[nBrand] || String(nBrand);
     document.getElementById('stats').innerHTML =
       '共 <b>' + total + '</b> 个在售型号' +
-      (retiredInfo.total ? ' · 另存 <b>' + retiredInfo.total + '</b> 个退市型号' : '') + ' · 四品牌官方型录';
+      (retiredInfo.total ? ' · 另存 <b>' + retiredInfo.total + '</b> 个退市型号' : '') +
+      ' · ' + brandCn + '品牌官方型录';
     var footLines = [];
     allMetas.forEach(function (m) {
       footLines.push(brandShort(m.brand) + '：' + (m.meta.source || '') + (m.meta.generated ? '（更新于 ' + m.meta.generated + '）' : ''));
