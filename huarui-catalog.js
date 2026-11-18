@@ -8,7 +8,7 @@
   else root.HuaruiCatalog = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var META = {"source": "机器视觉产品手册中文版V20260901 + iRayple 官网 A 系列 GigE 型号（手册未收录）", "brand": "华睿（大华机器视觉）", "generated": "2026-11-18", "cameras": 300, "linescan": 26, "lenses": 63, "telecentric": 0, "lights": 262, "controllers": 20};
+  var META = {"source": "机器视觉产品手册中文版V20260901 + iRayple 官网（A 系列 GigE 相机 12 台、镜头与远心 22 款，官网型号表走 /api/cn/vision/productListNew 接口）", "brand": "华睿（大华机器视觉）", "generated": "2026-11-18", "cameras": 300, "linescan": 26, "lenses": 69, "telecentric": 16, "lights": 262, "controllers": 20};
   var CAMERAS = [
     {"w": 640, "h": 480, "pxUm": 4.8, "sw": 3.072, "sh": 2.304, "size": "1/4\"", "fps": 815.0, "shutter": "Global", "iface": "USB3", "mount": "C", "series": "USB3.0小面阵工业相机", "sensor": "PYTHON300", "bit": 10, "dims": [29, 29, 30], "expMinUs": 1.0, "expMaxUs": 1000000.0, "lens": "A9 系列 A", "power": null, "colorRaw": "M/C", "model": "AH5031C/CU000", "color": "彩色", "kind": "area", "brand": "华睿"},
     {"w": 640, "h": 480, "pxUm": 4.8, "sw": 3.072, "sh": 2.304, "size": "1/4\"", "fps": 815.0, "shutter": "Global", "iface": "USB3", "mount": "C", "series": "USB3.0小面阵工业相机", "sensor": "PYTHON300", "bit": 10, "dims": [29, 29, 30], "expMinUs": 1.0, "expMaxUs": 1000000.0, "lens": "A9 系列 A", "power": null, "colorRaw": "M/C", "model": "AH5031M/CU000", "color": "黑白", "kind": "area", "brand": "华睿"},
@@ -403,8 +403,30 @@
     {"model": "MH1656XR", "brand": "华睿", "series": "行业镜头", "focal": 16.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.3, "len": 39.8},
     {"model": "MH2056XR", "brand": "华睿", "series": "行业镜头", "focal": 20.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.5, "len": 30.96},
     {"model": "MH2556XR", "brand": "华睿", "series": "行业镜头", "focal": 25.0, "fmin": 5.6, "fmax": 11.0, "mount": "C", "ic": 16.0, "fmt": "1\"", "dist": -0.8, "minDist": 0.5, "len": 35.7},
+    {"model": "MH0420S", "brand": "华睿", "series": "MH-S 系列", "focal": 4, "fmin": 2, "mount": "C", "ic": 9, "fmt": "1/1.8\"", "minDist": 0.1},
+    {"model": "MH1620S", "brand": "华睿", "series": "MH-S 系列", "focal": 16, "fmin": 2, "mount": "C", "ic": 9, "fmt": "1/1.8\"", "minDist": 0.1},
+    {"model": "MH7528S", "brand": "华睿", "series": "MH-S 系列", "focal": 75, "fmin": 2.8, "fmax": 22, "mount": "C", "ic": 9, "fmt": "1/1.8\"", "minDist": 0.5},
+    {"model": "F30-3528-F", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 35, "fmin": 2.8, "fmax": 16, "mount": "F", "ic": 30, "fmt": "Ø30 mm", "minDist": 0.2},
+    {"model": "F80-8040-02X-M72", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 80, "fmin": 4, "fmax": 22, "mount": "M72", "ic": 80, "fmt": "Ø80 mm", "minDist": 0.3},
+    {"model": "F60-6056-F", "brand": "华睿", "series": "线扫&大靶面镜头", "focal": 60, "fmin": 5.6, "mount": "F", "ic": 60, "fmt": "Ø60 mm", "minDist": 0.25},
   ];
   var TELECENTRIC = [
+    {"model": "MTL11-11005XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 9.6, "fmax": 9.6, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 0.5, "magMin": 0.5, "magMax": 0.5, "wdMin": 110, "wdMax": 110, "resUm": 12.7, "coax": true},
+    {"model": "MTL11-11015X-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "coax": false, "note": "官网型号表未给参数，仅收录型号"},
+    {"model": "MTL17-11010XD-C", "brand": "华睿", "series": "MTL17 远心（Ø17.6）", "group": "远心镜头", "kind": "远心", "fmin": 10, "fmax": 10, "mount": "C", "ic": 17.6, "fmt": "Ø17.6 mm", "mag": 1, "magMin": 1, "magMax": 1, "wdMin": 110, "wdMax": 110, "resUm": 6.5, "coax": true},
+    {"model": "MTL17-22005X-C", "brand": "华睿", "series": "MTL17 远心（Ø17.6）", "group": "远心镜头", "kind": "远心", "mount": "C", "ic": 17.6, "fmt": "Ø17.6 mm", "mag": 0.5, "magMin": 0.5, "magMax": 0.5, "wdMin": 220, "wdMax": 220, "resUm": 10.6, "coax": false},
+    {"model": "MTL17-11010X-C", "brand": "华睿", "series": "MTL17 远心（Ø17.6）", "group": "远心镜头", "kind": "远心", "fmin": 10, "fmax": 10, "mount": "C", "ic": 17.6, "fmt": "Ø17.6 mm", "mag": 1, "magMin": 1, "magMax": 1, "wdMin": 110, "wdMax": 110, "resUm": 6.5, "coax": false},
+    {"model": "MTL11-11020XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 13.5, "fmax": 13.5, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 2, "magMin": 2, "magMax": 2, "wdMin": 110, "wdMax": 110, "resUm": 4.5, "coax": true},
+    {"model": "MTL11-11005X-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 9.6, "fmax": 9.6, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 0.5, "magMin": 0.5, "magMax": 0.5, "wdMin": 110, "wdMax": 110, "resUm": 12.7, "coax": false},
+    {"model": "MTL17-11005X-C", "brand": "华睿", "series": "MTL17 远心（Ø17.6）", "group": "远心镜头", "kind": "远心", "fmin": 8, "fmax": 8, "mount": "C", "ic": 17.6, "fmt": "Ø17.6 mm", "mag": 0.5, "magMin": 0.5, "magMax": 0.5, "wdMin": 110, "wdMax": 110, "resUm": 10.5, "coax": false},
+    {"model": "MTL11-11015XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 11.8, "fmax": 11.8, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 1.5, "magMin": 1.5, "magMax": 1.5, "wdMin": 110, "wdMax": 110, "resUm": 5.24, "coax": true},
+    {"model": "MTL17-11008X-C", "brand": "华睿", "series": "MTL17 远心（Ø17.6）", "group": "远心镜头", "kind": "远心", "fmin": 9, "fmax": 9, "mount": "C", "ic": 17.6, "fmt": "Ø17.6 mm", "mag": 0.8, "magMin": 0.8, "magMax": 0.8, "wdMin": 110, "wdMax": 110, "resUm": 7.4, "coax": false},
+    {"model": "MTL11-11020X-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 13.5, "fmax": 13.5, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 2, "magMin": 2, "magMax": 2, "wdMin": 110, "wdMax": 110, "resUm": 4.5, "coax": false},
+    {"model": "MTL16-32001X-C", "brand": "华睿", "series": "MTL16 远心（Ø16.2）", "group": "远心镜头", "kind": "远心", "fmin": 6.5, "fmax": 6.5, "mount": "C", "ic": 16.2, "fmt": "Ø16.2 mm", "mag": 0.1, "magMin": 0.1, "magMax": 0.1, "wdMin": 320, "wdMax": 320, "resUm": 40.23, "coax": false},
+    {"model": "MTL11-11003X-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 7.5, "fmax": 7.5, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 0.3, "magMin": 0.3, "magMax": 0.3, "wdMin": 110, "wdMax": 110, "resUm": 16.4, "coax": false},
+    {"model": "MTL11-11003XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 7.5, "fmax": 7.5, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 0.3, "magMin": 0.3, "magMax": 0.3, "wdMin": 110, "wdMax": 110, "resUm": 16.4, "coax": true},
+    {"model": "MTL11-11010XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 11, "fmax": 11, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 1, "magMin": 1, "magMax": 1, "wdMin": 110, "wdMax": 110, "resUm": 7.3, "coax": true},
+    {"model": "MTL11-6508XD-C", "brand": "华睿", "series": "MTL11 远心（Ø11）", "group": "远心镜头", "kind": "远心", "fmin": 15, "fmax": 15, "mount": "C", "ic": 11, "fmt": "Ø11 mm", "mag": 0.8, "magMin": 0.8, "magMax": 0.8, "wdMin": 65, "wdMax": 65, "resUm": 12.22, "coax": true},
   ];
   var LIGHTS = [
     {"model": "PFM-HX3475CO10W", "type": "ring", "color": "white", "size": [34.0, 75.0], "name": "环形光源PFM-HX3475CO10W", "power": 2.0, "angle": 75.0, "brand": "华睿"},

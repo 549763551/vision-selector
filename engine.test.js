@@ -547,14 +547,14 @@ test('奥普特型录：字段完整、靶面与像元×分辨率自洽、线阵
   });
 });
 
-test('镜头库合并 = 海康101 + 华睿63 + 大恒578；线扫 = 海康33 + 华睿26 + Basler17', () => {
+test('镜头库合并 = 海康101 + 华睿69 + 大恒578；线扫 = 海康33 + 华睿26 + Basler17', () => {
   const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
-  assert.strictEqual(CAT3.LENSES.length, 742, '合并后镜头数');
+  assert.strictEqual(CAT3.LENSES.length, 748, '合并后镜头数');
   assert.strictEqual(CAT3.LINESCAN.length, 76, '合并后线扫数');
   const lb = {};
   CAT3.LENSES.forEach((l) => { lb[l.brand] = (lb[l.brand] || 0) + 1; });
   assert.strictEqual(lb['海康机器人 HIKROBOT'], 101);
-  assert.strictEqual(lb['华睿'], 63);
+  assert.strictEqual(lb['华睿'], 69);
   assert.strictEqual(lb['大恒图像'], 578);
   // 镜头输出对象带 brand
   const E3 = EngineFactory(CAT3);
