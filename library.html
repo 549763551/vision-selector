@@ -118,6 +118,103 @@
   .f-reset:hover { color: var(--danger, #dc2626); border-color: #fecaca; }
   .f-result { font-size: 13.5px; color: var(--muted); padding: 12px 2px 0; }
   .f-result b { color: var(--accent); }
+  .f-result .q-note { color: #b45309; }
+
+  /* ---------- 退市型号：标签 / 顶部提示 / 详情说明 ---------- */
+  .eol-tag {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600; line-height: 1.6; white-space: nowrap;
+    color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; vertical-align: 1px;
+  }
+  .eol-tag.soft {
+    color: #92400e; background: #fef3c7; border-color: #fde68a;
+  }
+  .eol-banner {
+    margin-top: 10px; padding: 11px 14px; border-radius: 12px;
+    background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+    font-size: 13.5px; line-height: 1.75;
+  }
+  .eol-banner b { color: #7c2d12; }
+  .eol-banner.soft { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .eol-banner.soft b { color: #78350f; }
+  .eol-tip { display: block; margin-top: 3px; color: #94a3b8; font-size: 12.5px; }
+  .repl-chip {
+    display: inline-block; margin: 0 4px; padding: 2px 10px; border-radius: 999px;
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe;
+  }
+  .repl-chip:hover { background: #dbeafe; border-color: #93c5fd; }
+  .sheet-eol {
+    color: #b91c1c; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+    background: #fee2e2; border: 1px solid #fecaca;
+  }
+  .sheet-eol.soft { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+  .eol-block {
+    margin: 12px 0 4px; padding: 13px 15px; border-radius: 12px;
+    background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
+    font-size: 13.5px; line-height: 1.75;
+  }
+  .eol-block .eb-h { font-weight: 700; margin-bottom: 5px; font-size: 14px; }
+  .eol-block.soft { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .eol-block.soft .eb-h { color: #b45309; }
+  .eol-block.soft .eb-doc { color: #a16207; }
+  .eol-block b { font-weight: 700; }
+  .eol-block .eb-note { margin-top: 6px; color: #92400e; }
+  .eol-block .eb-doc { margin-top: 6px; color: #9a3412; font-size: 12.5px; }
+  .eol-block .eb-row { margin-top: 8px; }
+
+  /* ---------- 未收录型号：说明 + 型号解读 + 现售替代 ---------- */
+  .miss {
+    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px 16px;
+  }
+  .miss[hidden] { display: none; }
+  .miss-h { font-size: 16px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .miss-h .m-tag {
+    font-size: 11.5px; font-weight: 600; color: #b45309; background: #fffbeb;
+    border: 1px solid #fde68a; border-radius: 999px; padding: 3px 9px;
+  }
+  .miss-h code {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 15px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1px 7px;
+  }
+  .miss-p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  .miss-decode {
+    margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+    font-size: 12.5px; color: #475569;
+  }
+  .miss-decode .dc {
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px;
+  }
+  .miss-decode .dc b { color: var(--ink); font-weight: 600; }
+  .miss-note {
+    margin-top: 10px; font-size: 12.5px; line-height: 1.7; color: #92400e;
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 9px 12px;
+  }
+  .miss-sub {
+    margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .miss-sub span { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+  .miss-cands { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .miss-cand {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    font-family: inherit; background: #fff; border: 0; border-bottom: 1px solid #eef2f7;
+    padding: 11px 14px; cursor: pointer; transition: background .12s;
+  }
+  .miss-cand:last-child { border-bottom: 0; }
+  .miss-cand:hover { background: #f8fafc; }
+  .miss-cand .mc-model { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .miss-cand > span:first-child { display: flex; flex-direction: column; min-width: 0; }
+  .miss-cand .mc-spec { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .miss-cand .mc-go { margin-left: auto; color: var(--accent); font-size: 12.5px; white-space: nowrap; }
+  .miss-acts { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .miss-acts button {
+    font-family: inherit; font-size: 13px; border-radius: 9px; padding: 9px 14px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .miss-acts button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .miss-acts button:hover { filter: brightness(.98); }
 
   /* ---------- 表格（桌面） ---------- */
   /* 桌面：不做内嵌滚动，表格随页面一起滚到底（表头吸顶） */
@@ -327,9 +424,11 @@
   }
   .mask.show { display: flex; }
   .sheet {
-    background: var(--panel); width: 100%; max-width: 640px; max-height: 86vh; overflow-y: auto;
+    background: var(--panel); width: 100%; max-width: 640px; min-width: 0; max-height: 86vh; overflow-y: auto;
     border-radius: 18px 18px 0 0; padding: 0 0 16px;
   }
+  /* 窄屏兜底：flex 子项默认 min-width:auto 会被长内容顶宽，弹出层曾经因此比屏幕宽 */
+  .sheet * { min-width: 0; }
   @media (min-width: 640px) {
     .mask { align-items: center; padding: 20px; }
     .sheet { border-radius: 18px; }
@@ -354,6 +453,12 @@
   .kv-table td.k { color: var(--muted); width: 40%; white-space: nowrap; }
   .kv-table td.v { word-break: break-all; }
   .kv-table tr:last-child td { border-bottom: 0; }
+  /* 窄屏：字段名不再强制单行，否则 6 字标题 + 左右各 18px 内边距会把表格顶出弹层 */
+  @media (max-width: 520px) {
+    .kv-table { table-layout: fixed; }
+    .kv-table td { padding: 8px 12px; }
+    .kv-table td.k { width: 34%; white-space: normal; }
+  }
 
   footer {
     max-width: 1200px; margin: 0 auto; padding: 0 28px 40px; font-size: 13px; color: var(--muted); line-height: 1.8;
@@ -414,6 +519,8 @@
   <div class="tabs" id="tabs"></div>
   <div class="filters" id="filters"></div>
   <div class="f-result" id="resultInfo"></div>
+  <div class="eol-banner" id="eolBanner" hidden></div>
+  <div class="miss" id="miss" hidden></div>
 
   <div class="tbl-wrap">
     <table>
@@ -450,6 +557,7 @@
 <script src="basler-lens-catalog.js"></script>
 <script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
+<script src="retired-catalog.js"></script>
 <script>
 (function () {
   'use strict';
@@ -550,6 +658,40 @@
     });
   });
 
+  // 退市型号库：只有产品库加载（选型助手 / 自定义搭配不引本文件），所以退市型号不会进推荐
+  var RETIRED = window.RetiredCatalog;
+  var retiredInfo = { total: 0, declared: 0, skipped: [], brands: {} };
+  if (RETIRED && RETIRED.BRANDS) {
+    // 去重兜底：若某型号在售型录与退市库都有，不重复挂行，只把退市信息挂到在售条目上
+    // （当前数据无重叠 —— acA2000-165u* 已从在售型录删除；留着这层防止将来重新收进已停产型号）
+    var liveKey = {};
+    items.forEach(function (it) {
+      if (it.cat === 'cam') liveKey[it.brand + '|' + String(it.d.model || '').toLowerCase()] = it;
+    });
+    Object.keys(RETIRED.BRANDS).forEach(function (bk) {
+      var rb = RETIRED.BRANDS[bk], list = rb.CAMERAS || [], mounted = 0;
+      retiredInfo.declared += list.length;
+      list.forEach(function (d) {
+        var k = bk + '|' + String(d.model || '').toLowerCase();
+        var hit = liveKey[k];
+        if (hit) { retiredInfo.skipped.push(d.model); hit.eolRef = d; return; }
+        items.push({ cat: 'cam', brand: bk, d: d, retired: true });
+        mounted++;
+      });
+      retiredInfo.total += mounted;
+      retiredInfo.brands[bk] = {
+        name: rb.name || bk, doc: rb.doc || '', note: rb.note || '', n: mounted
+      };
+    });
+  }
+
+  // 搜索文本预计算：敲字时只做 indexOf，3600+ 型号也不卡
+  items.forEach(function (it) {
+    var t = searchText(it);
+    it._sc = t;
+    it._scc = t.replace(/[\s\-_/·.]/g, '');
+  });
+
   var BRAND_BY_KEY = {};
   (window.BRAND_KEYS || Object.keys(window.BRANDS || {})).forEach(function (k) {
     BRAND_BY_KEY[k] = (window.BRANDS[k] && window.BRANDS[k].short) || k;
@@ -587,7 +729,7 @@
     function exactHash(cat, keyFn, basisFn) {
       var byKey = {};
       items.forEach(function (it) {
-        if (it.cat !== cat) return;
+        if (it.cat !== cat || it.retired) return;   // 退市型号不参与「同规格可替换」
         var k = keyFn(it.d);
         if (!k) return;
         (byKey[k] = byKey[k] || []).push(it);
@@ -610,7 +752,7 @@
     function groupOf(cat, keyFn) {
       var g = {};
       items.forEach(function (it) {
-        if (it.cat !== cat) return;
+        if (it.cat !== cat || it.retired) return;   // 退市型号不参与「同规格可替换」
         var k = keyFn(it.d);
         if (!k) return;
         (g[k] = g[k] || []).push(it);
@@ -834,6 +976,49 @@
     var out = ACC_KEYS.filter(function (k) { return d[k[1]]; }).slice(0, 2)
       .map(function (k) { return [k[0], d[k[1]]]; });
     return out.length ? out : [['精度', '—']];
+  }
+
+  // 退市标签与说明（只在产品库出现，选型助手看不到这些型号）
+  // it.retired = 只存在于退市库；it.eolRef = 厂家已停产但型号仍在在售型录里（避免重复行，只挂提示）
+  function eolData(it) { return it.retired ? (it.d || {}) : (it.eolRef || null); }
+  function isEol(it) { return !!(it.retired || it.eolRef); }
+  function eolTagHtml(it) {
+    var d = eolData(it) || {};
+    var word = it.retired ? '退市' : '停产';
+    return ' <span class="eol-tag' + (it.retired ? '' : ' soft') + '">' +
+      (d.eol ? d.eol + ' ' + word : '已' + word) + '</span>';
+  }
+  function eolInfo(it) {
+    var d = eolData(it) || it.d || {};
+    var bi = retiredInfo.brands[it.brand] || {};
+    return {
+      year: d.eol || null,
+      doc: d.eolDoc || bi.doc || '',
+      note: bi.note || '',
+      replacedBy: (d.replacedBy || []).slice()
+    };
+  }
+
+  // 详情弹层里的退市说明：退市年份 / 依据 / 官方替换 / 为什么还留在库里
+  function eolBlockHtml(it) {
+    var info = eolInfo(it);
+    var repl = info.replacedBy;
+    var body = it.retired
+      ? '留在产品库只为查型号来历与替代关系，<b>不参与选型助手推荐，也不能加入搭配评定</b>。'
+      : '该型号在官方退市公告之列，但参数仍完整收录在在售型录中；<b>新项目请优先选用下面的替代型号</b>，' +
+        '直接按原型号询价可能已无货期。';
+    return '<div class="eol-block' + (it.retired ? '' : ' soft') + '">' +
+      '<div class="eb-h">⚠ 该型号' + (it.retired ? '已退市' : '官方已停产') +
+      (info.year ? '（' + info.year + ' 年）' : '') + '</div>' +
+      '<div>' + body + '</div>' +
+      (info.note ? '<div class="eb-note">' + esc(info.note) + '</div>' : '') +
+      (info.doc ? '<div class="eb-doc">依据：' + esc(info.doc) + '</div>' : '') +
+      (repl.length
+        ? '<div class="eb-row">官方替代：' + repl.map(function (m) {
+            return '<button class="repl-chip" data-repl="' + esc(m) + '">' + esc(m) + '</button>';
+          }).join('') + '</div>'
+        : '') +
+      '</div>';
   }
 
   function keySpecText(it) {
@@ -1386,10 +1571,12 @@
     cat: 'cam',
     q: '',
     brand: '',            // '' = 全部品牌
+    status: '',           // '' = 只看在售（默认）｜'all' = 含退市｜'eol' = 只看退市
     sel: {},              // 各下拉筛选 { 'cam.iface': 'USB3', ... }
     sort: 'brand',
     page: 1,
     lensFor: null,        // 适配镜头反查：{ model, mounts:Set, adapter:Set, minIc, minMp }
+    mpNear: null,         // 未收录型号面板「只看同规格」临时锁定的分辨率（MP），其余筛选一碰就清
     compare: []           // 横向对比：型号 item 引用，最多 4
   };
   var PAGE_SIZE = 50;
@@ -1415,14 +1602,31 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function currentItems() {
-    var q = state.q.trim().toLowerCase();
+  /* ---- 查询归一：全角转半角 + 折叠空格 + 去分隔符 ----
+     手册里的型号常被抄成 "mv－ca060 10gc" / "MV CA060-10GC"，直接 indexOf 会搜不到 */
+  function normQ(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\uFF01-\uFF5E]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); })
+      .replace(/[\u3000\s]+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+  function compact(s) { return String(s == null ? '' : s).replace(/[\s\-_/·.]/g, ''); }
+
+  // 只做「类目 / 品牌 / 筛选 / 搜索」过滤，不排序（排序单独一步，供计数与展示复用）
+  function baseFilter(q) {
     var lf = state.lensFor;
+    var qc = compact(q);
     var list = items.filter(function (it) {
       if (state.cat === 'fav') {
         if (!favHas(it)) return false;
       } else if (state.cat !== 'all' && it.cat !== state.cat) return false;
       if (state.brand && it.brand !== state.brand) return false;
+      // 退市型号：默认不出现在列表里，但一旦有搜索词就必须能被搜到，
+      // 否则用户搜老型号又会看到「库里没有」——这正是上次要修的问题
+      if (it.retired) {
+        if (state.status === '' && !q) return false;
+      } else if (state.status === 'eol') return false;
       // 适配镜头反查（选型助手/相机详情跳转过来）：卡口 + 像面 + 解析力
       if (lf && it.cat === 'lens') {
         var mount = it.d.mount;
@@ -1449,9 +1653,21 @@
           if (def.get(it) !== v) return false;
         }
       }
-      if (q && searchText(it).indexOf(q) < 0) return false;
+      if (state.mpNear) {
+        var mm = mp(it.d);
+        if (mm == null || Math.abs(mm - state.mpNear) > 0.3) return false;
+      }
+      if (q) {
+        var hit = (it._sc || '').indexOf(q) >= 0 || (qc && (it._scc || '').indexOf(qc) >= 0);
+        if (!hit) return false;
+      }
       return true;
     });
+    return list;
+  }
+
+  function sortItems(list) {
+    var lf = state.lensFor;
     if (lf && state.cat === 'lens') {
       list.sort(function (a, b) {
         return (a._fit === b._fit ? 0 : a._fit === 'direct' ? -1 : 1) ||
@@ -1461,8 +1677,217 @@
     }
     var sorts = SORTS[state.cat] || SORTS.all;
     var fn = sorts.filter(function (s) { return s.k === state.sort; })[0] || sorts[0];
-    var arr = list.slice().sort(fn.fn);
-    return arr;
+    // 混排时退市型号统一沉底，不跟在售型号争位置
+    return list.slice().sort(function (a, b) {
+      var ra = a.retired ? 1 : 0, rb = b.retired ? 1 : 0;
+      if (ra !== rb) return ra - rb;
+      return fn.fn(a, b);
+    });
+  }
+
+  function currentQ() { return state._qr ? state._qr.q : normQ(state.q); }
+
+  function currentItems() {
+    return sortItems(baseFilter(currentQ()));
+  }
+
+  /* ============ 3.5 搜不到时的两级回退 + 未收录型号说明 ============ */
+  // 手册里抄错的常见形态：漏写/多写 -PRO、-V5，或只写了系列主体。
+  // 能救回来就照常出结果并在结果行注明，救不回来才说明「未收录」并给现售替代。
+  var TAIL_RX = /-(pro|v5|n|r|f)$/;
+  function resolveQuery(raw) {
+    var q = normQ(raw);
+    if (!q) return { q: '', note: '' };
+    if (baseFilter(q).length) return { q: q, note: '' };
+    var s = q.replace(TAIL_RX, '');
+    if (s !== q && s.length >= 5 && baseFilter(s).length) {
+      return { q: s, note: '已忽略型号后缀「' + q.slice(s.length) + '」' };
+    }
+    var pre = q.replace(/-[^-]*$/, '');
+    if (pre !== q && pre.length >= 6 && baseFilter(pre).length) {
+      return { q: pre, note: '该后缀库里没有，已按型号主体「' + pre + '」列出同系列' };
+    }
+    return { q: q, note: '' };
+  }
+
+  /* ---- 型号解读：海康编号 MV-C[系列]NNN-[传感器][接口][色彩]，按官方命名规则拆 ---- */
+  var HK_SENSOR = { '10': 'Sony', '20': 'Onsemi', '30': 'Aptina', '80': 'SS', '90': '长光辰芯' };
+  var HK_IFACE_DEC = { G: 'GigE', U: 'USB3', C: 'CameraLink', T: '10GigE 电口', F: '10GigE 光口', X: 'CXP-6', Y: 'CXP-12' };
+  var HK_IFACE_FILTER = { G: 'GigE', U: 'USB3', C: 'CameraLink', T: '10GigE', F: '10GigE', X: 'CoaXPress', Y: 'CoaXPress' };
+  var HK_COLOR_DEC = { C: '彩色', M: '黑白', N: '近红外', P: '偏振' };
+  var HK_SERIES_INFO = {
+    CA: { gen: '第一代 · 进阶款', retired: true, note: 'CA 属海康第一代面阵相机，2022 年随 CE 系列一并退市（官方通知 PCN-MV2022070801），官方给出的现售对应为 CS（进阶款）/ CU（普惠款），参数更优、功耗更低。' },
+    CE: { gen: '第一代 · 标准款', retired: true, note: 'CE 属海康第一代面阵相机，2022 年退市（官方通知 PCN-MV2022070801），现售对应 CS（进阶款）/ CU（普惠款）。' },
+    CS: { gen: '第二代 · 进阶款', retired: false, note: 'CS 是当前在售系列。' },
+    CU: { gen: '第二代 · 普惠款', retired: false, note: 'CU 是当前在售系列。' },
+    CH: { gen: '高端面阵', retired: false, note: 'CH 是当前在售系列。' },
+    CT: { gen: '高带宽 / 特殊型', retired: false, note: 'CT 是当前在售系列。' }
+  };
+  var HK_KIND = { S: 'area', E: 'area', A: 'area', U: 'area', H: 'area', T: 'area', B: 'board', L: 'line', I: 'ir' };
+  function decodeHikrobot(raw) {
+    var u = normQ(raw).replace(/\s+/g, '').toUpperCase(); // 去空格即可，连字符要留着给正则分组
+    var r = /^MV-C([A-Z]{1,2})(\d{2,4})-?(\d{2})([GUCXTFY])([CMPN])(?:-|$)/.exec(u);
+    if (!r) return null;
+    var code = r[2], vendor = r[3], iface = r[4], color = r[5];
+    return {
+      brand: 'hikrobot', upper: u,
+      series: 'C' + r[1],
+      kind: HK_KIND[r[1]] || 'area',
+      code: code,
+      mp: parseInt(code, 10) / 10,
+      vendor: vendor,
+      sensor: HK_SENSOR[vendor] || (vendor + ' 系'),
+      iface: iface,
+      ifaceText: HK_IFACE_DEC[iface] || iface,
+      ifaceFilter: HK_IFACE_FILTER[iface] || '',
+      color: color,
+      colorText: HK_COLOR_DEC[color] || ''
+    };
+  }
+
+  var BRAND_OF = [
+    { k: 'hikrobot', rx: /^MV-C/ },
+    { k: 'basler', rx: /^(AC|A2|BO|BA|BC|PU)[A-Z]?\d/ },
+    { k: 'daheng', rx: /^(MARS|MER|ME2|VEN|VE2|SIRIUS|SWIR|HN|LM|FL|HS|BV|ELM|FTV|FT|TL|MGTL|LSTL|TCEL)/ },
+    { k: 'huarui', rx: /^A[HX]?\d{3,4}/ }
+  ];
+  function guessBrand(raw) {
+    var u = normQ(raw).toUpperCase();
+    for (var i = 0; i < BRAND_OF.length; i++) if (BRAND_OF[i].rx.test(u)) return BRAND_OF[i].k;
+    return null;
+  }
+
+  function candScore(it, dec) {
+    var mdl = String(it.d.model || '').toUpperCase();
+    var s = 0;
+    if (mdl.indexOf(dec.code) >= 0) s += 3;                                            // 同分辨率码：060
+    if (mdl.indexOf('-' + dec.vendor + dec.iface + dec.color) >= 0) s += 4;            // 同 传感器+接口+色彩：-10GC
+    if (dec.ifaceFilter && it.d.iface === dec.ifaceFilter) s += 2;
+    if (dec.colorText && it.d.color === dec.colorText) s += 2;
+    var m = mp(it.d);
+    if (dec.mp && m != null && Math.abs(m - dec.mp) < 0.05) s += 2;
+    return s;
+  }
+
+  // 现售替代：同等规格优先，其次同品牌同分辨率；非海康型号退化为「数字主体」匹配
+  function missAlternatives(dec, rawQ) {
+    var arr = [];
+    var pool = items.filter(function (it) { return (it.cat === 'cam' || it.cat === 'line') && !it.retired; });
+    if (dec) {
+      var wantCat = dec.kind === 'line' ? 'line' : (dec.kind === 'ir' ? 'ir' : 'cam');
+      pool = items.filter(function (it) {
+        if (it.cat !== wantCat || it.brand !== dec.brand) return false;
+        // 面阵的替代不拿板级相机凑数（形态不同，装法完全不同）
+        if (wantCat === 'cam' && dec.kind === 'area' && (it.d.kind === 'board' || it.d.kind === '板级')) return false;
+        return true;
+      });
+      pool.forEach(function (it) { var s = candScore(it, dec); if (s >= 9) arr.push({ it: it, s: s }); });
+      if (!arr.length) pool.forEach(function (it) { var s = candScore(it, dec); if (s >= 6) arr.push({ it: it, s: s }); });
+    }
+    if (!arr.length) {
+      var u = normQ(rawQ).toUpperCase();
+      var toks = (u.match(/\d{3,4}/g) || []);
+      var main = toks.slice().sort(function (a, b) { return b.length - a.length; })[0] || '';
+      var bk = guessBrand(rawQ);
+      if (main) {
+        items.forEach(function (it) {
+          if (it.cat !== 'cam' && it.cat !== 'line') return;
+          var mdl = String(it.d.model || '').toUpperCase();
+          if (mdl.indexOf(main) < 0) return;
+          var s = 4 + (bk && it.brand === bk ? 3 : 0);
+          toks.forEach(function (t) { if (mdl.indexOf(t) >= 0) s += 1; });
+          arr.push({ it: it, s: s });
+        });
+      }
+    }
+    arr.sort(function (a, b) {
+      if (b.s !== a.s) return b.s - a.s;
+      var ma = mp(a.it.d), mb = mp(b.it.d);
+      return (ma || 0) - (mb || 0) || String(a.it.d.model).localeCompare(String(b.it.d.model));
+    });
+    return arr.map(function (x) { return x.it; });
+  }
+
+  var missCands = [];
+  function hasActiveFilter() {
+    if (state.brand || state.lensFor) return true;
+    for (var k in state.sel) if (state.sel[k] !== '' && state.sel[k] != null) return true;
+    return false;
+  }
+
+  function renderMiss() {
+    var $miss = document.getElementById('miss');
+    if (!$miss) return;
+    if (filtered.length) { $miss.hidden = true; $miss.innerHTML = ''; missCands = []; return; }
+
+    if (!state.q.trim()) {
+      if (!hasActiveFilter()) { $miss.hidden = true; $miss.innerHTML = ''; return; }
+      $miss.innerHTML =
+        '<div class="miss-h"><span class="m-tag">筛选无结果</span>当前筛选条件下没有型号</div>' +
+        '<p class="miss-p">把「分辨率 ≥」「卡口」「彩色」这些条件放宽一档，或重置筛选看全部 ' + items.length + ' 个型号。</p>' +
+        '<div class="miss-acts"><button class="primary" data-act="reset">重置筛选</button></div>';
+      $miss.hidden = false;
+      return;
+    }
+
+    var raw = state.q.trim();
+    if (state.cat === 'fav') {
+      $miss.innerHTML =
+        '<div class="miss-h"><span class="m-tag">收藏里没有</span><code>' + esc(raw) + '</code></div>' +
+        '<p class="miss-p">当前只在收藏里搜这个关键词。切到「全部」或「面阵相机」可以在 ' + items.length + ' 个型号里找，找到后点行首的 ☆ 收藏即可。</p>' +
+        '<div class="miss-acts"><button class="primary" data-act="searchAll">在全库搜索</button></div>';
+      $miss.hidden = false;
+      return;
+    }
+    var dec = decodeHikrobot(raw);
+    var bk = dec ? 'hikrobot' : guessBrand(raw);
+    var cands = missAlternatives(dec, raw).slice(0, 6);
+    missCands = cands;
+    var sInfo = dec ? HK_SERIES_INFO[dec.series] : null;
+
+    var chips = [];
+    if (bk) chips.push('<span class="dc">品牌 <b>' + esc(brandShort(bk)) + '</b></span>');
+    if (dec) {
+      chips.push('<span class="dc">系列 <b>' + esc(dec.series) + '</b>' + (sInfo ? '（' + esc(sInfo.gen) + '）' : '') + '</span>');
+      chips.push('<span class="dc">分辨率 <b>' + esc(dec.mp) + ' MP</b>（码 ' + esc(dec.code) + '）</span>');
+      chips.push('<span class="dc">传感器 <b>' + esc(dec.sensor) + '</b></span>');
+      chips.push('<span class="dc">接口 <b>' + esc(dec.ifaceText) + '</b></span>');
+      chips.push('<span class="dc">色彩 <b>' + esc(dec.colorText) + '</b></span>');
+    }
+
+    var html =
+      '<div class="miss-h"><span class="m-tag">库里没有</span><code>' + esc(raw) + '</code></div>' +
+      '<p class="miss-p">产品库收录四品牌的 <b>' + (items.length - retiredInfo.total) + ' 个在售型号</b>' +
+      (retiredInfo.total ? '，以及 <b>' + retiredInfo.total + ' 个已退市型号</b>' : '') + '。这个型号两边都没有，' +
+      '通常是被改型改名、或是手册从未列过的渠道专供型号。' +
+      (dec ? '下面按它的型号编码拆出规格，再从库里找现售的同等型号。' : '') + '</p>' +
+      (chips.length ? '<div class="miss-decode">' + chips.join('') + '</div>' : '') +
+      (sInfo && sInfo.retired ? '<div class="miss-note">⚠ ' + esc(sInfo.note) + '</div>' : '');
+
+    if (cands.length) {
+      html += '<div class="miss-sub">现售替代 <span>' + (dec ? '同品牌 · 同分辨率 / 同接口 / 同色彩优先' : '按型号里的数字主体匹配') + '</span></div>' +
+        '<div class="miss-cands">' + cands.map(function (it, i) {
+          var model = it.d.model || it.d.series || '';
+          var spec = [resText(it.d), it.d.iface, it.d.color, it.d.size].filter(Boolean).join(' · ');
+          return '<button class="miss-cand" data-miss="' + i + '">' +
+            '<span><span class="mc-model">' + esc(model) + '</span>' +
+            '<span class="mc-spec">' + esc(spec) + '</span></span>' +
+            '<span class="mc-go">看全参数 →</span></button>';
+        }).join('') + '</div>';
+    } else {
+      html += '<div class="miss-sub">没有可替代的现售型号 <span>建议换个系列或缩小分辨率范围再查</span></div>';
+    }
+
+    var acts = [];
+    if (dec) {
+      acts.push('<button class="primary" data-act="apply">只看 ' + esc(dec.mp) + ' MP · ' + esc(dec.ifaceText) + ' · ' + esc(dec.colorText) + '</button>');
+    }
+    acts.push('<button data-act="copy">复制型号</button>');
+    if (hasActiveFilter()) acts.push('<button data-act="reset">重置筛选</button>');
+    html += '<div class="miss-acts">' + acts.join('') + '</div>';
+
+    $miss.innerHTML = html;
+    $miss.hidden = false;
   }
 
   // 由相机算「适配镜头」条件：卡口直配 +（大口径可转接 C 口）、像面覆盖靶面对角线、解析力 ≥ 相机像素
@@ -1521,6 +1946,12 @@
         esc(brandShort(bk)) + '</button>';
     });
     html += '</div></div>';
+    // 在售 / 退市：默认只看在售，货架不被退市型号占满；直接搜型号时不受这条限制
+    html += '<div class="f-group"><label>状态</label><select id="statusSel">' +
+      '<option value=""' + (state.status === '' ? ' selected' : '') + '>在售（默认）</option>' +
+      '<option value="all"' + (state.status === 'all' ? ' selected' : '') + '>含已退市</option>' +
+      '<option value="eol"' + (state.status === 'eol' ? ' selected' : '') + '>仅已退市（' + retiredInfo.total + '）</option>' +
+      '</select></div>';
     defs.forEach(function (def) {
       if (def.num) {
         html += '<div class="f-group"><label>' + esc(def.label) + '</label>' +
@@ -1588,8 +2019,9 @@
         if (c.color) { var t = c.get(it); return '<td>' + (t ? colorDotHtml(t) : '<span class="muted-cell">—</span>') + '</td>'; }
         var v = c.get(it);
         var cls = (c.cls ? ' class="' + c.cls + '"' : '') + (c.dim ? ' dim' : '');
+        var eolMark = (isEol(it) && (c.cls === 'model' || c.h === '型号')) ? eolTagHtml(it) : '';
         if (c.tag === 'brand') return '<td' + cls + '>' + brandTagHtml(it.brand) + '</td>';
-        return '<td' + cls + '>' + (v !== null && v !== undefined && v !== '' ? esc(v) : '<span class="muted-cell">—</span>') + '</td>';
+        return '<td' + cls + '>' + (v !== null && v !== undefined && v !== '' ? esc(v) + eolMark : '<span class="muted-cell">—</span>' + eolMark) + '</td>';
       }).join('') + '</tr>';
     }).join('');
   }
@@ -1603,7 +2035,7 @@
       return '<div class="card" data-idx="' + list.indexOf(it) + '">' +
         '<div class="card-flex"><div class="card-art">' + artFor(it) + '</div>' +
         '<div class="card-main">' +
-        '<div class="card-head"><span class="card-model">' + esc(model) + '</span>' + brandTagHtml(it.brand) + fitTag +
+        '<div class="card-head"><span class="card-model">' + esc(model) + '</span>' + (isEol(it) ? eolTagHtml(it) : '') + brandTagHtml(it.brand) + fitTag +
         favBtnHtml(it, list.indexOf(it), 'card-fav') +
         '<label class="cmp-chip"><input type="checkbox" class="cmp-box" data-idx="' + list.indexOf(it) + '"' + cmpInList(it) + ' />对比</label>' +
         '</div>' +
@@ -1685,6 +2117,7 @@
 
   var filtered = [];
   function render() {
+    state._qr = resolveQuery(state.q);
     filtered = currentItems();
     var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (state.page > totalPages) state.page = totalPages;
@@ -1694,21 +2127,82 @@
     renderTable(filtered, slice);
     renderCards(slice, filtered);
 
+    var nEol = filtered.filter(function (it) { return it.retired; }).length;
     $result.innerHTML = (state.cat === 'fav' && !favLoad().length)
       ? '还没有收藏：点列表行首（手机在型号旁）的 <b>☆</b> 或在详情里点「☆ 收藏」，收藏后会出现在自定义搭配页的选择器里。'
       : '共 <b>' + filtered.length + '</b> 条结果' +
-      (state.q ? '（关键词「' + esc(state.q.trim()) + '」）' : '') +
-      (isMobile.matches ? '，点卡片看全参数' : '，点行查看全参数');
+      (nEol ? '（其中 <b>' + nEol + '</b> 个已退市）' : '') +
+      (state.q ? '（关键词「' + esc(state.q.trim()) + '」' + (state._qr && state._qr.note ? '，<span class="q-note">' + esc(state._qr.note) + '</span>' : '') + '）' : '') +
+      (state.mpNear && !state.q ? '（只看 <b>' + esc(state.mpNear) + '</b> MP 同规格）' : '') +
+      (filtered.length ? (isMobile.matches ? '，点卡片看全参数' : '，点行查看全参数') : '') +
+      (nEol ? '<span class="eol-tip">退市型号只保留型号、分辨率、接口、色彩与替代关系，像元 / 帧率等以原厂手册为准。</span>' : '');
+
+    renderEolBanner(nEol);
 
     $pgInfo.textContent = '第 ' + state.page + ' / ' + totalPages + ' 页 · 每页 ' + PAGE_SIZE + ' 条';
     $pgPrev.disabled = state.page <= 1;
     $pgNext.disabled = state.page >= totalPages;
+
+    // 0 条时把空表 / 分页收起来，只留未收录说明，避免「空表头 + 空白」看着像坏了
+    var empty = filtered.length === 0;
+    var $tblWrap = document.querySelector('.tbl-wrap');
+    var $pager = document.querySelector('.pager');
+    if ($tblWrap) $tblWrap.style.display = empty ? 'none' : '';
+    if ($cards) $cards.style.display = empty ? 'none' : '';
+    if ($pager) $pager.style.display = empty ? 'none' : '';
+
+    renderMiss();
+  }
+
+  // 搜到退市型号时的顶部提示：说明它为什么还在、并给出官方替代
+  function renderEolBanner() {
+    var el = document.getElementById('eolBanner');
+    if (!el) return;
+    var hits = filtered.filter(isEol);
+    if (!state.q || !hits.length) { el.hidden = true; el.innerHTML = ''; return; }
+    var it = hits.filter(function (x) { return x.retired; })[0] || hits[0];
+    var soft = !it.retired, info = eolInfo(it);
+    el.className = 'eol-banner' + (soft ? ' soft' : '');
+    el.innerHTML = '⚠ <b>' + esc((it.d || {}).model) + '</b> ' + (soft ? '官方已停产' : '已退市') +
+      (info.year ? '（' + info.year + ' 年）' : '') +
+      (soft ? '，参数保留供比对，新项目建议改用替代型号' : '，产品库只留档不推荐') +
+      (info.replacedBy.length
+        ? '；官方替代：' + info.replacedBy.map(function (m) {
+            return '<button class="repl-chip" data-repl="' + esc(m) + '">' + esc(m) + '</button>';
+          }).join('')
+        : '；原厂未给出直接替代型号') +
+      (hits.length > 1 ? '（本次共命中 ' + hits.length + ' 个停产 / 退市型号）' : '');
+    el.hidden = false;
+    bindReplChips(el);
+  }
+
+  // 替代型号按钮：跳到该型号（库里没有就落到未收录说明）
+  function applyRepl(model) {
+    if (!model) return;
+    state.cat = 'all';
+    state.status = 'all';
+    state.q = model;
+    state.mpNear = null;
+    state.page = 1;
+    if ($search) { $search.value = model; $searchBox && $searchBox.classList.add('has-val'); }
+    closeDetail();
+    renderAll();
+  }
+  function bindReplChips(scope) {
+    if (!scope) return;
+    var btns = scope.querySelectorAll('[data-repl]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function (e) {
+        applyRepl(this.getAttribute('data-repl'));
+      });
+    }
   }
 
   function renderAll() {
-    // 类别计数（只按类别，不受筛选影响，便于导航）
-    var counts = { all: items.length, fav: favLoad().length };
-    items.forEach(function (it) { counts[it.cat] = (counts[it.cat] || 0) + 1; });
+    // 类别计数（只按类别，不受筛选影响，便于导航）；退市型号不占品类计数
+    var live = items.filter(function (it) { return !it.retired; });
+    var counts = { all: live.length, fav: favLoad().length };
+    live.forEach(function (it) { counts[it.cat] = (counts[it.cat] || 0) + 1; });
     renderTabs(counts);
     renderFilters();
     render();
@@ -1717,6 +2211,7 @@
   function switchCat(cat) {
     state.cat = cat;
     state.page = 1;
+    state.mpNear = null; // 换类别时解除「只看同规格」
     if (cat !== 'lens' && state.lensFor) state.lensFor = null; // 反查模式只在镜头页生效
     var sorts = SORTS[cat] || SORTS.all;
     state.sort = sorts[0].k;
@@ -1743,8 +2238,11 @@
       '</div>' +
       '<div class="sheet-model">' + esc(d.model || d.series || '') + '</div>' +
       '<div class="sheet-meta"><span>' + esc(brandShort(it.brand)) + '</span>' +
+        (isEol(it) ? '<span class="sheet-eol' + (it.retired ? '' : ' soft') + '">' +
+          (it.retired ? '已退市' : '官方已停产') + '</span>' : '') +
         (meta.generated ? '<span>数据来源：' + esc(d.source || meta.source || '') + '（' + esc(meta.generated) + '）</span>' : '') +
       '</div>' +
+      (isEol(it) ? eolBlockHtml(it) : '') +
       '<div class="sheet-acts">' +
         (comboSupported(it)
           ? '<button class="inq-add combo-add' + (comboSame(it) ? ' on' : '') + '" id="comboAdd">' +
@@ -1757,6 +2255,7 @@
       '<div class="sheet-art">' + artFor(it) + '</div>' +
       '<table class="kv-table">' + rows + '</table>' + extraBlocks(it);
     $mask.classList.add('show');
+    bindReplChips($sheet);
     document.getElementById('sheetClose').addEventListener('click', closeDetail);
     var addBtn = document.getElementById('inqAdd');
     if (addBtn) addBtn.addEventListener('click', function () {
@@ -1850,6 +2349,71 @@
   $mask.addEventListener('click', function (e) { if (e.target === $mask) closeDetail(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetail(); });
 
+  /* ---- 未收录型号面板：点替代型号看全参数 / 按规格筛选 / 复制型号 / 重置 ---- */
+  function resetFilters() {
+    state.brand = '';
+    state.sel = {};
+    state.lensFor = null;
+    state.mpNear = null;
+    state.page = 1;
+    var sorts = SORTS[state.cat] || SORTS.all;
+    state.sort = sorts[0].k;
+    renderAll();
+  }
+  (function bindMissPanel() {
+    var $miss = document.getElementById('miss');
+    if (!$miss) return;
+    $miss.addEventListener('click', function (e) {
+      var cand = e.target.closest('[data-miss]');
+      if (cand) {
+        var it = missCands[parseInt(cand.getAttribute('data-miss'), 10)];
+        if (it) openDetail(it);
+        return;
+      }
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act === 'reset') { resetFilters(); return; }
+      if (act === 'searchAll') {
+        state.cat = 'all';
+        state.page = 1;
+        renderAll();
+        return;
+      }
+      if (act === 'copy') {
+        var txt = state.q.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () {
+            b.textContent = '✓ 已复制';
+            setTimeout(function () { b.textContent = '复制型号'; }, 1500);
+          }, function () { window.prompt('复制型号：', txt); });
+        } else {
+          window.prompt('复制型号：', txt);
+        }
+        return;
+      }
+      if (act === 'apply') {
+        var dec = decodeHikrobot(state.q);
+        if (!dec) return;
+        state.cat = 'cam';
+        state.brand = 'hikrobot';
+        state.sel = {};
+        if (dec.ifaceFilter) state.sel['cam.iface'] = dec.ifaceFilter;
+        if (dec.colorText) state.sel['cam.color'] = dec.colorText;
+        if (dec.kind === 'area') state.sel['cam.form'] = '面阵';
+        if (dec.mp) state.mpNear = dec.mp;
+        state.q = '';
+        $search.value = '';
+        $searchBox.classList.remove('has-val');
+        state.page = 1;
+        var sorts = SORTS.cam || SORTS.all;
+        state.sort = sorts[0].k;
+        renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+
   /* ============ 6. 事件绑定 ============ */
   $tabs.addEventListener('click', function (e) {
     var btn = e.target.closest('.tab');
@@ -1860,18 +2424,13 @@
     var chip = e.target.closest('.chip[data-brand]');
     if (chip) {
       state.brand = chip.getAttribute('data-brand');
+      state.mpNear = null;
       state.page = 1;
       renderAll();
       return;
     }
     if (e.target.id === 'resetBtn') {
-      state.brand = '';
-      state.sel = {};
-      state.lensFor = null;
-      state.page = 1;
-      var sorts = SORTS[state.cat] || SORTS.all;
-      state.sort = sorts[0].k;
-      renderAll();
+      resetFilters();
       return;
     }
     if (e.target.id === 'lfClear') {
@@ -1885,6 +2444,7 @@
     var t = e.target;
     if (t.tagName === 'SELECT' && t.hasAttribute('data-sel')) {
       state.sel[state.cat + '.' + t.getAttribute('data-sel')] = t.value;
+      state.mpNear = null;
       state.page = 1;
       render();
       // 品牌筛选变化不影响选项集，但计数变化 → 更新结果区即可
@@ -1892,6 +2452,10 @@
       state.sort = t.value;
       state.page = 1;
       render();
+    } else if (t.id === 'statusSel') {
+      state.status = t.value;
+      state.page = 1;
+      renderAll();   // 计数与货架一起变
     }
   });
 
@@ -1899,6 +2463,7 @@
     var t = e.target;
     if (t.hasAttribute && t.hasAttribute('data-num')) {
       state.sel[state.cat + '.' + t.getAttribute('data-num')] = t.value;
+      state.mpNear = null;
       state.page = 1;
       render();
     }
@@ -1910,6 +2475,7 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
       state.q = $search.value;
+      state.mpNear = null;
       state.page = 1;
       render();
     }, 120);
@@ -1918,6 +2484,7 @@
     $search.value = '';
     $searchBox.classList.remove('has-val');
     state.q = '';
+    state.mpNear = null;
     state.page = 1;
     render();
     $search.focus();
@@ -2043,6 +2610,7 @@
   // 搭配页只合并主目录里的光源（Basler 灯光独立库暂未并入选型引擎）
   function comboSupported(it) {
     if (!comboSlotOf(it.cat)) return false;
+    if (it.retired) return false;   // 引擎目录里没有退市型号，搭配台无法评定
     if (it.cat !== 'light') return true;
     var gs = ['HikrobotCatalog', 'HuaruiCatalog', 'BaslerCatalog', 'DahengCatalog'];
     for (var i = 0; i < gs.length; i++) {
@@ -2304,21 +2872,31 @@
 
   /* ============ 7. 顶部统计与页脚 ============ */
   (function initStats() {
-    var total = items.length;
-    var cam = items.filter(function (x) { return x.cat === 'cam'; }).length;
-    var lens = items.filter(function (x) { return x.cat === 'lens'; }).length;
-    var light = items.filter(function (x) { return x.cat === 'light'; }).length;
-    var prof = items.filter(function (x) { return x.cat === 'prof'; }).length;
-    var ipc = items.filter(function (x) { return x.cat === 'ipc'; }).length;
-    var ir = items.filter(function (x) { return x.cat === 'ir'; }).length;
+    var total = items.filter(function (x) { return !x.retired; }).length;
+    var cam = items.filter(function (x) { return x.cat === 'cam' && !x.retired; }).length;
+    var lens = items.filter(function (x) { return x.cat === 'lens' && !x.retired; }).length;
+    var light = items.filter(function (x) { return x.cat === 'light' && !x.retired; }).length;
+    var prof = items.filter(function (x) { return x.cat === 'prof' && !x.retired; }).length;
+    var ipc = items.filter(function (x) { return x.cat === 'ipc' && !x.retired; }).length;
+    var ir = items.filter(function (x) { return x.cat === 'ir' && !x.retired; }).length;
     document.getElementById('stats').innerHTML =
-      '共 <b>' + total + '</b> 个型号 · 四品牌官方型录';
+      '共 <b>' + total + '</b> 个在售型号' +
+      (retiredInfo.total ? ' · 另存 <b>' + retiredInfo.total + '</b> 个退市型号' : '') + ' · 四品牌官方型录';
     var footLines = [];
     allMetas.forEach(function (m) {
       footLines.push(brandShort(m.brand) + '：' + (m.meta.source || '') + (m.meta.generated ? '（更新于 ' + m.meta.generated + '）' : ''));
     });
     document.getElementById('foot').innerHTML =
       '<b>数据来源</b><br>' + footLines.map(esc).join('<br>') +
+      (retiredInfo.total
+        ? '<br>退市型号：' + esc((window.RetiredCatalog.META || {}).scope || '官方停产 / 退市公告') +
+          '，共 ' + retiredInfo.total + ' 个（海康 CA/CE 系列、Basler ace Classic、大恒水星一代等），' +
+          '仅用于查型号与替代关系，不进入选型推荐。' +
+          (retiredInfo.skipped.length
+            ? '另有 ' + retiredInfo.skipped.length + ' 个型号（' + esc(retiredInfo.skipped.join(' / ')) +
+              '）在售型录中已有参数记录，未重复列出，详情里同样标注官方停产与替代型号。'
+            : '')
+        : '') +
       '<br>本页面为选型助手的配套产品库，纯前端实现，可离线使用；参数以厂商官方最新资料为准。';
   })();
 
@@ -2327,11 +2905,16 @@
   renderInquiryTray();
   renderComboTray();
 
-  /* ============ 8. URL 参数入口：?cat=cam&q=型号 → 自动定位并弹出详情；?inq=1 → 直接摊开询价清单 ============ */
+  /* ============ 8. URL 参数入口：?cat=cam&q=型号 → 自动定位并弹出详情；?status=eol|all → 含退市；?inq=1 → 直接摊开询价清单 ============ */
   (function initFromUrl() {
     try {
       var sp = new URLSearchParams(location.search);
-      var q = sp.get('q'), cat = sp.get('cat');
+      var q = sp.get('q'), cat = sp.get('cat'), st = sp.get('status');
+      if (st === 'all' || st === 'eol' || st === '') {
+        state.status = st;
+        var sel = document.getElementById('statusSel');
+        if (sel) sel.value = st;
+      }
       if (cat && CATS.some(function (c) { return c.key === cat; }) && cat !== state.cat) {
         state.cat = cat;
         state.sort = (SORTS[cat] || SORTS.all)[0].k;
@@ -2343,7 +2926,7 @@
         renderAll();
         var exact = filtered.filter(function (it) { return (it.d.model || '') === q; });
         if (exact.length) openDetail(exact[0]);
-      } else if (cat) {
+      } else if (cat || st) {
         renderAll();
       }
       if (sp.get('inq') === '1') openInquiryPanel();
