@@ -58,6 +58,12 @@ function jget(p) {
   const att = await send('Target.attachToTarget', { targetId: t.targetId, flatten: true });
   const sid = att.sessionId;
   await send('Page.enable', {}, sid);
+  // Chrome 的 --window-size 最小只能到 512，移动端要真量到 390 必须走设备度量覆盖
+  if (WIDTH < 500) {
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: WIDTH, height: 900, deviceScaleFactor: 2, mobile: true
+    }, sid);
+  }
   await send('Emulation.setUserAgentOverride', {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
     acceptLanguage: 'zh-CN,zh;q=0.9,en;q=0.8'
