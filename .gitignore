@@ -8,6 +8,9 @@ desktop.ini
 *.local
 *.bak
 
+# 本地临时抓取产物
+tmp/
+
 # 手册原件与解析中间产物
 manuals/
 tools/_cache/
