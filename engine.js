@@ -113,7 +113,45 @@
     GMSL2: 2.7, BCON: 2.7
   };
 
+  // 链路上要扣掉包头 / 协议 / 帧间隔开销，可用的是有效载荷带宽，不是理论线速。
+  var IFACE_EFF = 0.85;
+  function ifaceCapOf(iface) { return (IFACE_BW[iface] || 350) * IFACE_EFF; }
+
+  /**
+   * 链路位深：黑白与彩色 Bayer 的原始数据都是单通道 8/10/12 bit，
+   * RGB 三通道插值发生在上位机，不占相机→采集端的带宽。
+   * 旧口径给彩色一律 16 bit，会把彩色机型的带宽高估一倍。
+   * 型录若逐型号给了 bitDepth 则优先采用。
+   */
+  function bitDepthOf(cam) {
+    if (cam && cam.bitDepth != null) { var b = Number(cam.bitDepth); if (b > 0) return b; }
+    return 8;
+  }
+
+  // 彩色 Bayer 插值后细节分辨率低于同像素黑白机，所需像素留 20% 余量。
+  var BAYER_FACTOR = 1.2;
+
+  /**
+   * 镜头解析力：MP 只是粗指标，同样 12MP 的 1/2"(1.85µm) 与 1"(3.45µm)
+   * 对镜头线对数的要求差近一倍。以 3.45µm 像元为基准，按 Nyquist 需求微调倍率。
+   */
+  function lensMpNeed(cam) {
+    var camMp = (cam.w * cam.h) / 1e6;
+    var f = cam.pxUm > 0 ? Math.min(1.35, Math.max(0.85, 3.45 / cam.pxUm)) : 1;
+    return camMp * 0.85 * f;
+  }
+  function lensResolves(lens, cam) {
+    return lens.mp == null || lens.mp >= lensMpNeed(cam);
+  }
+
   /* ============================ 小工具 ============================ */
+
+  // 连续扣分：越界越远扣得越多，避免阈值两侧分数阶跃跳变、推荐型号来回摆动。
+  function ramp(excess, weight, span) {
+    if (!(excess > 0)) return 0;                 // 含 NaN / 负值 / -Infinity
+    if (!isFinite(excess)) return weight;        // 无限缺口按满额扣
+    return Math.round(weight * Math.min(1, excess / (span || 1)));
+  }
 
   function round(x, n) {
     var p = Math.pow(10, n == null ? 2 : n);
@@ -201,7 +239,7 @@
       var l = CAT.LENSES[i];
       if (!mountCompatible(cam.mount, l.mount)) continue;
       if (l.ic != null && l.ic < diag * 0.97) continue;          // 像面必须覆盖靶面
-      if (l.mp != null && l.mp < camMp * 0.85) continue;         // 镜头解析力不能低于相机
+      if (!lensResolves(l, cam)) continue;                      // 镜头解析力不能低于相机（按像元尺寸调档）
       if (!(l.focal < inp.wd * 0.95)) continue;                  // 工作距离必须大于焦距
       if (l.minDist != null && l.minDist * 1000 > inp.wd) continue; // 工作距离必须 ≥ 最近摄距
       if (l.focal > fReq + 1e-9) continue;                       // 焦距过大则视场不足
@@ -256,7 +294,7 @@
       var mm = mountMatch(cam.mount, l.mount);
       if (!mm) continue;
       if (l.ic != null && l.ic < diag * 0.97) continue;
-      if (l.mp != null && l.mp < camMp * 0.85) continue;
+      if (!lensResolves(l, cam)) continue;
       if (!(l.focal < inp.wd * 0.95)) continue;
       if (l.minDist != null && l.minDist * 1000 > inp.wd) continue;
       if (l.focal > fReq + 1e-9) continue;
@@ -359,52 +397,65 @@
    * 修改本函数请同步 solve() 中 score 计算，反之亦然。
    * 注：fps 用预估值（未含 cpm 修正），选优阶段近似，最终分数以 solve 为准。
    */
-  function candScore(cand, inp, pxAccReq, estFps) {
+  /**
+   * 从「相机 + 镜头」候选构造统一的匹配度度量。
+   * 选优、备选对比、页面展示的分数都由它喂给 scoreOf，
+   * 杜绝「按 A 尺子选、按 B 尺子显示」：视场一律用候选的实际 fovH，
+   * 光圈一律取满足景深的那一档，位深 / 有效带宽走同一组辅助函数。
+   */
+  function metricsFromCand(cand, inp, pxAccReq, feasible) {
     var cam = cand.cam, lens = cand.lens;
-    var margin = (pxAccReq - cand.pxAcc) / pxAccReq;
-    var fErr = Math.abs(lens.focal - cand.fReq) / cand.fReq;
-    var fovOver = Math.max((cand.fovW - inp.fovW) / inp.fovW, (cand.fovH - inp.fovH) / inp.fovH);
-    var bitDepth = cam.color === '彩色' ? 16 : 8;
-    var fps = estFps > 0 ? estFps : Math.min(15, cam.fps);
-    var bandwidth = (cam.w * cam.h * bitDepth * fps) / 8 / 1e6;
-    var ifaceCap = IFACE_BW[cam.iface] || 350;
+    var pxSizeMM = cam.sh / cam.h;
+    var fps = inp.speed > 0 ? Math.max(1, Math.ceil((inp.speed / cand.fovH) * 1.2)) : Math.min(15, cam.fps);
+    if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
+    var bandwidth = (cam.w * cam.h * fps * bitDepthOf(cam)) / 8 / 1e6;
+    var ifaceCap = ifaceCapOf(cam.iface);
     var tMaxMs = inp.speed > 0 ? (cand.pxAcc / inp.speed) * 1000 : Infinity;
-    // 大口径相机经转接环配 C 口镜头：可用但不如直接卡口（solve 的 score 计算需同步）
-    var adapter = mountMatch(cam.mount, lens.mount) === 2;
 
-    // 景深：与 solve 一致，从实用最小光圈起逐级收小至满足高度差
-    var cc = 2 * (cam.sh / cam.h);
+    var cc = 2 * pxSizeMM;
     var apFloor = Math.max(4, lens.fmin || 2.8);
     var ladder = APERTURES.filter(function (f) {
       return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
     });
     if (!ladder.length) ladder = [lens.fmin || 2.8];
-    var dofOK = false;
+    var ap = ladder[0], dof = 0, dofOK = false;
     for (var q = 0; q < ladder.length; q++) {
-      if ((2 * ladder[q] * cc * (1 + cand.m)) / (cand.m * cand.m) >= inp.heightDiff) { dofOK = true; break; }
+      var F = ladder[q];
+      ap = F;
+      dof = (2 * F * cc * (1 + cand.m)) / (cand.m * cand.m);
+      if (dof >= inp.heightDiff) { dofOK = true; break; }
     }
-    var blurPx = (2.44 * LAMBDA_UM * ladder[0]) / ((cam.sh / cam.h) * 1000);
+    var blurPx = (2.44 * LAMBDA_UM * ap) / (pxSizeMM * 1000);
+    var expMinGap = (isFinite(tMaxMs) && cam.expMinUs != null)
+      ? Math.max(0, (cam.expMinUs - tMaxMs * 1000) / cam.expMinUs) : 0;
 
-    var s = 100;
-    if (margin < 0.15) s -= 12;
-    if (!dofOK) s -= 15;
-    if (blurPx > 2.5) s -= 8;
-    if (tMaxMs < 1) s -= 6;
-    if (fErr > 0.15) s -= 8;
-    if (fovOver > 0.2) s -= 6;
-    if (fps > cam.fps) s -= 10;
-    if (bandwidth > ifaceCap) s -= 10;
-    // 曝光下限不足会拍不清（solve 以警告提示，选优阶段一并纳入）
-    if (inp.speed > 0 && cam.expMinUs != null && tMaxMs * 1000 < cam.expMinUs) s -= 8;
-    if (adapter) s -= 3;
-    return s;
+    return {
+      feasible: feasible !== false,
+      feasibleWhy: '精度 / 视场 / 卡口等硬性约束未通过',
+      margin: (pxAccReq - cand.pxAcc) / pxAccReq,
+      dofOK: dofOK, dof: dof, heightDiff: inp.heightDiff,
+      blurPx: blurPx, ap: ap, tMaxMs: tMaxMs, expMinGap: expMinGap,
+      fErr: Math.abs(lens.focal - cand.fReq) / cand.fReq,
+      fovOver: Math.max((cand.fovW - inp.fovW) / inp.fovW, (cand.fovH - inp.fovH) / inp.fovH),
+      fps: fps, camFps: cam.fps,
+      bandwidth: bandwidth, ifaceCap: ifaceCap, camIface: cam.iface,
+      adapter: mountMatch(cam.mount, lens.mount) === 2,
+      // 供调用方复用的中间量（scoreOf 只读上面的字段）
+      _fps: fps, _bandwidth: bandwidth, _ifaceCap: ifaceCap,
+      _tMaxMs: tMaxMs, _ap: ap, _dof: dof, _blurPx: blurPx
+    };
+  }
+
+  /** 选优分数 = 页面最终展示的那一套规则（不再单独手抄一份扣分表） */
+  function candScore(cand, inp, pxAccReq) {
+    return scoreOf(metricsFromCand(cand, inp, pxAccReq, true)).score;
   }
 
   function selectOptics(inp, needW, needH, isColor) {
-    var bitDepth = isColor ? 16 : 8;
     var pxAccReq = inp.precision / (TASKS[inp.task] || TASKS.defect).k;
 
-    // 粗略估计该机型所需带宽（视野高用需求视野近似，用于判断接口是否够用）
+    // 仅用于预排序的粗略帧率（视场只能用需求视野近似）；
+    // 最终评分一律按 metricsFromCand 里候选的实际 fovH 计算，两者不再混用。
     var estFps = inp.speed > 0 ? Math.max(1, Math.ceil((inp.speed / inp.fovH) * 1.2)) : 0;
 
     var pool = [];
@@ -429,8 +480,8 @@
 
     function bandwidthFits(c) {
       var f = estFps > 0 ? estFps : Math.min(15, c.fps);
-      var bw = (c.w * c.h * bitDepth * f) / 8 / 1e6;
-      return bw <= (IFACE_BW[c.iface] || 350);
+      var bw = (c.w * c.h * bitDepthOf(c) * f) / 8 / 1e6;
+      return bw <= ifaceCapOf(c.iface);
     }
 
     // 遍历全部候选：收集所有达标方案按预估匹配分选最优，不再“第一个达标就返回”
@@ -443,10 +494,30 @@
       if (!best || cand.pxAcc < best.pxAcc) best = cand;
     }
 
+    /* ---- 硬约束否决 ----
+     * 帧率跑不到、链路带宽不够、曝光短于相机最短曝光、安装空间放不下、精度预算超差，
+     * 过去只扣分（甚至只发警告），可能让一台物理上跑不起来的相机排在首位。
+     * 现在先从达标方案里淘汰；一台都过不了时才退回原来的软扣分，并在页面保留警告。
+     */
+    function hardPass(cand) {
+      var m = metricsFromCand(cand, inp, pxAccReq, true);
+      if (m._fps > cand.cam.fps) return false;
+      if (m._bandwidth > m._ifaceCap) return false;
+      if (isFinite(m._tMaxMs) && cand.cam.expMinUs != null &&
+          m._tMaxMs * 1000 < cand.cam.expMinUs) return false;
+      if (inp.space > 0 && spaceCheck(inp, cand.cam, cand.lens).pass === false) return false;
+      if (!accuracyBudget(inp, cand.lens, cand.pxAcc, pxAccReq).pass) return false;
+      return true;
+    }
+    var ranked = oks;
     if (oks.length > 1) {
-      oks.sort(function (a, b) {
-        var sa = candScore(a, inp, pxAccReq, estFps);
-        var sb = candScore(b, inp, pxAccReq, estFps);
+      var hard = oks.filter(hardPass);
+      ranked = hard.length ? hard : oks;
+    }
+    if (ranked.length > 1) {
+      ranked.sort(function (a, b) {
+        var sa = candScore(a, inp, pxAccReq);
+        var sb = candScore(b, inp, pxAccReq);
         if (sb !== sa) return sb - sa;
         var pa = a.cam.w * a.cam.h, pb = b.cam.w * b.cam.h;
         if (pa !== pb) return pa - pb;
@@ -456,12 +527,12 @@
           (IFACE_RANK[b.cam.iface] == null ? 9 : IFACE_RANK[b.cam.iface]);
       });
     }
-    var chosen = oks.length ? oks[0] : best;
+    var chosen = ranked.length ? ranked[0] : best;
     // 备选方案：与最优「成套方案」不同的另一台相机 + 其匹配镜头（换相机才算另一套，同相机换镜头不重复列），最多 3 套
-    if (chosen && oks.length > 1) {
+    if (chosen && ranked.length > 1) {
       var alts = [];
-      for (var ai = 1; ai < oks.length && alts.length < 3; ai++) {
-        var a = oks[ai];
+      for (var ai = 1; ai < ranked.length && alts.length < 3; ai++) {
+        var a = ranked[ai];
         if (a.cam.model === chosen.cam.model && (a.cam.brand || '') === (chosen.cam.brand || '')) continue;
         var dup = alts.some(function (x) {
           return x.cam.model === a.cam.model && (x.cam.brand || '') === (a.cam.brand || '');
@@ -857,9 +928,9 @@
 
     // 数据带宽（按需要的行频或相机常用行频估算）
     var useRate = needRate || Math.min(pick.lineRate, 20); // kHz
-    var bitDepth = isColor ? 16 : 8;
+    var bitDepth = bitDepthOf(pick);
     var bandwidth = (pick.w * bitDepth * useRate * 1000) / 8 / 1e6;
-    var cap = IFACE_BW[pick.iface] || 350;
+    var cap = ifaceCapOf(pick.iface);
 
     // 线光源：长度 ≥ 视野宽
     var lineLights = (CAT && CAT.LIGHTS ? CAT.LIGHTS : []).filter(function (x) {
@@ -1152,7 +1223,7 @@
       if (l.focal > fReq + 1e-9) return false;                         // 焦距过大则视场不足
       if (Math.abs(l.focal - lens.focal) / lens.focal > 0.12) return false; // 焦距与当前接近
       if (l.ic != null && l.ic < camDiag * 0.97) return false;         // 像面必须覆盖靶面
-      if (l.mp != null && l.mp < camMp * 0.85) return false;           // 解析力不能低于相机
+      if (!lensResolves(l, cam)) return false;                        // 解析力不能低于相机
       if (!(l.focal < inp.wd * 0.95)) return false;                    // 工作距离必须大于焦距
       if (l.minDist != null && l.minDist * 1000 > inp.wd) return false; // 工作距离 ≥ 最近摄距
       return true;
@@ -1693,20 +1764,37 @@
    * 匹配度 = 100 分逐项扣分（solve 与 evaluateCombo 共用同一套规则）。
    * 返回 { score, items }，items 记录每一项扣了多少分、为什么，供界面展开「评分构成」。
    */
+  /**
+   * 唯一评分规则：solve / evaluateCombo / 选优 / 备选方案对比都必须走这里。
+   * 扣分项按「越界程度」连续给分：阈值内为 0，偏离到 span 时扣满权重，
+   * 避免阈值两侧相差 0.1% 却差 8~12 分、参数微调时推荐型号来回跳。
+   */
   function scoreOf(m) {
     var items = [];
     function d(label, penalty, detail) {
-      items.push({ label: label, penalty: penalty, detail: detail || '' });
+      if (penalty > 0) items.push({ label: label, penalty: penalty, detail: detail || '' });
     }
     if (!m.feasible) d('硬性条件不满足', 45, m.feasibleWhy || '精度 / 视场 / 卡口等硬性约束未通过');
-    if (m.margin < 0.15) d('精度余量不足', 12, '余量 ' + Math.round(Math.max(0, m.margin) * 100) + '%，建议提高一档分辨率');
-    if (!m.dofOK) d('景深不足', 15, '景深 ' + fmt(m.dof) + ' mm < 高度变化 ' + fmt(m.heightDiff) + ' mm');
-    if (m.blurPx > 2.5) d('衍射限制', 8, 'F' + m.ap + ' 下衍射弥散约 ' + fmt(m.blurPx) + ' 像素');
-    if (m.tMaxMs < 1) d('曝光上限过短', 6, '最长 ' + fmt(m.tMaxMs) + ' ms，需频闪光源 + 触发同步');
-    if (m.fErr > 0.15) d('焦距档位偏离', 8, '最接近焦距与理论值差 ' + Math.round(m.fErr * 100) + '%');
-    if (m.fovOver > 0.2) d('视场过剩', 6, '实际视场比需求大 ' + Math.round(m.fovOver * 100) + '%，像素被摊薄');
-    if (m.fps > m.camFps) d('帧率不足', 10, '需要 ' + m.fps + ' fps，相机最高 ' + m.camFps + ' fps');
-    if (m.bandwidth > m.ifaceCap) d('带宽超限', 10, fmt(m.bandwidth) + ' MB/s 超过 ' + m.camIface + ' 约 ' + m.ifaceCap + ' MB/s');
+
+    d('精度余量不足', ramp(0.15 - m.margin, 12, 0.15),
+      '余量 ' + Math.round(Math.max(0, m.margin) * 100) + '%，建议提高一档分辨率');
+    var dofGap = m.heightDiff > 0 ? (m.heightDiff - m.dof) / m.heightDiff : (m.dofOK ? 0 : 1);
+    d('景深不足', ramp(dofGap, 15, 0.5),
+      '景深 ' + fmt(m.dof) + ' mm < 高度变化 ' + fmt(m.heightDiff) + ' mm');
+    d('衍射限制', ramp(m.blurPx - 2.5, 8, 2.5),
+      'F' + m.ap + ' 下衍射弥散约 ' + fmt(m.blurPx) + ' 像素');
+    d('曝光上限过短', ramp(1 - m.tMaxMs, 6, 1),
+      '最长 ' + fmt(m.tMaxMs) + ' ms，需频闪光源 + 触发同步');
+    d('焦距档位偏离', ramp(m.fErr - 0.15, 8, 0.35),
+      '最接近焦距与理论值差 ' + Math.round(m.fErr * 100) + '%');
+    d('视场过剩', ramp(m.fovOver - 0.2, 6, 0.5),
+      '实际视场比需求大 ' + Math.round(m.fovOver * 100) + '%，像素被摊薄');
+    d('帧率不足', ramp(m.fps - m.camFps, 10, Math.max(1, m.camFps)),
+      '需要 ' + m.fps + ' fps，相机最高 ' + m.camFps + ' fps');
+    d('带宽超限', ramp(m.bandwidth - m.ifaceCap, 10, Math.max(1, m.ifaceCap)),
+      fmt(m.bandwidth) + ' MB/s 超过 ' + m.camIface + ' 有效带宽约 ' + fmt(m.ifaceCap) + ' MB/s');
+    d('曝光短于相机下限', ramp(m.expMinGap || 0, 8, 1),
+      '所需曝光短于该相机最短曝光，需降速或换机型');
     if (m.adapter) d('需转接环', 3, 'C 口镜头经转接环装大口径机身，法兰距与像面余量需确认');
 
     var total = 0;
@@ -1715,74 +1803,24 @@
   }
 
   /**
-   * 用与 solve 完全相同的口径给「备选整机」算分与带宽（仅用于选型依据对比）。
-   * candScore 为选优阶段的服务，光圈按最宽档估衍射，会高估备选分；
-   * 这里必须用实际停档后的光圈，否则两边对比是两套尺子。
+   * 备选整机方案的分数：与首选走同一个 metricsFromCand + scoreOf。
+   * 旧实现在这里按最宽光圈估衍射、在 candScore 里又单独手抄一份扣分表，
+   * 两处都与最终展示的分数不是同一把尺子，现已统一。
    */
   function candidateMetrics(inp, cand, pxAccReq) {
-    var cam = cand.cam, lens = cand.lens;
-    var m = cand.m, pxAcc = cand.pxAcc;
-    var pxSizeMM = cam.sh / cam.h;
-    var bitDepth = cam.color === '彩色' ? 16 : 8;
-
-    var fps;
-    if (inp.speed > 0) fps = Math.max(1, Math.ceil((inp.speed / cand.fovH) * 1.2));
-    else fps = Math.min(15, cam.fps);
-    if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
-    var bandwidth = (cam.w * cam.h * fps * bitDepth) / 8 / 1e6;
-    var ifaceCap = IFACE_BW[cam.iface] || 350;
-    var tMaxMs = inp.speed > 0 ? (pxAcc / inp.speed) * 1000 : Infinity;
-
-    var c = 2 * pxSizeMM;
-    var apFloor = Math.max(4, lens.fmin || 2.8);
-    var ladder = APERTURES.filter(function (f) {
-      return f >= apFloor - 1e-9 && f <= apMaxOf(lens) + 1e-9;
-    });
-    if (!ladder.length) ladder = [(lens.fmin || 2.8)];
-    var ap = ladder[0];
-    var dof = 0;
-    var dofOK = false;
-    for (var q = 0; q < ladder.length; q++) {
-      var F = ladder[q];
-      var d = (2 * F * c * (1 + m)) / (m * m);
-      ap = F;
-      dof = d;
-      if (d >= inp.heightDiff) { dofOK = true; break; }
-    }
-    var blurPx = (2.44 * LAMBDA_UM * ap) / (pxSizeMM * 1000);
-    var fErr = Math.abs(lens.focal - cand.fReq) / cand.fReq;
-    var fovOver = Math.max((cand.fovW - inp.fovW) / inp.fovW, (cand.fovH - inp.fovH) / inp.fovH);
-    var adapter = mountMatch(cam.mount, lens.mount) === 2;
-
-    var sc = scoreOf({
-      feasible: true,
-      margin: (pxAccReq - pxAcc) / pxAccReq,
-      dofOK: dofOK,
-      dof: dof,
-      heightDiff: inp.heightDiff,
-      blurPx: blurPx,
-      ap: ap,
-      tMaxMs: tMaxMs,
-      fErr: fErr,
-      fovOver: fovOver,
-      fps: fps,
-      camFps: cam.fps,
-      bandwidth: bandwidth,
-      ifaceCap: ifaceCap,
-      camIface: cam.iface,
-      adapter: adapter
-    });
+    var m = metricsFromCand(cand, inp, pxAccReq, true);
+    var sc = scoreOf(m);
     return {
       score: sc.score,
       items: sc.items,
-      fps: fps,
-      bandwidth: bandwidth,
-      ap: ap,
-      dof: dof,
-      blurPx: blurPx,
-      tMaxMs: tMaxMs,
-      margin: (pxAccReq - pxAcc) / pxAccReq,
-      adapter: adapter
+      fps: m._fps,
+      bandwidth: m._bandwidth,
+      ap: m._ap,
+      dof: m._dof,
+      blurPx: m._blurPx,
+      tMaxMs: m._tMaxMs,
+      margin: m.margin,
+      adapter: m.adapter
     };
   }
 
@@ -1831,8 +1869,10 @@
     var task = TASKS[inp.task] || TASKS.defect;
     var k = task.k;
     var pxAccReq = inp.precision / k;
-    var needW = Math.ceil(inp.fovW / pxAccReq - 1e-9);
-    var needH = Math.ceil(inp.fovH / pxAccReq - 1e-9);
+    var colorNeed = !!(inp.needColor || inp.task === 'color');
+    var bayer = colorNeed ? BAYER_FACTOR : 1;
+    var needW = Math.ceil((inp.fovW / pxAccReq) * bayer - 1e-9);
+    var needH = Math.ceil((inp.fovH / pxAccReq) * bayer - 1e-9);
 
     var cam = findInList(CAT.CAMERAS || [], sel.camera);
     var lens = findInList(CAT.LENSES || [], sel.lens);
@@ -1866,17 +1906,19 @@
     var margin = canFocus ? (pxAccReq - pxAcc) / pxAccReq : -1;
     var pxSizeMM = cam.sh / cam.h;
     var isColor = cam.color === '彩色';
-    var bitDepth = isColor ? 16 : 8;
+    var bitDepth = bitDepthOf(cam);
     var adapter = mm === 2;
 
     var fps;
-    if (inp.speed > 0) fps = Math.max(1, Math.ceil((inp.speed / inp.fovH) * 1.2));
+    if (inp.speed > 0) fps = Math.max(1, Math.ceil((inp.speed / (canFocus ? fovH : inp.fovH)) * 1.2));
     else fps = Math.min(15, cam.fps);
     if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
     var bandwidth = (cam.w * cam.h * fps * bitDepth) / 8 / 1e6;
-    var ifaceCap = IFACE_BW[cam.iface] || 350;
+    var ifaceCap = ifaceCapOf(cam.iface);
     var tMaxMs = inp.speed > 0 ? ((canFocus ? pxAcc : pxAccReq) / inp.speed) * 1000 : Infinity;
     if (!canFocus) tMaxMs = Infinity;
+    var expMinGap = (isFinite(tMaxMs) && cam.expMinUs != null)
+      ? Math.max(0, (cam.expMinUs - tMaxMs * 1000) / cam.expMinUs) : 0;
 
     var cc = 2 * pxSizeMM;
     var apFloor = Math.max(4, lens.fmin || 2.8);
@@ -1902,7 +1944,7 @@
     var failWhy = [];
 
     /* ---- 相机 ---- */
-    var colorNeed = inp.needColor || inp.task === 'color';
+    /* ---- 相机 ---- */
     if (colorNeed && !isColor) {
       failWhy.push('需要彩色相机');
       chk('相机', '彩色 / 黑白', '彩色', cam.color, 'fail', '当前任务需要颜色信息，黑白相机无法还原色彩');
@@ -1918,7 +1960,7 @@
     }
     chk('相机', '最大帧率', fps + ' fps', cam.fps + ' fps', fps <= cam.fps ? 'pass' : 'warn',
       fps <= cam.fps ? '' : '需降速、缩小 ROI 或换更高帧率型号');
-    chk('相机', '数据带宽', fmt(bandwidth) + ' MB/s（' + cam.iface + ' 约 ' + ifaceCap + '）',
+    chk('相机', '数据带宽', fmt(bandwidth) + ' MB/s（' + cam.iface + ' 有效带宽约 ' + fmt(ifaceCap, 0) + ' MB/s）',
       fmt(bandwidth) + ' MB/s', bandwidth <= ifaceCap ? 'pass' : 'warn',
       bandwidth <= ifaceCap ? '' : '可降帧率、开 ROI 或换更高带宽接口');
 
@@ -1946,9 +1988,9 @@
     }
     if (lens.mp == null) {
       chk('镜头', '解析力匹配', '≈ ' + fmt(camMp, 1) + ' MP', '未标注', 'pass', '');
-    } else if (lens.mp < camMp * 0.85) {
+    } else if (!lensResolves(lens, cam)) {
       failWhy.push('镜头解析力低于相机');
-      chk('镜头', '解析力匹配', '≥ ' + fmt(camMp * 0.85, 1) + ' MP', lens.mp + ' MP', 'fail',
+      chk('镜头', '解析力匹配', '≥ ' + fmt(lensMpNeed(cam), 1) + ' MP', lens.mp + ' MP', 'fail',
         '镜头解析力明显低于相机像素密度，换更高像素镜头或降相机分辨率');
     } else if (lens.mp < camMp) {
       chk('镜头', '解析力匹配', '≈ ' + fmt(camMp, 1) + ' MP', lens.mp + ' MP', 'warn', '镜头解析力略低于相机，边缘锐度可能不足');
@@ -2083,6 +2125,7 @@
       blurPx: canFocus ? blurPx : 0,
       ap: ap,
       tMaxMs: tMaxMs,
+      expMinGap: expMinGap,
       fErr: fErr,
       fovOver: fovOver,
       fps: fps,
@@ -2108,7 +2151,7 @@
     function lensBase(l) {
       return mountMatch(cam.mount, l.mount) > 0
         && (l.ic == null || l.ic >= diag * 0.97)
-        && (l.mp == null || l.mp >= camMp * 0.85)
+        && lensResolves(l, cam)
         && l.focal < inp.wd * 0.95
         && (l.minDist == null || l.minDist * 1000 <= inp.wd)
         && l.focal <= fReq + 1e-9;
@@ -2192,8 +2235,8 @@
     if (bandwidth > ifaceCap) {
       var fastIface = (CAT.CAMERAS || []).filter(function (c) {
         return c.model !== cam.model && c.w === cam.w && c.h === cam.h && c.color === cam.color
-          && (IFACE_BW[c.iface] || 350) >= bandwidth;
-      }).sort(function (a, b) { return (IFACE_BW[a.iface] || 0) - (IFACE_BW[b.iface] || 0); }).slice(0, 2);
+          && ifaceCapOf(c.iface) >= bandwidth;
+      }).sort(function (a, b) { return ifaceCapOf(a.iface) - ifaceCapOf(b.iface); }).slice(0, 2);
       if (fastIface.length) pushActs(fastIface, 'camera', '同分辨率换更高带宽接口');
     }
     if (inp.space > 0) {
@@ -2267,13 +2310,16 @@
     var task = TASKS[inp.task];
     var k = task.k;
     var pxAccReq = inp.precision / k;
-    var needW = Math.ceil(inp.fovW / pxAccReq - 1e-9);
-    var needH = Math.ceil(inp.fovH / pxAccReq - 1e-9);
+    // 彩色 Bayer 插值后有效细节分辨率低于同像素黑白机，所需像素留 20% 余量
+    var isColorNeed = !!(inp.needColor || inp.task === 'color');
+    var bayer = isColorNeed ? BAYER_FACTOR : 1;
+    var needW = Math.ceil((inp.fovW / pxAccReq) * bayer - 1e-9);
+    var needH = Math.ceil((inp.fovH / pxAccReq) * bayer - 1e-9);
 
     var warnings = [];
     var feasible = true;
 
-    var pick = selectOptics(inp, needW, needH, !!(inp.needColor || inp.task === 'color'));
+    var pick = selectOptics(inp, needW, needH, isColorNeed);
 
     if (!pick) {
       // 型号库里连一台相机都配不出镜头：退化为最大靶面机型，明确告知不可行
@@ -2297,7 +2343,6 @@
     // 备选方案（自动选型的第 2/3 名完整方案）：供同系列表把对应设备标注为「备选」
     var autoAlts = (pick && pick.alternates) || [];
     var altCamKeys = {}, altLensKeys = {};
-    var estFpsAlt = inp.speed > 0 ? Math.max(1, Math.ceil((inp.speed / inp.fovH) * 1.2)) : 0;
     autoAlts.forEach(function (a) {
       if (a.cam) altCamKeys[(a.cam.brand || '') + '::' + a.cam.model] = true;
       if (a.lens) altLensKeys[(a.lens.brand || '') + '::' + a.lens.model] = true;
@@ -2409,7 +2454,7 @@
     var fovH = pick.fovH;
     var pxSizeMM = cam.sh / cam.h;
     var isColor = cam.color === '彩色';
-    var bitDepth = isColor ? 16 : 8;
+    var bitDepth = bitDepthOf(cam);
 
     /* ---- 帧率 / 带宽 ---- */
     var fps;
@@ -2417,10 +2462,12 @@
     else fps = Math.min(15, cam.fps);            // 静态拍摄：按常用 15fps 估算，但不超出相机上限
     if (inp.cpm > 0) fps = Math.max(fps, Math.ceil(inp.cpm / 60));
     var bandwidth = (cam.w * cam.h * fps * bitDepth) / 8 / 1e6;
-    var ifaceCap = IFACE_BW[cam.iface] || 350;
+    var ifaceCap = ifaceCapOf(cam.iface);
 
     /* ---- 曝光上限（运动模糊 ≤ 1 像素） ---- */
     var tMaxMs = inp.speed > 0 ? (pxAcc / inp.speed) * 1000 : Infinity;
+    var expMinGap = (isFinite(tMaxMs) && cam.expMinUs != null)
+      ? Math.max(0, (cam.expMinUs - tMaxMs * 1000) / cam.expMinUs) : 0;
 
     /* ---- 光圈 / 景深 ---- */
     var c = 2 * pxSizeMM;
@@ -2485,7 +2532,7 @@
       warnings.push({ level: 'warn', text: '需要 ' + fps + ' fps，所选相机最高 ' + cam.fps + ' fps，需降速或换更高帧率型号。' });
     }
     if (bandwidth > ifaceCap) {
-      warnings.push({ level: 'warn', text: '数据带宽 ' + fmt(bandwidth) + ' MB/s 超过 ' + cam.iface + ' 接口能力（约 ' + ifaceCap + ' MB/s），需降帧率或换更高带宽接口。' });
+      warnings.push({ level: 'warn', text: '数据带宽 ' + fmt(bandwidth) + ' MB/s 超过 ' + cam.iface + ' 有效带宽（约 ' + fmt(ifaceCap, 0) + ' MB/s），需降帧率或换更高带宽接口。' });
     }
     if (fErr > 0.15) {
       warnings.push({ level: 'info', text: '所需焦距 ' + fmt(pick.fReq, 1) + ' mm，型号库最接近的是 ' + lens.focal + ' mm（差 ' + Math.round(fErr * 100) + '%），可通过微调工作距离补偿。' });
@@ -2584,6 +2631,7 @@
       blurPx: blurPx,
       ap: ap,
       tMaxMs: tMaxMs,
+      expMinGap: expMinGap,
       fErr: fErr,
       fovOver: fovOver,
       fps: fps,
@@ -2740,7 +2788,7 @@
           megapixel: round((a.cam.w * a.cam.h) / 1e6, 1),
           pxAcc: a.pxAcc,
           adapter: !!a.adapter,
-          score: candScore(a, inp, pxAccReq, estFpsAlt)
+          score: candScore(a, inp, pxAccReq)
         };
       }),
       lensAlternates: lensAlts.map(function (a) {
@@ -2781,6 +2829,10 @@
     LIGHT_SERIES: LIGHT_SERIES,
     COLOR_SUFFIX: COLOR_SUFFIX,
     CATALOG_META: CAT ? CAT.META : null,
-    _internal: { tryCamera: tryCamera, selectOptics: selectOptics, mountMatch: mountMatch, lensLength: lensLength }
+    _internal: {
+      tryCamera: tryCamera, selectOptics: selectOptics, mountMatch: mountMatch, lensLength: lensLength,
+      scoreOf: scoreOf, metricsFromCand: metricsFromCand, ramp: ramp,
+      bitDepthOf: bitDepthOf, ifaceCapOf: ifaceCapOf, lensMpNeed: lensMpNeed
+    }
   };
 });

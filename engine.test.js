@@ -905,7 +905,8 @@ test('满足景深的最大光圈：heightDiff=0 取最大光圈；极大高度�
   assert.ok(r0.lens.aperture >= 4, '应从实用光圈 F4 起');
   const rBig = E3.solve(Object.assign(base(), { heightDiff: 100000 }));
   assert.strictEqual(rBig.lens.apMaxOk, false, '最小光圈也达不到巨大景深需求');
-  assert.strictEqual(rBig.lens.aperture, rBig.lens.fmax || 22, '应收至镜头最小光圈');
+  // 固定光圈镜头（手册只印一档）可收的「最小光圈」就是它自己那一档，没有 fmax 字段
+  assert.strictEqual(rBig.lens.aperture, rBig.lens.fmax || rBig.lens.fmin || 22, '应收至镜头最小光圈');
   // 中等高度差：光圈应收小到刚好覆盖，且仍标记可行
   const rMid = E3.solve(Object.assign(base(), { heightDiff: 5 }));
   assert.strictEqual(rMid.lens.apMaxOk, true, '中等高度差应能收到合适光圈');
@@ -1361,6 +1362,83 @@ test('选型依据：手动指定 / 无备选时给出说明而非空表', () =>
     assert.strictEqual(hard.rationale.none, true, '无备选时应标记 none');
     assert.ok(/调|线扫|远心/.test(hard.rationale.note), '说明里应给出下一步方向');
   }
+});
+
+console.log('\n[18] 评分口径统一 / 连续扣分 / 位深与硬约束');
+const I = Engine._internal;
+
+function baseMetrics(over) {
+  return Object.assign({
+    feasible: true, feasibleWhy: '', margin: 0.2,
+    dofOK: true, dof: 10, heightDiff: 2,
+    blurPx: 1, ap: 4, tMaxMs: Infinity, expMinGap: 0,
+    fErr: 0.05, fovOver: 0.05,
+    fps: 10, camFps: 30,
+    bandwidth: 10, ifaceCap: 93.5, camIface: 'GigE', adapter: false
+  }, over || {});
+}
+
+test('扣分连续：阈值两侧不再跳变，越界越远扣得越多', () => {
+  const a = I.scoreOf(baseMetrics({ margin: 0.1501 }));
+  const b = I.scoreOf(baseMetrics({ margin: 0.1499 }));
+  const far = I.scoreOf(baseMetrics({ margin: 0 }));
+  assert.ok(Math.abs(a.score - b.score) <= 1, '余量阈值两侧不应跳变: ' + a.score + ' vs ' + b.score);
+  assert.ok(far.score <= b.score, '偏离越大分数不应更高: ' + far.score + ' vs ' + b.score);
+  const bw1 = I.scoreOf(baseMetrics({ bandwidth: 94 }));
+  const bw2 = I.scoreOf(baseMetrics({ bandwidth: 190 }));
+  assert.ok(bw2.score <= bw1.score, '带宽超得越多扣得越多');
+});
+
+test('连续扣分仍满足「总分 = 100 − 各项扣分」', () => {
+  const sc = I.scoreOf(baseMetrics({ margin: 0.02, blurPx: 4, fErr: 0.4, fps: 45, bandwidth: 150 }));
+  const sum = sc.items.reduce((a, x) => a + x.penalty, 0);
+  assert.strictEqual(sc.score, Math.max(5, Math.min(100, 100 - sum)));
+  assert.ok(sc.items.every((x) => x.penalty > 0), '扣分项不应含 0 分噪声');
+});
+
+test('位深：彩色 Bayer 按单通道 8bit，带宽不再凭空翻倍', () => {
+  assert.strictEqual(I.bitDepthOf({ color: '彩色' }), 8);
+  assert.strictEqual(I.bitDepthOf({ color: '黑白' }), 8);
+  assert.strictEqual(I.bitDepthOf({ bitDepth: 12 }), 12, '型录逐型号位深优先');
+  const col = Engine.solve(base({ needColor: true }));
+  assert.strictEqual(col.camera.bitDepth, 8, '彩色方案链路位深应为 8bit');
+  assert.ok(col.camera.bandwidthMBps <= col.camera.w * col.camera.h * col.camera.fps * 8 / 8 / 1e6 + 0.01);
+});
+
+test('接口有效带宽扣除协议开销；镜头解析力需求随像元尺寸调档', () => {
+  assert.ok(I.ifaceCapOf('GigE') < 110 && I.ifaceCapOf('GigE') > 90, '应低于理论线速');
+  const small = I.lensMpNeed({ w: 2448, h: 2048, pxUm: 2 });
+  const large = I.lensMpNeed({ w: 2448, h: 2048, pxUm: 5.5 });
+  assert.ok(small > large, '小像元相机对镜头解析力要求更高');
+});
+
+test('彩色 Bayer 留 20% 所需像素余量', () => {
+  const bw = Engine.solve(base());
+  const col = Engine.solve(base({ needColor: true }));
+  assert.ok(col.pxNeed.w > bw.pxNeed.w && col.pxNeed.h > bw.pxNeed.h,
+    '彩色所需分辨率应高于黑白: ' + JSON.stringify(col.pxNeed) + ' vs ' + JSON.stringify(bw.pxNeed));
+});
+
+test('选优分数与页面最终展示的分数是同一把尺子', () => {
+  [base(), base({ speed: 200 }), base({ needColor: true })].forEach((inp) => {
+    const r = Engine.solve(inp);
+    if (!r.ok) return;
+    const chosen = I.selectOptics(inp, r.pxNeed.w, r.pxNeed.h, !!(inp.needColor || inp.task === 'color'));
+    assert.ok(chosen, '应能重新选出方案');
+    const sc = I.scoreOf(I.metricsFromCand(chosen, inp, r.pxAccReq, r.feasible));
+    assert.strictEqual(sc.score, r.score,
+      '选优 ' + sc.score + ' 与展示 ' + r.score + ' 不一致（' + r.camera.model + '）');
+  });
+});
+
+test('硬约束：自动推荐机型帧率与链路带宽跑得动', () => {
+  const inp = base({ speed: 400, cpm: 60 });
+  const r = Engine.solve(inp);
+  if (!r.ok || !r.feasible) return;
+  assert.ok(r.camera.fps <= r.camera.maxFps,
+    '需要 ' + r.camera.fps + ' fps 但相机只有 ' + r.camera.maxFps + ' fps');
+  assert.ok(r.camera.bandwidthMBps <= I.ifaceCapOf(r.camera.interface) + 0.02,
+    '带宽 ' + r.camera.bandwidthMBps + ' 超过有效带宽 ' + I.ifaceCapOf(r.camera.interface));
 });
 
 console.log('\n' + '='.repeat(52));

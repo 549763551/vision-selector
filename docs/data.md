@@ -73,7 +73,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；多品牌目录合并与品牌筛选在此生效 |
-| `engine.test.js` | 103 个单元测试（含多品牌合并 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
+| `engine.test.js` | 110 个单元测试（含多品牌合并 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
 | `tools/fetch-opt-tree.js` | 抓标准光源侧栏分类树（`item-id` 不可信，按文档顺序归属；交替正则会吞节点） |
 | `tools/fetch-opt-ajax.js` | 按系列抓全量型号表（`ajax_series_<id>.html?pageSize=500`，并发 6） |
@@ -97,6 +97,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `assets/hikrobot-logo.png` | 海康机器人 HIKROBOT 字标（仅用于标注数据来源） |
 | `assets/huarui-logo.svg` `assets/basler-logo.svg` `assets/daheng-logo.svg` | 华睿 / Basler / 大恒归属标（简化文字标，非官方商标图样） |
 | `assets/favicon.ico` | 站点图标 |
+| `assets/screenshot-index.png` | README 里的选型助手首屏截图 |
 | `assets/qr-gzh.jpg` `assets/qr-mp.jpg` | 主页「关注与小程序」的公众号 / 小程序二维码 |
 | `assets/logo/logo-{1024,512,144}.png` | 小程序 / App 图标（脚本生成） |
 | `assets/logo/logo-wordmark.png` | 横版字标（图标 + 名称） |
@@ -130,7 +131,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 ## 开发与发布
 
 ```bash
-npm test                 # 等价于 node engine.test.js，103 项全绿才算数
+npm test                 # 等价于 node engine.test.js，110 项全绿才算数
 ```
 
 测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口/最近摄距匹配、
