@@ -20,6 +20,7 @@ import os
 CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools', '_cache')
 ADD_CAMS_JSON = os.path.join(CACHE, 'basler_cams_add.json')
 LINESCAN_JSON = os.path.join(CACHE, 'basler_linescan.json')
+THREED_JSON = os.path.join(CACHE, 'basler_3d.json')
 
 # 每个机型基础信息（同一机型同时生成 黑白/彩色 两款）
 # prefix   : 型号前缀（含分辨率与帧率），如 "acA720-290"
@@ -153,19 +154,23 @@ def main():
            if str(r.get('model', '')).upper() not in known]
     cams += add
     lines = [reorder(r, LINE_KEYS) for r in load_json(LINESCAN_JSON, [])]
+    threed = [reorder(r, ['model', 'kind', 'series', 'fov', 'work', 'zacc', 'res', 'fps', 'wave', 'iface', 'dims', 'weightG', 'sensor'])
+              for r in load_json(THREED_JSON, [])]
     meta = {
         "source": "Basler 官网产品规格 docs.baslerweb.com（联网检索整理）",
         "brand": "Basler",
         "generated": datetime.date.today().isoformat(),
         "cameras": len(cams),
         "linescan": len(lines),
+        "threed": len(threed),
     }
     out = []
     out.append("""/**
- * Basler（宝视纳）相机型号库 —— 面阵 area + 线扫 racer 2
- * 数据来源：docs.baslerweb.com 型号规格页（联网检索整理）；生成脚本：tools/parse-basler.py
- *   面阵 BASE 表 + tools/_cache/basler_cams_add.json；线扫 tools/_cache/basler_linescan.json
- *   （由 tools/fetch-basler-cams.js 抓取，每条带 src 字段指向型号页，未印的字段一律留空不伪造）
+ * Basler（宝视纳）相机型号库 —— 面阵 area + 线扫 racer 2 + 3D（ToF / 双目立体）
+ * 数据来源：docs.baslerweb.com 与 baslerweb.cn（联网检索整理）；生成脚本：tools/parse-basler.py
+ *   面阵 BASE 表 + tools/_cache/basler_cams_add.json；线扫 tools/_cache/basler_linescan.json；
+ *   3D tools/_cache/basler_3d.json（由 tools/fetch-basler-cn-spec.js 抓取，每条带 src 指向型号页，
+ *   未印的字段一律留空不伪造）
  * 本文件由脚本生成，请勿手工编辑。
  */""")
     out.append("(function (root, factory) {")
@@ -176,12 +181,13 @@ def main():
     out.append("  var META = " + json.dumps(meta, ensure_ascii=False) + ";")
     out.append("  var CAMERAS = " + json.dumps(cams, ensure_ascii=False) + ";")
     out.append("  var LINESCAN = " + json.dumps(lines, ensure_ascii=False) + ";")
-    out.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, LENSES: [], TELECENTRIC: [], LIGHTS: [], CONTROLLERS: [] };")
+    out.append("  var THREE_D = " + json.dumps(threed, ensure_ascii=False) + ";")
+    out.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, THREE_D: THREE_D, LENSES: [], TELECENTRIC: [], LIGHTS: [], CONTROLLERS: [] };")
     out.append("});")
     text = "\n".join(out) + "\n"
     with open("basler-catalog.js", "w", encoding="utf-8") as f:
         f.write(text)
-    print("wrote basler-catalog.js :", len(cams), "cameras (BASE %d + add %d)," % (len(cams) - len(add), len(add)), len(lines), "linescan")
+    print("wrote basler-catalog.js :", len(cams), "cameras (BASE %d + add %d)," % (len(cams) - len(add), len(add)), len(lines), "linescan,", len(threed), "3d")
 
 if __name__ == "__main__":
     main()

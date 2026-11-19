@@ -501,14 +501,14 @@ function mergeMulti(brands, lensBrands) {
   };
 }
 
-test('多品牌目录合并 = 海康406 + 华睿300 + Basler231 + 大恒688 + 奥普特118', () => {
+test('多品牌目录合并 = 海康406 + 华睿300 + Basler474 + 大恒688 + 奥普特118', () => {
   const CAT5 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng', 'opt']);
-  assert.strictEqual(CAT5.CAMERAS.length, 1743, '合并后相机数');
+  assert.strictEqual(CAT5.CAMERAS.length, 1986, '合并后相机数');
   const byBrand = {};
   CAT5.CAMERAS.forEach((c) => { byBrand[c.brand] = (byBrand[c.brand] || 0) + 1; });
   assert.strictEqual(byBrand['海康机器人 HIKROBOT'], 406);
   assert.strictEqual(byBrand['华睿'], 300);
-  assert.strictEqual(byBrand['Basler'], 231);
+  assert.strictEqual(byBrand['Basler'], 474);
   assert.strictEqual(byBrand['大恒图像'], 688);
   assert.strictEqual(byBrand['奥普特 OPT'], 118);
 });
@@ -547,10 +547,10 @@ test('奥普特型录：字段完整、靶面与像元×分辨率自洽、线阵
   });
 });
 
-test('镜头库合并 = 海康101 + 华睿69 + 大恒578；线扫 = 海康33 + 华睿26 + Basler17', () => {
+test('镜头库合并 = 海康101 + 华睿69 + 大恒578；线扫 = 海康33 + 华睿26 + Basler27', () => {
   const CAT3 = mergeMulti(['hikrobot', 'huarui', 'basler', 'daheng']);
   assert.strictEqual(CAT3.LENSES.length, 748, '合并后镜头数');
-  assert.strictEqual(CAT3.LINESCAN.length, 76, '合并后线扫数');
+  assert.strictEqual(CAT3.LINESCAN.length, 86, '合并后线扫数');
   const lb = {};
   CAT3.LENSES.forEach((l) => { lb[l.brand] = (lb[l.brand] || 0) + 1; });
   assert.strictEqual(lb['海康机器人 HIKROBOT'], 101);

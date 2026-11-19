@@ -101,11 +101,17 @@
 
   // 各接口的可用带宽（MB/s，经验值）
   var IFACE_BW = {
-    GigE: 110, '2.5GigE': 280, USB3: 350, '10GigE': 1100,
-    CameraLink: 680, CoaXPress: 1250, XoFLink: 1250, XoCLink: 1250
+    GigE: 110, '2.5GigE': 280, USB3: 350, '5GigE': 560, '10GigE': 1100,
+    CameraLink: 680, CoaXPress: 1250, XoFLink: 1250, XoCLink: 1250,
+    // 嵌入式板级接口（Basler dart / ace 2 GMSL2 等）：解串板卡后可得，带宽按实测经验取整
+    GMSL2: 400, BCON: 400
   };
-  // 同像素量下优先选便宜/易用的接口
-  var IFACE_RANK = { GigE: 0, '2.5GigE': 1, USB3: 2, '10GigE': 3, CameraLink: 4, CoaXPress: 5, XoFLink: 6, XoCLink: 7 };
+  // 同像素量下优先选便宜/易用的接口（GMSL2 / BCON 需额外解串板卡，排在 USB3 之后）
+  var IFACE_RANK = {
+    GigE: 0, '2.5GigE': 1, USB3: 2, '5GigE': 2.5, '10GigE': 3,
+    CameraLink: 4, CoaXPress: 5, XoFLink: 6, XoCLink: 7,
+    GMSL2: 2.7, BCON: 2.7
+  };
 
   /* ============================ 小工具 ============================ */
 
@@ -1340,9 +1346,12 @@
     GigE: 'Cat6 屏蔽网线（≤100 m）',
     '2.5GigE': 'Cat6 屏蔽网线（≤100 m，需 2.5G 交换机/网卡）',
     '10GigE': 'Cat6a / 光纤（配 10G 网卡）',
+    '5GigE': 'Cat6 屏蔽网线（≤100 m，需 5G 网卡/交换机）',
     USB3: 'USB3 屏蔽线（≤3 m，超长用有源延长）',
     CameraLink: 'CameraLink 线 + 采集卡',
     CoaXPress: '同轴线 + CoaXPress 采集卡',
+    GMSL2: 'GMSL2 同轴线 + 解串板卡',
+    BCON: 'MIPI 排线（板级直连，需 MIPI 平台）',
     XoFLink: '光纤线 + 采集卡',
     XoCLink: '同轴线 + 采集卡'
   };

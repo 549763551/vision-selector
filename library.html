@@ -595,6 +595,7 @@
     { global: 'Hikrobot3DCatalog', brand: 'hikrobot', arrays: { PROFILERS: 'prof', SMART: 'prof' } },
     { global: 'HikrobotIpcCatalog', brand: 'hikrobot', arrays: { CHASSIS: 'ipc', BOARDS: 'ipc' } },
     { global: 'HikrobotIrCatalog', brand: 'hikrobot', arrays: { IR: 'ir' } },
+    { global: 'BaslerCatalog', brand: 'basler', arrays: { THREE_D: 'prof' } },
     { global: 'BaslerLensCatalog', brand: 'basler', arrays: { LENSES: 'lens', TELECENTRIC: 'tele' } },
     { global: 'BaslerLightCatalog', brand: 'basler', arrays: { LIGHTS: 'light', CONTROLLERS: 'ctrl' } },
     { global: 'OptLensCatalog', brand: 'opt', arrays: { LENSES: 'lens', TELECENTRIC: 'tele' } },
@@ -1421,6 +1422,16 @@
         '<path d="M 20 44 Q 32 38 44 44" stroke="#ef4444" stroke-width="2" fill="none"/>' +
         '<line x1="14" y1="46" x2="50" y2="46" stroke="' + ART_EDGE + '" stroke-width="1.5"/>' +
         badge(14, 52, brandC(bk)));
+    }
+    // ToF：单个接收镜头 + 红外发光窗口（与双目的两个镜头区分开）
+    if (d.kind === 'ToF 相机') {
+      return artWrap(
+        '<rect x="12" y="18" width="40" height="28" rx="4" fill="' + ART_DARK + '"/>' +
+        '<circle cx="25" cy="32" r="6.5" fill="' + ART_DEEP + '" stroke="' + ART_EDGE + '" stroke-width="1.4"/>' +
+        '<circle cx="25" cy="32" r="2.6" fill="' + ART_GLASS + '"/>' +
+        '<circle cx="43" cy="32" r="5" fill="#7c3aed" opacity="0.85"/>' +
+        '<circle cx="43" cy="32" r="5" fill="none" stroke="#6d28d9" stroke-width="1.2"/>' +
+        badge(16, 14, brandC(bk)));
     }
     return artWrap(
       '<rect x="14" y="20" width="36" height="26" rx="4" fill="' + ART_DARK + '"/>' +
