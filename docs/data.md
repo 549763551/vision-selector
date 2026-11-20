@@ -58,17 +58,30 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 `tools/fetch-cst.py discover`（BFS 分类树）→ `pages`（翻页）→ `collect`（汇总去重）→ `series`（相机/远心系列表）→ `details`（1605 个单品参数页）→ `tools/build-cst-catalog.py` 生成型录。
 分类页表头与产品行偶有列错位，官网个别分类还只填 1,2,3… 占位序号，因此**规格以单品页的「标签—值」表为准**，分类页只用来发现型号、归属类目与补尺寸；生成器对占位行有检测。
 
+## 官方资料清单（docs-data.js）
+
+主页「官方资料」区列出六个品牌共 **211 条**品牌级 / 系列级手册与资料入口，按品牌分组、可搜索、可展开。每条默认指向**厂商官方直链**；勾选「优先本地副本」后改读本地 `manuals/` 目录（离线可用，偏好存 `localStorage`）。此前该区指向 `manuals/` 的 7 个链接在线上全是 404，现已修复。
+
+- `docs-data.js` 由 `tools/build-docs-data.py` 生成，`return` 后是一段严格 JSON，页面读 `window.VISION_DOCS`，下载脚本也复用同一份数据，**勿手改**。
+- `manuals/` 只存本地副本，被 `.gitignore` 忽略，**不入库不推送**：PDF 版权归各厂商，公开仓库只放链接；全量约 1 GB，直接入库也会顶到 GitHub Pages 站点的 1 GB 上限。
+- 采集口径见 `tools/build-docs-data.py` 头部：海康 `Support/v2/DownCenter` 接口（`module=1` 是资料，`module=0` 是软件）、华睿 `/api/cn/download/downloadList?nav_id=31`、大恒产品型录页（阿里云 WAF，需真浏览器取 DOM 的 `downyz_click`）、康视达 `/list/30.html` 19 页。只收品牌级与系列级手册，**不收型号级规格书**。
+- **Basler / 奥普特**的下载需登录或被 WAF 挡，没有公开文件直链，因此只登记官方资料中心入口，不伪造链接；奥普特入口已注明需登录。
+- 大恒站点对脚本请求一律返回 23670 字节的 JS 挑战页，本地副本需 `node tools/cdp-download-daheng.js`（真浏览器打开下载页完成挑战后，同源 `fetch` 才能拿到真正的 PDF）；其余三家由下载脚本直接取。
+- 更新流程：`python tools/build-docs-data.py` 重新生成清单 → `python tools/download-manuals.py` 断点续传下载 → `node tools/cdp-download-daheng.js` 补大恒。
+
 ## 目录结构
 
 四个页面 + 一份引擎 + 各品牌型录，全是静态文件，没有构建步骤。
 
 | 文件 | 作用 |
 |---|---|
-| `home.html` | **主页**：四页统一入口、数据速览（实时统计型号库）、手册资料链接 |
+| `home.html` | **主页**：四页统一入口、数据速览（实时统计型号库）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
 | `combo.js` | 搭配页逻辑：合并五品牌型号库、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
 | `library.html` | **产品库**：8850 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
+| `docs-data.js` | 主页官方资料清单（6 品牌 / 211 条），由 `tools/build-docs-data.py` 生成，勿手改；`return` 后是严格 JSON，下载脚本共用 |
+| `manuals/` | 本地 PDF 副本，`.gitignore` 忽略、**不入库不推送**；PDF 版权归厂商，线上只走官方直链 |
 | `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记；康视达登记了「只挂产品库」的说明 |
 | `cst-catalog.js` | 康视达型号库 1657 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1431 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。只挂主页与产品库，不进选型链 |
 | `cst-misc-catalog.js` | 康视达非标产品 54 款，按惯例只落盘备份、不挂任何页面 |
@@ -95,6 +108,9 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `tools/parse-opt-all.py` | 通用「列名 → 值」解析（各系列列名/列数都不同，按 thead 对齐，不写死列位） |
 | `tools/build-opt-full.py` | 生成奥普特镜头 / 光源 / 控制器 / 工控机型录（含照明类型、颜色、尺寸口径映射） |
 | `tools/build-opt-misc.py` | 生成奥普特智能相机 / 读码器 / 传感器 / 测量运控型录（原始 spec 全保留） |
+| `tools/build-docs-data.py` | 汇总四家可公开下载的手册清单，生成 `docs-data.js`（采集接口见脚本头部注释） |
+| `tools/download-manuals.py` | 按清单把官方 PDF 下载到 `manuals/`，断点续传，支持 `--brand` / `--force` |
+| `tools/cdp-download-daheng.js` | 大恒专用：官网阿里云 WAF 会挡脚本请求，用真浏览器过挑战后同源 `fetch` 取 PDF，分块回传写盘 |
 | `tools/fetch-cst.py` | 康视达官网抓取器：BFS 分类树 / 翻页 / 系列表 / 单品详情页。注意用 `https://cstmv.com`（无 www）绕过 JS 挑战 |
 | `tools/build-cst-catalog.py` | 把分类页 + 单品页 + 系列表组装成 `cst-catalog.js`；含占位行检测、型号差集校验与字段口径映射 |
 | `tools/fetch-huarui-lens.py` | 华睿镜头 / 远心型号：站点是 React SPA，curl 抓 HTML 只有空壳，型号在 XHR 里，走 `/api/cn/vision/productListNew?id=<navId>`（面阵 122 / 线阵大面阵 187 / 远心 188） |

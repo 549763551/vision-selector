@@ -117,17 +117,48 @@
     background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 700; flex: 0 0 auto;
   }
 
-  /* 资料下载 */
-  .docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-  .docs a {
-    display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 15px;
-    font-size: 14px;
+  /* 官方资料 */
+  .doc-note { font-size: 12.5px; color: var(--muted); line-height: 1.75; margin: 0 0 12px; }
+  .doc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 16px; }
+  .doc-tools input[type="search"] {
+    flex: 1 1 240px; min-width: 0; height: 40px; padding: 0 12px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink);
   }
-  .docs a:hover { border-color: #93c5fd; color: var(--accent); }
+  .doc-tools label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .doc-tools .doc-count { font-size: 12.5px; color: var(--muted); }
+  .doc-group { margin-bottom: 18px; }
+  .doc-group > h4 {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 9px;
+    font-size: 14.5px; font-weight: 700; color: var(--ink);
+  }
+  .doc-group > h4 small { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+  .doc-group > h4 a { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--accent); text-decoration: none; }
+  .doc-group > h4 a:hover { text-decoration: underline; }
+  .docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .docs .doc-item {
+    display: flex; align-items: center; gap: 10px; min-width: 0;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px;
+  }
+  .docs .doc-item:hover { border-color: #93c5fd; }
+  .docs .doc-main {
+    display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 auto;
+    text-decoration: none; color: var(--ink); font-size: 13.5px;
+  }
+  .docs .doc-main:hover { color: var(--accent); }
   .docs .pdf-ico { color: #dc2626; font-size: 16px; flex: 0 0 auto; }
   .docs .d-name { min-width: 0; }
   .docs .d-name small { display: block; font-size: 11.5px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .docs .doc-local {
+    flex: 0 0 auto; font-size: 11.5px; color: var(--muted); text-decoration: none;
+    border: 1px solid var(--line); border-radius: 8px; padding: 4px 7px;
+  }
+  .docs .doc-local:hover { color: var(--accent); border-color: #93c5fd; }
+  .doc-more {
+    margin-top: 9px; background: transparent; border: 1px dashed var(--line); border-radius: 10px;
+    padding: 7px 14px; font-size: 12.5px; color: var(--muted); cursor: pointer;
+  }
+  .doc-more:hover { color: var(--accent); border-color: #93c5fd; }
+  .doc-empty { color: var(--muted); font-size: 13.5px; padding: 14px 0; }
 
   /* 关注二维码 */
   .qrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 440px; }
@@ -241,8 +272,14 @@
     <div class="step"><b><span class="n">3</span>去产品库核对</b>拿不准的型号到产品库搜或按条件筛同类，对比后再询价。</div>
   </div>
 
-  <h3 class="sec-h">常用资料 <small>manuals/ 目录，点开即读</small></h3>
-  <div class="docs" id="docs"></div>
+  <h3 class="sec-h">官方资料 <small>六品牌 · 按系列分册 · 点开直达厂商官网</small></h3>
+  <p class="doc-note" id="docNote"></p>
+  <div class="doc-tools">
+    <input type="search" id="docSearch" placeholder="搜文档名 / 品牌 / 类型关键词" autocomplete="off" />
+    <label id="docLocalLabel"><input type="checkbox" id="docLocal" /> 优先本地副本（离线阅读）</label>
+    <span class="doc-count" id="docCount"></span>
+  </div>
+  <div id="docs"></div>
 
   <h3 class="sec-h">关注与小程序 <small>手机扫码直接打开</small></h3>
   <div class="qrs">
@@ -276,6 +313,7 @@
 <script src="opt-light-catalog.js"></script>
 <script src="opt-ctrl-catalog.js"></script>
 <script src="cst-catalog.js"></script>
+<script src="docs-data.js"></script>
 <!-- 康视达只挂主页/产品库：index.html 与 combo.html 不引，选型链不含该品牌 -->
 <!-- opt-misc-catalog.js（智能相机/传感器/测量运控 1228 款）数据已备份，产品线类型不扩张，暂不引入 -->
 <script>
@@ -349,18 +387,93 @@
   var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();
   if (latest) document.getElementById('genNote').textContent = '数据更新于 ' + latest;
 
-  document.getElementById('docs').innerHTML = [
-    ['机器视觉标准产品手册-2026.Q3.pdf', '海康标准产品手册（相机 / 镜头 / 光源）'],
-    ['机器视觉智能产品手册-2026.Q3.pdf', '海康智能产品手册（读码 / ID）'],
-    ['机器视觉产品手册中文版V20260901.pdf', '华睿（大华机器视觉）产品手册'],
-    ['大恒图像产品型录.pdf', '大恒图像相机型录'],
-    ['大恒镜头产品型录.pdf', '大恒 HN / HN-P 镜头型录'],
-    ['机器视觉3D产品手册26年Q3.pdf', '3D 视觉产品手册'],
-    ['机器视觉工控机产品手册-V.151.CN.26Q2.1(阅读版).pdf', '工控机产品手册']
-  ].map(function (p) {
-    return '<a href="manuals/' + encodeURIComponent(p[0]) + '" title="' + esc(p[0]) + '">' +
-      '<span class="pdf-ico">📄</span><span class="d-name">' + esc(p[1]) + '<small>PDF</small></span></a>';
-  }).join('');
+  /* ---- 官方资料：默认走厂商官方直链，勾「优先本地副本」后改读 manuals/ ---- */
+  (function () {
+    var data = window.VISION_DOCS;
+    var box = document.getElementById('docs');
+    if (!data || !box) return;
+    var totalDocs = 0, localDocs = 0;
+    data.brands.forEach(function (b) {
+      totalDocs += b.docs.length;
+      b.docs.forEach(function (d) { if (d.l) localDocs++; });
+    });
+    var isLocalFile = location.protocol === 'file:';
+    document.getElementById('docNote').textContent =
+      '手册与型录均指向各品牌官方页面（PDF 版权归对应厂商），线上点击即打开。' +
+      (isLocalFile
+        ? '当前是本地打开：勾选「优先本地副本」可改读 manuals/ 目录（先运行 tools/download-manuals.py 下载）。'
+        : '离线双击 home.html 打开时，可切换为本地 manuals/ 副本阅读。') +
+      '奥普特资料需注册登录、Basler 文档需在官方检索，故这两家只提供官方入口。清单更新于 ' + data.updated + '。';
+    // 线上没有 manuals/ 目录，隐藏入口，避免点到 404
+    if (!isLocalFile) document.getElementById('docLocalLabel').style.display = 'none';
+
+    var useLocal = false;
+    try { useLocal = localStorage.getItem('vs-doc-local') === '1'; } catch (e) {}
+    var cb = document.getElementById('docLocal');
+    cb.checked = useLocal;
+    var q = '', expanded = {}, COLLAPSE = 6;
+
+    function card(d) {
+      var localMode = !!(useLocal && d.l);
+      var main = localMode ? 'manuals/' + encodeURIComponent(d.l) : d.u;
+      var sub = d.t + (d.s ? ' · ' + d.s : '');
+      var localBtn = (d.l && isLocalFile)
+        ? '<a class="doc-local" href="manuals/' + encodeURIComponent(d.l) +
+          '" title="需本地 manuals/ 目录中的副本">本地副本</a>'
+        : '';
+      return '<div class="doc-item">' +
+        '<a class="doc-main" href="' + esc(main) + '" target="' + (localMode ? '_self' : '_blank') +
+        '" rel="noopener" title="' + esc(d.n) + '">' +
+        '<span class="pdf-ico">' + (d.l ? '📄' : '🔗') + '</span>' +
+        '<span class="d-name">' + esc(d.n) + '<small>' + esc(sub) + '</small></span></a>' +
+        localBtn + '</div>';
+    }
+
+    function render() {
+      var kw = q.trim().toLowerCase(), shown = 0, html = '';
+      data.brands.forEach(function (b) {
+        var list = b.docs.filter(function (d) {
+          if (!kw) return true;
+          return (d.n + ' ' + b.name + ' ' + d.t + ' ' + (d.s || '')).toLowerCase().indexOf(kw) >= 0;
+        });
+        if (!list.length) return;
+        shown += list.length;
+        var lim = (kw || expanded[b.key]) ? list.length : Math.min(COLLAPSE, list.length);
+        html += '<section class="doc-group"><h4>' + esc(b.name) +
+          '<small>' + esc(b.note) + ' · ' + list.length + ' 份</small>' +
+          '<a href="' + esc(b.center) + '" target="_blank" rel="noopener">官方下载中心 ↗</a></h4>' +
+          '<div class="docs">';
+        list.slice(0, lim).forEach(function (d) { html += card(d); });
+        html += '</div>';
+        if (list.length > lim) {
+          html += '<button class="doc-more" data-brand="' + esc(b.key) + '">展开全部 ' + list.length + ' 份 ↓</button>';
+        }
+        html += '</section>';
+      });
+      if (!shown) html = '<div class="doc-empty">没有匹配的资料，换个关键词试试。</div>';
+      box.innerHTML = html;
+      document.getElementById('docCount').textContent = kw
+        ? '匹配 ' + shown + ' 份 / 共 ' + totalDocs + ' 份'
+        : '共 ' + totalDocs + ' 份 · 本地副本 ' + localDocs + ' 份';
+      [].forEach.call(box.querySelectorAll('.doc-more'), function (btn) {
+        btn.addEventListener('click', function () {
+          expanded[btn.getAttribute('data-brand')] = true;
+          render();
+        });
+      });
+    }
+
+    cb.addEventListener('change', function () {
+      useLocal = cb.checked;
+      try { localStorage.setItem('vs-doc-local', useLocal ? '1' : '0'); } catch (e) {}
+      render();
+    });
+    document.getElementById('docSearch').addEventListener('input', function (e) {
+      q = e.target.value || '';
+      render();
+    });
+    render();
+  })();
 
   document.getElementById('foot').innerHTML =
     '数据来源：各品牌官方型录与官网产品数据（详见产品库页脚），参数以厂商最新资料为准。' +
