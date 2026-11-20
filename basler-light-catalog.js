@@ -277,8 +277,8 @@
     { "model": "Basler Light Spot-26FWHM-Infrared", "type": "point", "color": "red", "wavelength": "850 nm", "size": [26], "power": null, "brand": "Basler", "series": "Basler 灯光" }
   ];
   var CONTROLLERS = [
-    { "model": "Basler Light Controller 2C-1.25A-50W-24V", "channels": null, "mode": "Basler 灯光控制器", "strobe": true, "brand": "Basler" },
-    { "model": "Basler Light Controller 4C-1.25A-84W-24V", "channels": null, "mode": "Basler 灯光控制器", "strobe": true, "brand": "Basler" }
+    { "model": "Basler Light Controller 2C-1.25A-50W-24V", "channels": 2, "mode": "Basler 灯光控制器", "strobe": true, "brand": "Basler" },
+    { "model": "Basler Light Controller 4C-1.25A-84W-24V", "channels": 4, "mode": "Basler 灯光控制器", "strobe": true, "brand": "Basler" }
   ];
   return { META: META, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };
 });

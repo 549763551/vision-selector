@@ -1475,8 +1475,8 @@ test('共用合并模块：全量在售型号池（清洗后）', () => {
   assert.strictEqual(SEL_CAT.LINESCAN.length, 118, '线阵相机');
   assert.strictEqual(SEL_CAT.LENSES.length, 1144, '定焦镜头');
   assert.strictEqual(SEL_CAT.TELECENTRIC.length, 922, '远心镜头');
-  assert.strictEqual(SEL_CAT.LIGHTS.length, 4011, '光源');
-  assert.strictEqual(SEL_CAT.CONTROLLERS.length, 112, '光源控制器');
+  assert.strictEqual(SEL_CAT.LIGHTS.length, 4050, '光源');
+  assert.strictEqual(SEL_CAT.CONTROLLERS.length, 114, '光源控制器');
   assert.strictEqual(SEL_CAT.PROFILERS.length, 72, '3D 轮廓传感器');
 });
 
@@ -1500,13 +1500,32 @@ test('共用合并模块：必要参数缺失型号不进选型池', () => {
 
 test('共用合并模块：清洗统计与等价字段补齐', () => {
   assert.deepStrictEqual(SEL_CAT._stats.invalid, {
-    TELECENTRIC: 1, CAMERAS: 53, LENSES: 19, LIGHTS: 288, CONTROLLERS: 2
+    TELECENTRIC: 1, CAMERAS: 53, LENSES: 19, LIGHTS: 248
   });
   assert.deepStrictEqual(SEL_CAT._stats.filled, { pxH: 8, wdMax: 619 });
   // 康视达面阵相机官网未给卡口，必须被挡掉；线阵用 pxUm 补 pxH 后照常参与
   assert.strictEqual(SEL_CAT.CAMERAS.filter((x) => /^CST-/.test(x.model)).length, 0);
   assert.strictEqual(SEL_CAT.LINESCAN.filter((x) => /^CST-/.test(x.model)).length, 8);
   assert.ok(SEL_CAT.TELECENTRIC.filter((x) => /^OPT-/.test(x.model)).every((x) => x.wdMax > 0));
+});
+
+test('参数复核回归：官网已公布尺寸 / 颜色 / 通道数的型号不再被误排除', () => {
+  // 奥普特光纤光源官网「尺寸(mm) 124 × 141 × 178 / LED颜色 白色」
+  // 多光谱无影光源官网「尺寸(mm) 275×200×50 / LED颜色 多光谱」
+  // 程控图案光源官网「尺寸(mm) 328 × 208 × 70」，无 LED颜色 列，型号 -W 为白光
+  ['OPT-DOFP10HA-W', 'OPT-RIPM275', 'OPT-PCP290160-W'].forEach((m) => {
+    const x = SEL_CAT.LIGHTS.find((y) => y.model === m);
+    assert.ok(x, m + ' 官网已给尺寸，应进入选型池');
+    assert.ok(Array.isArray(x.size) && x.size[0] > 0, m + ' 尺寸应为有效数值');
+    assert.ok(x.color, m + ' 颜色应为有效值');
+  });
+  assert.strictEqual(SEL_CAT.LIGHTS.find((x) => x.model === 'OPT-RIPM275').color, 'multi');
+  // Basler 控制器型号里的 2C / 4C 是厂商明示的通道数
+  const bc = SEL_CAT.CONTROLLERS.filter((x) => /Light Controller/.test(x.model));
+  assert.strictEqual(bc.length, 2);
+  assert.deepStrictEqual(bc.map((x) => x.channels).sort(), [2, 4]);
+  // 康视达该款光源官网分类表尺寸列全空、系列型录只有共用示意图 → 仍应排除
+  assert.ok(!SEL_CAT.LIGHTS.some((x) => x.model === 'CST-2BS10238-IR850'));
 });
 
 test('必要参数规则：缺卡口 / 定焦距 / 尺寸 / 倍率的条目一律判否', () => {
@@ -1531,8 +1550,8 @@ test('品牌开关：镜头与光源按类目独立启停', () => {
   assert.strictEqual(noOptLens.TELECENTRIC.length, 303);
   assert.strictEqual(noOptLens.CAMERAS.length, SEL_CAT.CAMERAS.length, '关镜头品牌不应影响相机');
   const noHuaLight = SEL.merge(SEL_WIN, { light: SEL.brandKeys(SEL_WIN, 'light').filter((k) => k !== 'huarui') });
-  assert.strictEqual(noHuaLight.LIGHTS.length, 3749);
-  assert.strictEqual(noHuaLight.CONTROLLERS.length, 92);
+  assert.strictEqual(noHuaLight.LIGHTS.length, 3788);
+  assert.strictEqual(noHuaLight.CONTROLLERS.length, 94);
   assert.strictEqual(noHuaLight.LENSES.length, SEL_CAT.LENSES.length, '关光源品牌不应影响镜头');
 });
 

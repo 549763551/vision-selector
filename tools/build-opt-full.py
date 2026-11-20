@@ -45,6 +45,7 @@ COLOR_MAP = {
     '白色': 'white', '白': 'white', '红色': 'red', '红': 'red', '蓝色': 'blue', '蓝': 'blue',
     '绿色': 'green', '绿': 'green', '红外': 'ir', '红外光': 'ir', '紫外': 'uv', '紫外光': 'uv',
     '紫色': 'uv', '青色': 'cyan', '黄色': 'yellow', '琥珀色': 'yellow', '橙色': 'yellow',
+    '多光谱': 'multi',   # RIPM 系列：8 波段可独立控制，官网 LED颜色 列就写「多光谱」
 }
 # 灯珠颜色列有时是 "白/红/蓝" 这种多色，取第一种做代表，其余放 colorList
 COLOR_ALL = ['白', '红', '蓝', '绿', '紫外', '红外', '紫', '青', '黄', '橙']
@@ -112,6 +113,8 @@ def main():
         sp.pop('规格书(pdf)', None)
         line, sname = r['line'], r['sname']
         model = r['model']
+        if not model:
+            continue                  # 官网表格的占位空行（如 OPT-LIT 系列），不是产品
 
         # ---------------- 工业镜头 ----------------
         if line == '工业镜头':
@@ -194,8 +197,16 @@ def main():
             colors = [c for c in COLOR_ALL if c in col_raw]
             color = COLOR_MAP.get((colors[0] + '色') if colors and colors[0] not in ('白', '红', '蓝', '绿') else colors[0], None) if colors else None
             if color is None and col_raw:
-                color = {'白': 'white', '红': 'red', '蓝': 'blue', '绿': 'green',
-                         '紫': 'uv', '青': 'cyan', '黄': 'yellow'}.get(col_raw.strip()[:1])
+                color = (COLOR_MAP.get(col_raw.strip())
+                         or {'白': 'white', '红': 'red', '蓝': 'blue', '绿': 'green',
+                             '紫': 'uv', '青': 'cyan', '黄': 'yellow'}.get(col_raw.strip()[:1]))
+            if not color and not col_raw:
+                # 官网产品参数表没有「LED颜色」列时（如 PCP 程控图案光源，页面写「大功率恒流背光」），
+                # 只认厂商自己写在型号末尾的颜色后缀，不按光源类型臆测。
+                tail = re.search(r'-(IR|UV|W|R|G|B)\d*(?:-|$)', str(model).upper())
+                if tail:
+                    color = {'IR': 'ir', 'UV': 'uv', 'W': 'white',
+                             'R': 'red', 'G': 'green', 'B': 'blue'}[tail.group(1)]
             if not color:
                 miss['color'] += 1
 
@@ -242,6 +253,16 @@ def main():
                     size = [dia, ang] if ang is not None else [dia]
                 elif L is not None:
                     size = [L, W] if W is not None else [L]
+            if size is None:
+                # 官网「尺寸(mm)」是通用外形长×宽×高列（如 "124 × 141 × 178"）。
+                # 光纤 / 程控图案等系列没有「外形长度/宽度/直径」专用列，早先只认专用列
+                # 会把官网已公布的尺寸丢成 null；这里按该列兜底，只搬数值、不推算。
+                box = [v for v in nums(sp.get('尺寸(mm)') or sp.get('显示区域尺寸(mm)')) if v > 0]
+                if box:
+                    size = [box[0], box[1]] if len(box) > 1 and typ in (
+                        'backlight', 'backlight_parallel', 'backlight_hole', 'bar',
+                        'coaxial', 'struct', 'zone', 'fiber', 'pattern', 'flood',
+                        'flat_shadowless', 'dome', 'high_cri', 'ir', 'uv') else [box[0]]
             if size is None:
                 miss['size'] += 1
 

@@ -55,17 +55,28 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 - **排除退市**：两页也加载 `retired-catalog.js`，但只读型号清单做按型号排除，不展示退市条目。
   另有 4 款在售型录与退市库重名（`MV-CH089-10GM/GC`、`acA2000-165um/uc`）会被剔除。
 - **必要参数硬门槛**：按引擎实际算路依赖校验，缺任一项即不纳入（`REQUIRED` 表见源码）。
-  典型被挡的：康视达 53 台面阵相机（官网未给卡口）、奥普特 16 支变倍显微镜头与康视达 1 支微距镜头（无定焦距，
-  直接并进 `LENSES` 会算出 0 焦距 / 无穷视场）、288 款无尺寸光源（引擎读 `size[0]` 会抛错）、
-  2 款无通道数的控制器、1 条无倍率与工作距离的远心。引擎已有 `null` 保护的字段（镜头 `ic`/`mp`、相机 `expMinUs` 等）不算必要。
+  引擎已有 `null` 保护的字段（镜头 `ic`/`mp`、相机 `expMinUs` 等）不算必要。
+- **参数复核（2026-11-20）**：把全部被排除条目逐条回查官网原始表、官方 PDF 与官网在线页，分三类处理，
+  依据同时写在 `selection-catalog.js` 文件头：
+  - **上游漏读，已补录**：奥普特 39 款光纤 / 程控图案光源官网明确列了「尺寸(mm)」「LED颜色」，
+    而 `tools/build-opt-full.py` 原先只认「外形长度 / 宽度 / 直径」专用列，也没处理「多光谱」
+    与没有 `LED颜色` 列时的型号颜色后缀；Basler 2 款控制器型号 `2C` / `4C` 是厂商明示的通道数，
+    `tools/gen-basler-light-catalog.py` 却写死 `channels: null`。两个生成器已修，另删掉 1 条官网空占位行；
+    `library.html` 增 `multi`（多光谱）颜色标签。
+  - **厂商未公布 / 无结构化数值，维持排除**：康视达 53 台面阵相机官方《工业相机系列》PDF 面阵页
+    与官网 `show/1651.html` 系列表都没有「镜头接口」列（同册线阵页有且已解析）；
+    康视达 248 款光源官网分类表尺寸列全空，系列型录只有按「安装图序号」共用的尺寸示意图、
+    没有逐型号数值，按不推算原则不补。
+  - **产品类型不适用该算路，维持排除**：奥普特 18 款变倍 / 显微镜头、康视达 1 款微距镜头
+    （官网给的是放大倍率 / 工作距离 / NA，不是定焦镜头）、华睿 1 款远心（官网型号表只给型号）。
 - **等价字段补齐**：信息本身存在、只是键名不完整的，搬运已有数值后照常参与，不推测不编造 ——
   线阵 `pxH ← pxUm`（康视达 8 台）、远心 `wdMax ← wdMin`（奥普特 619 款单值工作距离）。
 - **不纳入**：3D / 智能相机 / 红外 / 工控机 / 非标产品，字段口径与「相机 + 镜头 + 光源」分离算路不兼容；
   退市库条目本身也不进。线阵相机与远心镜头在**自动选型**里参与（线扫方案 / 远心建议），
   **搭配台**沿用既有的面阵 + 定焦镜头评定公式，只列 `CAMERAS` / `LENSES`。
 
-清洗后选型池：面阵 1982 / 线阵 118 / 定焦镜头 1144 / 远心 922 / 光源 4011 / 控制器 112 / 3D 轮廓 72；
-排除退市 4 款、必要参数缺失 363 款，等价字段补齐 627 处。改动在售型录后要同步 `engine.test.js` 的池数字断言。
+清洗后选型池：面阵 1982 / 线阵 118 / 定焦镜头 1144 / 远心 922 / 光源 4050 / 控制器 114 / 3D 轮廓 72；
+排除退市 4 款、必要参数不全或不适用 321 款，等价字段补齐 627 处。改动在售型录后要同步 `engine.test.js` 的池数字断言。
 
 照明子类 `polar` / `rgb` / `strobe` / `darkfield` / `flood` 等新增时，`library.html` 与 `engine.js` 两处 `LIGHT_TYPE_LABEL` 都要同步。
 
@@ -112,12 +123,12 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `daheng-catalog.js` | 大恒图像型号库（面阵 / 板级 + 镜头 + 远心），由 `tools/parse-daheng-cams-v2.py` + `tools/parse-daheng-lenses-all.py` + `tools/curate-daheng-lenses.py` 生成，勿手改 |
 | `opt-catalog.js` | 奥普特相机库（面阵 118 + 线阵 24），由 `tools/parse-opt-list.py` → `tools/fetch-opt-detail.js` → `tools/parse-opt-detail.py` → `tools/build-opt-catalog.py` 生成，勿手改 |
 | `opt-lens-catalog.js` | 奥普特镜头库（定焦 / 线扫 / 液态 / 显微 / 变倍 278 + 远心 619），由 `tools/build-opt-full.py` 生成，勿手改 |
-| `opt-light-catalog.js` | 奥普特光源库（2134 支，16 个照明子类），由 `tools/build-opt-full.py` 生成，勿手改 |
+| `opt-light-catalog.js` | 奥普特光源库（2133 支，16 个照明子类），由 `tools/build-opt-full.py` 生成，勿手改 |
 | `opt-ctrl-catalog.js` | 奥普特光源控制器 43 款 + 视觉控制器 / 工控机 21 台，由 `tools/build-opt-full.py` 生成，勿手改 |
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
-| `engine.test.js` | 118 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
+| `engine.test.js` | 119 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
 | `tools/fetch-opt-tree.js` | 抓标准光源侧栏分类树（`item-id` 不可信，按文档顺序归属；交替正则会吞节点） |
 | `tools/fetch-opt-ajax.js` | 按系列抓全量型号表（`ajax_series_<id>.html?pageSize=500`，并发 6） |

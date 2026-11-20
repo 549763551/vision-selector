@@ -6,7 +6,10 @@
   CONTROLLERS   Basler 灯光控制器
 用法：
   node tools/fetch-basler-lights.js > tools/_cache/basler-lights.json
-  python tools/gen-basler-light-catalog.py tools/_cache/basler-lights.json > basler-light-catalog.js
+  python tools/gen-basler-light-catalog.py tools/_cache/basler-lights.json 2026-10-24 > basler-light-catalog.js
+
+第二个参数是「数据抓取日期」，省略时取当天；用旧缓存重跑时应显式传原日期，
+避免把「重新生成」误写成「重新抓取」。
 """
 import json, re, sys
 from datetime import date
@@ -32,7 +35,8 @@ def clean_wave(w):
     m = re.match(r'(\d{3,4})\s*nm', w)
     return m.group(1) + ' nm' if m else None
 
-def main(path):
+def main(path, generated=None):
+    gen_date = generated or date.today().isoformat()
     data = json.load(open(path, encoding='utf-8'))
     lights, ctrls = [], []
     seen = set()
@@ -41,7 +45,11 @@ def main(path):
         if 'controller' in x.get('type', '') or 'controller' in model.lower():
             if model not in seen:
                 seen.add(model)
-                ctrls.append({'model': model, 'channels': None, 'mode': 'Basler 灯光控制器',
+                # 型号里的 "2C" / "4C" 是 Basler 官方通道数命名（2 / 4 channels）。
+                # 官网规格页没给结构化的「通道数」列，只按型号明示的数字取值，不臆测。
+                ch = re.search(r'(\d+)C\b', model, re.I)
+                ctrls.append({'model': model, 'channels': int(ch.group(1)) if ch else None,
+                              'mode': 'Basler 灯光控制器',
                               'strobe': True, 'brand': 'Basler'})
             continue
         if model in seen:
@@ -89,7 +97,7 @@ def main(path):
   'use strict';
   var META = {"source": "docs.baslerweb.com 灯光规格页", "brand": "Basler", "generated": "%s",
     "lights": %d, "controllers": %d};
-''' % (date.today().isoformat(), len(lights), len(ctrls), date.today().isoformat(), len(lights), len(ctrls))]
+''' % (gen_date, len(lights), len(ctrls), gen_date, len(lights), len(ctrls))]
     out.append('  var LIGHTS = [\n    ' + ',\n    '.join(obj(x) for x in lights) + '\n  ];')
     out.append('  var CONTROLLERS = [\n    ' + ',\n    '.join(obj(x) for x in ctrls) + '\n  ];')
     out.append('  return { META: META, LIGHTS: LIGHTS, CONTROLLERS: CONTROLLERS };')
@@ -97,4 +105,4 @@ def main(path):
     sys.stdout.write('\n'.join(out) + '\n')
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

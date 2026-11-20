@@ -988,7 +988,7 @@
       '</b> 系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款、控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。' +
       '<span style="color:#94a3b8">已启用：相机 ' + activeBrands.length + ' / 镜头 ' + activeLensBrands.length +
       ' / 光源 ' + activeLightBrands.length + ' 品牌在售官方型录；已排除 <b>' + retN + '</b> 款退市型号与 <b>' +
-      invN + '</b> 款必要参数缺失型号（缺卡口 / 定焦距 / 尺寸 / 倍率等），' +
+      invN + '</b> 款必要参数不全 / 不适用该算路的型号（厂商未公布卡口、无结构化尺寸、变倍镜头无定焦距等），' +
       (fillN ? '另按等价字段补齐 ' + fillN + ' 处（pxH←pxUm、wdMax←wdMin），' : '') +
       '避免算出不可行方案。靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
 
