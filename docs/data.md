@@ -43,7 +43,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 { model, channels /*通道数*/, brand }
 ```
 
-改完跑一次 `node engine.test.js`，测试会告诉你有没有算歪。
+改完跑一次 `node engine.test.js`，测试会告诉你有没有算歪；改公式口径还要跑 `node calc.test.js`。
 
 ### 选型链纳入口径（selection-catalog.js）
 
@@ -97,11 +97,11 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 
 ## 目录结构
 
-四个页面 + 一份引擎 + 各品牌型录，全是静态文件，没有构建步骤。
+五个页面 + 两份引擎（选型引擎 / 公式引擎）+ 各品牌型录，全是静态文件，没有构建步骤。
 
 | 文件 | 作用 |
 |---|---|
-| `home.html` | **主页**：四页统一入口、数据速览（实时统计型号库）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
+| `home.html` | **主页**：五页统一入口、数据速览（实时统计型号库）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
 | `combo.js` | 搭配页逻辑：经 `selection-catalog.js` 全量合并六品牌在售型录、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
@@ -127,6 +127,10 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `opt-ctrl-catalog.js` | 奥普特光源控制器 43 款 + 视觉控制器 / 工控机 21 台，由 `tools/build-opt-full.py` 生成，勿手改 |
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
+| `calc.html` | **工程计算器页面**：17 个公式分四组独立速算，空白输入、填完即算，公式 / 代入 / 结果 / 判定逐项展示，可复制、清空，纯前端离线可用 |
+| `calc-engine.js` | **公式引擎**，纯计算、无 DOM、无隐式默认值；`FORMULAS` 元数据（输入定义 / 公式符号 / 判定）、`compute(id, params)`、`defaults(id)` 与 `core` 底层口径，浏览器 `window.CalcEngine` / Node `require`。口径与 `engine.js` 一致 |
+| `calc-app.js` | 计算器页面逻辑：按元数据生成空白输入、输入即算、计算 / 清空 / 复制结果；不含任何公式 |
+| `calc.test.js` | 30 个单元测试（元数据与缺参数拦截、k 表与接口带宽口径对照、17 式数值回归、边界与复制文本），`node calc.test.js` 运行 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
 | `engine.test.js` | 120 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
@@ -199,7 +203,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 ## 开发与发布
 
 ```bash
-npm test                 # 等价于 node engine.test.js，110 项全绿才算数
+npm test                 # node engine.test.js（120 项）+ node calc.test.js（30 项），共 150 项
 ```
 
 测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口/最近摄距匹配、

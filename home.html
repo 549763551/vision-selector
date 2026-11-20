@@ -60,7 +60,7 @@
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
 
   /* 三个入口卡 */
-  .entries { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
   a.entry {
     display: flex; flex-direction: column; text-decoration: none; color: var(--ink);
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 18px;
@@ -75,6 +75,7 @@
   .entry-ico.sel { background: linear-gradient(135deg, #38bdf8, #2563eb); }
   .entry-ico.lib { background: linear-gradient(135deg, #34d399, #059669); }
   .entry-ico.cmb { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+  .entry-ico.cal { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
   .entry h2 { margin: 0; font-size: 18px; }
   .entry .go { margin-left: auto; color: var(--accent); font-size: 13.5px; white-space: nowrap; }
   .entry p.desc { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.75; flex: 1 1 auto; }
@@ -217,6 +218,7 @@
       <a href="index.html">选型助手</a>
       <a href="library.html">产品库</a>
       <a href="combo.html">自定义搭配</a>
+      <a href="calc.html">工程计算器</a>
     </nav>
   </div>
 </div>
@@ -257,6 +259,18 @@
       <ul>
         <li>卡口 / 像面 / 解析力 / 景深 / 曝光逐项判定</li>
         <li>不合适的项直接给出可替换型号</li>
+      </ul>
+    </a>
+    <a class="entry" href="calc.html">
+      <div class="entry-head">
+        <span class="entry-ico cal">🧮</span>
+        <h2>工程计算器</h2>
+        <span class="go">进入 →</span>
+      </div>
+      <p class="desc">方案里常算的公式单独做成工具：填参数一键出结果，公式、代入值、结果与判定逐项摊开。</p>
+      <ul>
+        <li>分辨率 / 焦距 / 视场 / 景深 / 曝光 / 帧率 / 带宽等 17 式</li>
+        <li>不预填参数、不生成方案，结果可整段复制</li>
       </ul>
     </a>
   </div>
