@@ -45,6 +45,19 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 
 改完跑一次 `node engine.test.js`，测试会告诉你有没有算歪。
 
+### 康视达：只挂产品库、不进选型链
+
+康视达（`cst-catalog.js`，1657 款）是第一个「只进产品库」的品牌。官网相机表没给卡口与曝光范围，若并入自动推荐会算出装不上或跑不到节拍的方案，因此：
+
+- `brands.js` 照常登记 `cst`；`home.html` / `library.html` 引 `cst-catalog.js` 并加进 `SRC`；
+- **`index.html` / `combo.html` 故意不引**，两页的 `availableBrands()` 会按「全局是否存在」自动把 `cst` 排除，选型助手与自定义搭配仍是五品牌，页面文案里的「五品牌」不用改；
+- 产品库 `BRAND_OF` 加 `/^(CST-|MAKO)/`（`MAKO` 是官网列出的 AVT 代理相机），保证跨页签搜索能自动切到正确类别；
+- 新增照明子类 `polar` / `rgb` / `strobe` 时，`library.html` 与 `engine.js` 两处 `LIGHT_TYPE_LABEL` 都要同步。
+
+抓取链路（站点 `www.cstmv.com` 有 JS 挑战页、**去掉 www 直连 200**）：
+`tools/fetch-cst.py discover`（BFS 分类树）→ `pages`（翻页）→ `collect`（汇总去重）→ `series`（相机/远心系列表）→ `details`（1605 个单品参数页）→ `tools/build-cst-catalog.py` 生成型录。
+分类页表头与产品行偶有列错位，官网个别分类还只填 1,2,3… 占位序号，因此**规格以单品页的「标签—值」表为准**，分类页只用来发现型号、归属类目与补尺寸；生成器对占位行有检测。
+
 ## 目录结构
 
 四个页面 + 一份引擎 + 各品牌型录，全是静态文件，没有构建步骤。
@@ -55,8 +68,10 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
 | `combo.js` | 搭配页逻辑：合并五品牌型号库、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
-| `library.html` | **产品库**：7193 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
-| `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记 |
+| `library.html` | **产品库**：8850 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
+| `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记；康视达登记了「只挂产品库」的说明 |
+| `cst-catalog.js` | 康视达型号库 1657 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1431 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。只挂主页与产品库，不进选型链 |
+| `cst-misc-catalog.js` | 康视达非标产品 54 款，按惯例只落盘备份、不挂任何页面 |
 | `hikrobot-catalog.js` | 海康型号库（面阵/线扫/镜头/远心/光源），由脚本生成，勿手改 |
 | `huarui-catalog.js` | 华睿型号库（面阵 / 线阵 / 镜头 / 光源 / 光源控制器），由 `tools/parse-huarui.py` + `tools/parse-huarui-linescan.py` + `tools/parse-huarui-lenses.py` + `tools/parse-huarui-lights.py` 生成，勿手改 |
 | `basler-catalog.js` | Basler 型号库（面阵 + 线扫 racer 2），由 `tools/parse-basler.py` + `tools/fetch-basler-cams.js` 生成，勿手改 |
@@ -80,6 +95,8 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `tools/parse-opt-all.py` | 通用「列名 → 值」解析（各系列列名/列数都不同，按 thead 对齐，不写死列位） |
 | `tools/build-opt-full.py` | 生成奥普特镜头 / 光源 / 控制器 / 工控机型录（含照明类型、颜色、尺寸口径映射） |
 | `tools/build-opt-misc.py` | 生成奥普特智能相机 / 读码器 / 传感器 / 测量运控型录（原始 spec 全保留） |
+| `tools/fetch-cst.py` | 康视达官网抓取器：BFS 分类树 / 翻页 / 系列表 / 单品详情页。注意用 `https://cstmv.com`（无 www）绕过 JS 挑战 |
+| `tools/build-cst-catalog.py` | 把分类页 + 单品页 + 系列表组装成 `cst-catalog.js`；含占位行检测、型号差集校验与字段口径映射 |
 | `tools/fetch-huarui-lens.py` | 华睿镜头 / 远心型号：站点是 React SPA，curl 抓 HTML 只有空壳，型号在 XHR 里，走 `/api/cn/vision/productListNew?id=<navId>`（面阵 122 / 线阵大面阵 187 / 远心 188） |
 | `tools/build-huarui-lens-add.py` | 华睿官网 77 款与库内 63 支比对，产出 22 款增量（含像面「1.1''(φ17.6mm)」写法的解析、F 数越界置空） |
 | `tools/write-huarui-lens-add.py` | 把增量写进 `huarui-catalog.js`（定焦进 LENSES、远心进 TELECENTRIC），可重复执行 |
@@ -95,7 +112,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `tools/fetch-lights.js` | 从官网抓取光源型号的脚本 |
 | `tools/fetch-specs.js` | 从官网逐型号抓取详细参数（动态范围/信噪比/曝光/PoE/功率/控制器） |
 | `assets/hikrobot-logo.png` | 海康机器人 HIKROBOT 字标（仅用于标注数据来源） |
-| `assets/huarui-logo.svg` `assets/basler-logo.svg` `assets/daheng-logo.svg` | 华睿 / Basler / 大恒归属标（简化文字标，非官方商标图样） |
+| `assets/huarui-logo.svg` `assets/basler-logo.svg` `assets/daheng-logo.svg` `assets/opt-logo.svg` `assets/cst-logo.svg` | 华睿 / Basler / 大恒 / 奥普特 / 康视达归属标（简化文字标，非官方商标图样） |
 | `assets/favicon.ico` | 站点图标 |
 | `assets/screenshot-index.png` | README 里的选型助手首屏截图 |
 | `assets/qr-gzh.jpg` `assets/qr-mp.jpg` | 主页「关注与小程序」的公众号 / 小程序二维码 |

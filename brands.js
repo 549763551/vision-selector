@@ -47,6 +47,17 @@
       logo: 'assets/opt-logo.svg',
       color: '#12429b',
       global: 'OptCatalog'
+    },
+    cst: {
+      // 仅产品库 / 主页加载（index.html 与 combo.html 不引 cst-catalog.js），
+      // availableBrands() 会自动把它排除在选型链之外：康视达相机缺卡口与曝光范围，
+      // 暂不参与自动推荐与搭配评定，只在产品库查询。
+      key: 'cst',
+      name: '康视达 CST',
+      short: '康视达',
+      logo: 'assets/cst-logo.svg',
+      color: '#0f766e',
+      global: 'CstCatalog'
     }
   };
 

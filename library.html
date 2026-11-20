@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>产品库 · 机器视觉选型助手</title>
-<meta name="description" content="五品牌机器视觉产品库：面阵 / 线阵相机、镜头、远心镜头、光源与控制器、3D 传感器、工控机、红外相机全量型号，支持分类筛选、关键词查询与全参数查看，手机 / 电脑均可使用。" />
+<meta name="description" content="六品牌机器视觉产品库：面阵 / 线阵相机、镜头、远心镜头、光源与控制器、3D 传感器、工控机、红外相机全量型号，支持分类筛选、关键词查询与全参数查看，手机 / 电脑均可使用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -564,6 +564,8 @@
 <script src="opt-lens-catalog.js"></script>
 <script src="opt-light-catalog.js"></script>
 <script src="opt-ctrl-catalog.js"></script>
+<script src="cst-catalog.js"></script>
+<!-- 康视达只挂产品库：index.html 与 combo.html 不引，选型链不含该品牌 -->
 <!-- opt-misc-catalog.js（智能相机 80 / 读码器 65 / 传感器 1057 / 测量运控 26）：
      数据已抓取、留在仓库里备份；产品线类型不扩张，暂不加载也不挂载。 -->
 <script src="retired-catalog.js"></script>
@@ -587,8 +589,9 @@
     { key: 'all',   name: '全部',     catName: '全部类别' }
   ];
 
-  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
+  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog', cst: 'CstCatalog' };
   // 附加库：海康 3D / 工控机 / 红外相机；Basler 镜头 / 灯光；奥普特 镜头 / 光源 / 控制器
+  // 康视达六个类目都在主库 cst-catalog.js 里，直接走 SRC，无需 EXTRA_SRC。
   // 暂无挂载（数据已抓取、仅作备份，产品线类型不扩张）：
   //   OptMiscCatalog = opt-misc-catalog.js（智能相机 / 读码器 145、传感器 1057、测量运控 26）
   var EXTRA_SRC = [
@@ -611,7 +614,9 @@
     darkfield: '暗场光源', flood: '泛光面光源',
     // 奥普特标准光源的细分类（海康/Basler 型录里没有这些子类）
     fiber: '光纤光源', pattern: '程控图案光源', struct: '结构光源', zone: '分区照明光源',
-    high_cri: '高显色指数光源', ir: '红外光源', uv: '紫外光源'
+    high_cri: '高显色指数光源', ir: '红外光源', uv: '紫外光源',
+    // 康视达（CST）光源细分：偏光 / 三色 / 爆闪
+    polar: '偏光光源', rgb: '三色光源', strobe: '爆闪光源'
   };
   var COLOR_LABEL = { white: '白', red: '红', blue: '蓝', green: '绿', ir: '红外', uv: '紫外', cyan: '青', yellow: '黄' };
   var COLOR_CSS = { white: '#94a3b8', red: '#dc2626', blue: '#2563eb', green: '#16a34a', ir: '#7c3aed', uv: '#a21caf', cyan: '#0891b2', yellow: '#ca8a04' };
@@ -1852,6 +1857,7 @@
   var BRAND_OF = [
     { k: 'hikrobot', rx: /^MV-C/ },
     { k: 'opt', rx: /^OPT-/ },
+    { k: 'cst', rx: /^(CST-|MAKO)/ },
     { k: 'basler', rx: /^(AC|A2|BO|BA|BC|PU)[A-Z]?\d/ },
     { k: 'daheng', rx: /^(MARS|MER|ME2|VEN|VE2|SIRIUS|SWIR|HN|LM|FL|HS|BV|ELM|FTV|FT|TL|MGTL|LSTL|TCEL)/ },
     { k: 'huarui', rx: /^A[HX]?\d{3,4}/ }

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉选型工具集 · 主页</title>
-<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询五品牌 6894 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
+<meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询六品牌 8850 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -178,7 +178,7 @@
     <div class="tb-brand">
       <div class="tb-title">机器视觉选型工具集</div>
       <div class="tb-sub">
-        海康机器人 / 华睿 / Basler / 大恒图像 / 奥普特 五品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
+        海康机器人 / 华睿 / Basler / 大恒图像 / 奥普特 / 康视达 六品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
       </div>
     </div>
     <nav class="pnav" aria-label="页面导航">
@@ -275,11 +275,13 @@
 <script src="opt-lens-catalog.js"></script>
 <script src="opt-light-catalog.js"></script>
 <script src="opt-ctrl-catalog.js"></script>
+<script src="cst-catalog.js"></script>
+<!-- 康视达只挂主页/产品库：index.html 与 combo.html 不引，选型链不含该品牌 -->
 <!-- opt-misc-catalog.js（智能相机/传感器/测量运控 1228 款）数据已备份，产品线类型不扩张，暂不引入 -->
 <script>
 (function () {
   'use strict';
-  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog' };
+  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog', cst: 'CstCatalog' };
   var metas = {};
   var allMetas = [];
   var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0 };
