@@ -166,7 +166,7 @@
 
   /* ============================ 结果封装 ============================ */
 
-  function pack(meta, p, steps, result, verdict, tone, notes, warnings) {
+  function pack(meta, p, steps, result, verdict, tone, notes, warnings, provides) {
     var lines = [];
     lines.push('【' + meta.title + '】');
     if (meta.sym) lines.push('公式：' + meta.sym);
@@ -185,14 +185,16 @@
                  (s.note ? '（' + s.note + '）' : ''));
     });
     lines.push('');
-    lines.push('结论：' + result.value + (result.unit ? ' ' + result.unit : '') + '　' + verdict);
+    var shown = typeof result.value === 'number' ? fmt(result.value, 6) : result.value;
+    lines.push('结论：' + shown + (result.unit ? ' ' + result.unit : '') + '　' + verdict);
     (notes || []).forEach(function (n) { lines.push('  · ' + n); });
     (warnings || []).forEach(function (w) { lines.push('  ⚠ ' + w); });
     return {
       id: meta.id, group: meta.group, title: meta.title, sym: meta.sym || '',
       inputs: used.map(function (i) { return { label: i.label, key: i.key, value: p[i.key], unit: i.unit || '' }; }),
       steps: steps, result: result, verdict: verdict, tone: tone || 'info',
-      notes: notes || [], warnings: warnings || [], text: lines.join('\n')
+      notes: notes || [], warnings: warnings || [], provides: provides || {},
+      text: lines.join('\n')
     };
   }
 
@@ -215,7 +217,8 @@
         var steps = [S('所需像素精度', 'δ / k', fmt(p.precision, 3) + ' / ' + k, acc, 'mm/px', true)];
         return pack(this, p, steps, { value: acc, unit: 'mm/px' },
           '每个最小特征需占 ' + k + ' 像素，单像素不得超过 ' + fmt(acc, 4) + ' mm', 'ok',
-          ['k 取值：精密尺寸测量 5 / 一般测量·定位·OCR 4 / 缺陷·表面 3 / 有无 2.5 / 颜色区分 2']);
+          ['k 取值：精密尺寸测量 5 / 一般测量·定位·OCR 4 / 缺陷·表面 3 / 有无 2.5 / 颜色区分 2'],
+          null, { pxAccReq: acc });
       }
     },
     {
@@ -234,7 +237,8 @@
         return pack(this, p, steps, { value: r.w * r.h / 1e6, unit: 'MP' },
           '至少 ' + r.w + ' × ' + r.h + ' px（约 ' + fmt(r.w * r.h / 1e6, 2) + ' MP）', 'info',
           ['彩色 Bayer 插值后细节分辨率偏低，所需分辨率 × 1.2；黑白 × 1.0',
-           '选机时从小到大取第一台两个方向都满足的，够用就好']);
+           '选机时从小到大取第一台两个方向都满足的，够用就好'],
+          null, { pxW: r.w, pxH: r.h, mp: r.w * r.h / 1e6 });
       }
     },
     {
@@ -248,7 +252,8 @@
           S('按高度反算', '靶面高 / 视野高', fmt(p.sh, 2) + ' / ' + fmt(p.fovH, 1), m.byH, '×'),
           S('所需放大倍率', 'min(按宽, 按高)', 'min(' + fmt(m.byW, 4) + ', ' + fmt(m.byH, 4) + ')', m.m, '×', true, '受' + m.limitedBy + '边约束')
         ];
-        return pack(this, p, steps, { value: m.m, unit: '×' }, '取 ' + fmt(m.m, 4) + '×（' + m.limitedBy + '边受限）', 'info');
+        return pack(this, p, steps, { value: m.m, unit: '×' }, '取 ' + fmt(m.m, 4) + '×（' + m.limitedBy + '边受限）', 'info', null, null,
+          { m: m.m });
       }
     },
     {
@@ -267,7 +272,8 @@
         if (L.aboveMax) warnings.push('理论焦距大于 100mm，标准档位已封顶，需按实际镜头库选');
         return pack(this, p, steps, { value: L.pick, unit: 'mm' },
           '理论 ' + fmt(fReq, 2) + ' mm → 选 ' + L.pick + ' mm（视场只会变大，不会裁掉工件）', 'info',
-          ['实际镜头需再核对最近摄距与卡口；转接环会额外占 12mm 左右'], warnings);
+          ['实际镜头需再核对最近摄距与卡口；转接环会额外占 12mm 左右'], warnings,
+          { focalPick: L.pick, focalReq: fReq, m: m.m });
       }
     },
     {
@@ -288,7 +294,8 @@
         ];
         return pack(this, p, steps, { value: fov.w * fov.h, unit: 'mm²' },
           fmt(fov.w, 1) + ' × ' + fmt(fov.h, 1) + ' mm，' + (cover ? '覆盖需求视野 ✓' : '未覆盖需求视野 ✗'), cover ? 'ok' : 'bad',
-          ['视场略大于需求是正常的（焦距只能取标准档），但像素会被摊薄，需复核有效像素精度']);
+          ['视场略大于需求是正常的（焦距只能取标准档），但像素会被摊薄，需复核有效像素精度'],
+          null, { fovActW: fov.w, fovActH: fov.h, m: m });
       }
     },
     {
@@ -309,7 +316,8 @@
         ];
         return pack(this, p, steps, { value: acc, unit: 'mm/px' },
           fmt(acc, 5) + ' mm/px，余量 ' + fmt(margin, 1) + '%（建议 ≥ 15%）', margin >= 15 ? 'ok' : 'warn',
-          [], acc * k > num(p.precision, 1) ? ['有效精度不满足 δ/k，需升一档分辨率或缩短工作距离'] : []);
+          [], acc * k > num(p.precision, 1) ? ['有效精度不满足 δ/k，需升一档分辨率或缩短工作距离'] : [],
+          { pxAccEff: acc, margin: margin });
       }
     },
     {
@@ -325,7 +333,8 @@
         var space = num(p.freeSpace, 0);
         return pack(this, p, steps, { value: wd, unit: 'mm' }, 'WD 需 ≈ ' + fmt(wd, 1) + ' mm', 'info',
           ['镜头最近摄距与法兰距必须另行核对；实际调焦会留 ±5% 余量'],
-          space > 0 && wd > space ? ['可用安装深度 ' + fmt(space, 0) + ' mm 不足'] : []);
+          space > 0 && wd > space ? ['可用安装深度 ' + fmt(space, 0) + ' mm 不足'] : [],
+          { wdReq: wd });
       }
     },
     {
@@ -335,24 +344,29 @@
       run: function (p) {
         var m = num(p.m, 0.1), F = num(p.aperture, 8), c = cocMmOf(p.pxUm);
         var dof = dofOf(F, c, m), blur = airyPxOf(F, p.pxUm);
+        var hd = num(p.heightDiff, null);            // 未填 Δh 时不判定覆盖能力
         var steps = [
           S('弥散圆 c', '2 × 像元 / 1000', '2 × ' + fmt(p.pxUm, 2) + ' / 1000', c, 'mm'),
-          S('景深', '2 · F · c · (1 + m) / m²', '2 × ' + fmt(F, 1) + ' × ' + fmt(c, 5) + ' × (1 + ' + fmt(m, 4) + ') / ' + fmt(m, 4) + '²', dof, 'mm', dof >= num(p.heightDiff, 0)),
+          S('景深', '2 · F · c · (1 + m) / m²', '2 × ' + fmt(F, 1) + ' × ' + fmt(c, 5) + ' × (1 + ' + fmt(m, 4) + ') / ' + fmt(m, 4) + '²', dof, 'mm', hd == null ? null : dof >= hd),
           S('衍射艾里斑', '2.44 · λ · F / 像元', '2.44 × 0.55 × ' + fmt(F, 1) + ' / ' + fmt(p.pxUm, 2), blur, 'px', blur <= CONST.DIFFRACTION_LIMIT_PX)
         ];
         var next = CONST.APERTURES.filter(function (x) { return x > F; })[0];
         if (next) {
           var d2 = dofOf(next, c, m), b2 = airyPxOf(next, p.pxUm);
-          steps.push(S('收一档到 F' + next, '同一公式重算', 'F' + next + ' → DOF / 艾里斑', d2, 'mm', d2 >= num(p.heightDiff, 0),
+          steps.push(S('收一档到 F' + next, '同一公式重算', 'F' + next + ' → DOF / 艾里斑', d2, 'mm', hd == null ? null : d2 >= hd,
             '艾里斑 ' + fmt(b2, 2) + ' px' + (b2 > CONST.DIFFRACTION_LIMIT_PX ? '，已超 2.5px 不建议再收' : '')));
         }
         var warnings = [];
-        if (dof < num(p.heightDiff, 0)) warnings.push('景深 ' + fmt(dof, 2) + ' mm < 高度变化 ' + fmt(p.heightDiff, 1) + ' mm，需收小光圈或改远心');
+        if (hd != null && dof < hd) warnings.push('景深 ' + fmt(dof, 2) + ' mm < 高度变化 ' + fmt(p.heightDiff, 1) + ' mm，需收小光圈或改远心');
+        if (hd == null) warnings.push('未填工件高度变化 Δh，只给景深值、不判定能否覆盖');
         if (blur > CONST.DIFFRACTION_LIMIT_PX) warnings.push('衍射弥散 ' + fmt(blur, 2) + ' px > 2.5 px，成像会变软');
         return pack(this, p, steps, { value: dof, unit: 'mm' },
-          'DOF ≈ ' + fmt(dof, 2) + ' mm，' + (dof >= num(p.heightDiff, 0) ? '满足' : '不满足') + ' Δh；衍射 ' + fmt(blur, 2) + ' px',
-          dof >= num(p.heightDiff, 0) && blur <= CONST.DIFFRACTION_LIMIT_PX ? 'ok' : 'warn',
-          ['几何光学近似，不含像差；微距 m > 0.3 时误差增大'], warnings);
+          'DOF ≈ ' + fmt(dof, 2) + ' mm' +
+            (hd == null ? '（未填 Δh，未判定覆盖）' : '，' + (dof >= hd ? '满足' : '不满足') + ' Δh') +
+            '；衍射 ' + fmt(blur, 2) + ' px',
+          hd != null && dof < hd || blur > CONST.DIFFRACTION_LIMIT_PX ? 'warn' : (hd == null ? 'info' : 'ok'),
+          ['几何光学近似，不含像差；微距 m > 0.3 时误差增大'], warnings,
+          { dof: dof, airy: blur });
       }
     },
     {
@@ -360,20 +374,23 @@
       inputs: [I('pxAcc', '有效像素精度', 0.0265, 'mm/px'), I('speed', '工件速度 v', 100, 'mm/s'),
                I('expMinUs', '相机最短曝光', 20, 'µs')],
       run: function (p) {
-        var acc = num(p.pxAcc, 0), v = num(p.speed, 0), t = expMaxMsOf(acc, v), tMin = num(p.expMinUs, 0) / 1000;
+        var acc = num(p.pxAcc, 0), v = num(p.speed, 0), t = expMaxMsOf(acc, v);
+        var hasExp = !(p.expMinUs === undefined || p.expMinUs === null || p.expMinUs === '');
+        var tMin = hasExp ? num(p.expMinUs, 0) / 1000 : null;   // 未填相机最短曝光时不校核
         var steps = [
-          S('曝光上限', '像素精度 / 速度 × 1000', fmt(acc, 4) + ' / ' + fmt(v, 1) + ' × 1000', t, 'ms', t >= CONST.STROBE_EXP_MS),
-          S('相机最短曝光', 'µs / 1000', fmt(p.expMinUs, 0) + ' / 1000', tMin, 'ms', t >= tMin)
+          S('曝光上限', '像素精度 / 速度 × 1000', fmt(acc, 4) + ' / ' + fmt(v, 1) + ' × 1000', t, 'ms', t >= CONST.STROBE_EXP_MS)
         ];
+        if (hasExp) steps.push(S('相机最短曝光', 'µs / 1000', fmt(p.expMinUs, 0) + ' / 1000', tMin, 'ms', t >= tMin));
         if (!isFinite(t)) return pack(this, p, [S('曝光上限', '静态拍摄', '速度 = 0', null, 'ms', true, '无运动模糊约束')],
-          { value: null, unit: '' }, '静态拍摄，先按 2 ms 试拍', 'info');
+          { value: null, unit: '' }, '静态拍摄，先按 2 ms 试拍', 'info', null, null, { tMax: null });
         var blur = v * t / 1000 / acc;
         steps.push(S('该曝光下模糊量', 'v · t / 像素精度', fmt(v, 1) + ' × ' + fmt(t, 3) + ' / 1000 / ' + fmt(acc, 4), blur, 'px', blur <= 1));
         var warnings = [];
         if (t < CONST.STROBE_EXP_MS) warnings.push('曝光 < 1 ms，需配频闪控制器（脉冲宽度 = 曝光时间）');
-        if (t < tMin) warnings.push('曝光上限短于相机最短曝光 ' + fmt(tMin, 3) + ' ms，该相机不可用');
+        if (hasExp && t < tMin) warnings.push('曝光上限短于相机最短曝光 ' + fmt(tMin, 3) + ' ms，该相机不可用');
         return pack(this, p, steps, { value: t, unit: 'ms' }, '曝光不得超过 ' + fmt(t, 3) + ' ms', warnings.length ? 'warn' : 'ok',
-          ['保证运动模糊 ≤ 1 像素；最终曝光以现场直方图与标准件为准'], warnings);
+          ['保证运动模糊 ≤ 1 像素；最终曝光以现场直方图与标准件为准'], warnings,
+          { tMax: t });
       }
     },
     {
@@ -388,7 +405,8 @@
         if (cpm > 0) steps.push(S('节拍换算', '件/分 ÷ 60', fmt(cpm, 0) + ' / 60', cpm / 60, '件/s', fps >= cpm / 60));
         return pack(this, p, steps, { value: fps, unit: 'fps' },
           '需求 ≥ ' + fps + ' fps（静态默认 ' + CONST.STATIC_FPS + ' fps）', 'info',
-          ['1.2 是重叠与触发抖动余量；有触发信号时按硬触发频率取值']);
+          ['1.2 是重叠与触发抖动余量；有触发信号时按硬触发频率取值'],
+          null, { fpsNeed: fps });
       }
     },
     {
@@ -408,7 +426,8 @@
           '合成 ' + fmt(b.total, 5) + ' mm ' + (b.total <= req ? '≤' : '>') + ' 要求 ' + fmt(req, 5) + ' mm',
           b.total <= req ? 'ok' : 'bad',
           ['理论像素精度只是「一个像素多大」，工程上还要叠加亚像素、畸变残差与标定误差'],
-          b.total > req ? ['预算超差，需提高分辨率或加强标定'] : []);
+          b.total > req ? ['预算超差，需提高分辨率或加强标定'] : [],
+          { sigma: b.total });
       }
     },
     {
@@ -431,7 +450,8 @@
           bw <= cap ? 'ok' : 'bad',
           ['位深取相机单通道原始输出 8/10/12 bit；彩色 Bayer 也是单通道，RGB 插值发生在上位机',
            '0.85 扣掉包头 / 协议 / 帧间隔开销'],
-          bw > cap ? ['需降帧率 / 降位深 / 换更高带宽接口'] : []);
+          bw > cap ? ['需降帧率 / 降位深 / 换更高带宽接口'] : [],
+          { bw: bw, cap: cap, maxFps: maxFps });
       }
     },
     {
@@ -449,7 +469,8 @@
         if (free > 0 && total > free) warnings.push('光机总长超出可用空间 ' + fmt(total - free, 1) + ' mm');
         return pack(this, p, steps, { value: total, unit: 'mm' },
           fmt(total, 1) + ' mm' + (free > 0 ? '，可用 ' + fmt(free, 0) + ' mm' : ''), warnings.length ? 'bad' : 'ok',
-          ['镜头长度取手册外形图；缺数据按系列典型值估并标注', '转接环另加约 12mm'], warnings);
+          ['镜头长度取手册外形图；缺数据按系列典型值估并标注', '转接环另加约 12mm'], warnings,
+          { totalLen: total, kitLen: kit });
       }
     },
     {
@@ -474,7 +495,8 @@
         return pack(this, p, steps, { value: rate, unit: 'kHz' },
           '需 ≥ ' + fmt(marginRate, 2) + ' kHz（含余量），像面宽 ' + fmt(sensorW, 2) + ' mm',
           warnings.length ? 'bad' : 'info',
-          ['线扫镜头需按像面宽另选（本工具型录未收录线扫镜头）', '线光源长度 ≥ 视野宽 × 1.15'], warnings);
+          ['线扫镜头需按像面宽另选（本工具型录未收录线扫镜头）', '线光源长度 ≥ 视野宽 × 1.15'], warnings,
+          { lineRate: rate, lineRateMargin: marginRate, sensorW: sensorW });
       }
     },
     {
@@ -496,7 +518,8 @@
           '倍率 ≈ ' + fmt(m.m, 4) + '×，' + (checked ? (pass ? 'WD 在系列区间内 ✓' : 'WD 超出系列区间 ✗') : 'WD 待核对系列手册'),
           checked && !pass ? 'bad' : 'info',
           ['远心景深按 F8 估算，实际工作光圈以型号为准', '倍率只能取系列标称档，需按最近的档重算视野'],
-          checked && !pass ? ['换 WD 区间覆盖当前距离的系列'] : []);
+          checked && !pass ? ['换 WD 区间覆盖当前距离的系列'] : [],
+          { m: m.m });
       }
     },
     {
@@ -577,6 +600,231 @@
   var BY_ID = {};
   FORMULAS.forEach(function (f) { BY_ID[f.id] = f; });
 
+  /* ============================ 组合计算器 ============================ */
+  /*
+   * 把 17 个公式按「一次方案里同时要算的东西」编成 6 组：
+   * 同组共用一套输入（同一个量只填一次），组内哪个公式输入齐了就先算哪个；
+   * 缺的只在结果卡里点名，不要求为了某一个公式把整套条件重填一遍。
+   * 组与组之间只向下传递「算出来的量」（放大倍率 / 有效像素精度 / 实际视场 /
+   * 建议焦距 / 需求帧率），用户填的原始条件各组独立，避免不同方案的数值互相污染。
+   */
+
+  var COMBO_DEFS = [
+    {
+      id: 'camera', label: '面阵成像与精度',
+      desc: '工件与视野填好后，分辨率、放大倍率、焦距、实际视场、有效像素精度、精度预算与安装距离依次算出；镜头焦距留空时按建议档带入。',
+      items: [
+        { id: 'pxacc' },
+        { id: 'resolution' },
+        { id: 'magnification' },
+        { id: 'focal' },
+        { id: 'fov' },
+        { id: 'pxeff', auto: { fovW: 'fov#fovActW', fovH: 'fov#fovActH' } },
+        { id: 'budget', auto: { pxAcc: 'pxeff#pxAccEff', fovW: 'fov#fovActW', fovH: 'fov#fovActH' }, opt: { dist: 0 } },
+        { id: 'wd', opt: { freeSpace: 0 } }
+      ],
+      fieldFrom: { focal: 'focal#focalPick' },
+      labels: { focal: '镜头焦距 f', dist: '镜头畸变规格' },
+      optional: ['dist', 'freeSpace'],
+      sections: [
+        { title: '工件与视野', keys: ['precision', 'task', 'needColor', 'fovW', 'fovH'] },
+        { title: '相机与镜头', keys: ['sw', 'sh', 'camW', 'camH', 'wd', 'focal'] },
+        { title: '可选校核', keys: ['dist', 'freeSpace'] }
+      ]
+    },
+    {
+      id: 'motion', label: '运动、曝光与帧率',
+      desc: '放大倍率、有效像素精度、实际视场高从上一组自动带入（可随时改），填速度就能出曝光上限、需求帧率与景深。',
+      items: [
+        { id: 'exposure', opt: { expMinUs: null } },
+        { id: 'fps', opt: { cpm: 0 } },
+        { id: 'dof', opt: { heightDiff: null } }
+      ],
+      fieldFrom: { m: 'magnification#m', pxAcc: 'pxeff#pxAccEff', fovH: 'fov#fovActH' },
+      labels: { pxAcc: '有效像素精度' },
+      optional: ['expMinUs', 'cpm', 'heightDiff'],
+      sections: [
+        { title: '运动', keys: ['speed', 'heightDiff', 'cpm'] },
+        { title: '镜头与像元', keys: ['m', 'aperture', 'pxUm'] },
+        { title: '曝光与精度', keys: ['pxAcc', 'expMinUs', 'fovH'] }
+      ]
+    },
+    {
+      id: 'link', label: '接口与安装',
+      desc: '相机像素、位深、帧率决定链路带宽；WD + 镜头 + 相机厚度决定结构总长。帧率留空时用上一组算出的需求帧率。',
+      items: [{ id: 'bandwidth' }, { id: 'space', opt: { freeSpace: 0 } }],
+      fieldFrom: { fps: 'fps#fpsNeed' },
+      optional: ['freeSpace'],
+      sections: [
+        { title: '相机与链路', keys: ['camW', 'camH', 'bitDepth', 'fps', 'iface'] },
+        { title: '结构尺寸', keys: ['wd', 'lensLen', 'camDepth', 'freeSpace'] }
+      ]
+    },
+    {
+      id: 'scan', label: '线扫行频',
+      desc: '按速度与像素精度算所需行频与像面宽，并核对相机标称行频是否够用。',
+      items: [{ id: 'linescan', opt: { lineRateMax: 0 } }],
+      optional: ['lineRateMax'],
+      sections: [
+        { title: '线扫参数', keys: ['speed', 'precision', 'task', 'sensorPx', 'pxUm', 'lineRateMax'] }
+      ]
+    },
+    {
+      id: 'tele', label: '远心倍率',
+      desc: '按视野与靶面算所需倍率与设计视场，再用系列 WD 区间校核实际工作距离。',
+      items: [{ id: 'telecentric', opt: { wdMin: 0, wdMax: 0 } }],
+      optional: ['wdMin', 'wdMax'],
+      sections: [
+        { title: '视野与靶面', keys: ['fovW', 'fovH', 'sw', 'sh'] },
+        { title: '工作距离', keys: ['wd', 'wdMin', 'wdMax'] }
+      ]
+    },
+    {
+      id: 'quick', label: '照明与单位速查',
+      desc: '查表类：按任务与材质给照明方式与光色；长度 / 时间 / 帧率互换。',
+      items: [{ id: 'lighting', opt: { colorTarget: 'none' } }, { id: 'unit' }],
+      optional: ['colorTarget'],
+      sections: [
+        { title: '照明规则', keys: ['task', 'material', 'colorTarget'] },
+        { title: '单位换算', keys: ['value', 'basis', 'pxAcc', 'fps'] }
+      ]
+    }
+  ];
+
+  var COMBOS = [], COMBO_BY_ID = {};
+  COMBO_DEFS.forEach(function (def) {
+    var seen = {}, fields = [], uses = {}, autos = {};
+    def.items.forEach(function (it) {
+      var f = BY_ID[it.id];
+      if (!f) throw new Error('组合 ' + def.id + ' 引用了未知公式 ' + it.id);
+      f.inputs.forEach(function (inp) {
+        uses[inp.key] = (uses[inp.key] || 0) + 1;
+        if (it.auto && Object.prototype.hasOwnProperty.call(it.auto, inp.key)) {
+          autos[inp.key] = (autos[inp.key] || 0) + 1;
+        }
+      });
+    });
+    def.items.forEach(function (it) {
+      var f = BY_ID[it.id];
+      f.inputs.forEach(function (inp) {
+        // 「所有用到它的公式都能自己算出来」的量（如实际视场、有效像素精度）不给输入框；
+        // 部分公式能算、部分要填的（如视野宽）仍然是正常字段。
+        if (seen[inp.key] || (autos[inp.key] && autos[inp.key] === uses[inp.key])) return;
+        seen[inp.key] = true;
+        fields.push({
+          key: inp.key,
+          label: (def.labels && def.labels[inp.key]) || inp.label,
+          unit: inp.unit || '', type: inp.type || 'number', opts: inp.opts || null,
+          hint: inp.hint || '', optional: (def.optional || []).indexOf(inp.key) >= 0
+        });
+      });
+    });
+    var byKey = {}, placed = [];
+    fields.forEach(function (fd) { byKey[fd.key] = fd; });
+    var sections = [];
+    (def.sections || []).forEach(function (sec) {
+      var list = [];
+      sec.keys.forEach(function (k) {
+        if (byKey[k] && placed.indexOf(k) < 0) { list.push(byKey[k]); placed.push(k); }
+      });
+      if (list.length) sections.push({ title: sec.title, fields: list });
+    });
+    var rest = fields.filter(function (fd) { return placed.indexOf(fd.key) < 0; });
+    if (rest.length) sections.push({ title: '其它', fields: rest });
+
+    var combo = {
+      id: def.id, label: def.label, desc: def.desc || '',
+      fields: fields, sections: sections, items: def.items,
+      fieldFrom: def.fieldFrom || {}, count: def.items.length
+    };
+    COMBOS.push(combo);
+    COMBO_BY_ID[def.id] = combo;
+  });
+
+  function hasVal(v) { return !(v === undefined || v === null || v === ''); }
+
+  /**
+   * 计算一个组合。
+   * @param {string} id            组合 id
+   * @param {object} params        用户填的值（只有填了的键）
+   * @param {object} [seed]        前面组合算出来的量，形如 { 'pxeff#pxAccEff': {...} }
+   * 返回 { items, filled, prov, done, total, text }：
+   *   items 里每一项要么是公式结果（computed: true），要么是缺口清单（missing）。
+   */
+  function computeCombo(id, params, seed) {
+    var combo = COMBO_BY_ID[id];
+    if (!combo) return { error: '未知组合：' + id };
+    var prov = {}, fieldKeys = {};
+    combo.fields.forEach(function (fd) { fieldKeys[fd.key] = true; });
+    var out = {
+      id: id, label: combo.label, desc: combo.desc,
+      fields: combo.fields, sections: combo.sections,
+      items: [], filled: {}, prov: prov, done: 0, total: combo.items.length
+    };
+    function look(src) { return prov[src] || (seed && seed[src]) || null; }
+
+    combo.items.forEach(function (item) {
+      var f = BY_ID[item.id], p = {}, miss = [], from = {};
+      f.inputs.forEach(function (inp) {
+        var own = item.auto && Object.prototype.hasOwnProperty.call(item.auto, inp.key);
+        var v = params ? params[inp.key] : undefined;
+        // 声明了 auto 的输入表示「这个量由别的公式算」，同名条件不能顶替（如需求视野≠实际视场）
+        if (!own && hasVal(v)) { p[inp.key] = v; return; }
+        var src = (own && item.auto[inp.key]) || (combo.fieldFrom && combo.fieldFrom[inp.key]);
+        if (src) {
+          var hit = look(src);
+          if (hit) { p[inp.key] = hit.value; from[inp.key] = hit; return; }
+          var sid = src.split('#')[0], prev = null;
+          out.items.forEach(function (x) { if (x.id === sid) prev = x; });
+          var root = prev && prev.missing && prev.missing.length ? prev.missing[0] : null;
+          miss.push({
+            key: inp.key, label: inp.label, viaId: sid,
+            viaTitle: (BY_ID[sid] || {}).title || sid,
+            rootKey: root ? root.key : null, rootLabel: root ? root.label : null, rootCount: prev && prev.missing ? prev.missing.length : 0
+          });
+          return;
+        }
+        if (item.opt && Object.prototype.hasOwnProperty.call(item.opt, inp.key)) { p[inp.key] = item.opt[inp.key]; return; }
+        if (inp.type === 'check') { p[inp.key] = false; return; }
+        miss.push({ key: inp.key, label: inp.label });
+      });
+
+      if (miss.length) {
+        out.items.push({ id: item.id, title: f.title, sym: f.sym, computed: false, missing: miss });
+        return;
+      }
+      var res = f.run(p);
+      res.computed = true; res.id = item.id; res.title = f.title; res.sym = f.sym;
+      res.filled = from;
+      out.items.push(res);
+      out.done++;
+      var pv = res.provides || {};
+      Object.keys(pv).forEach(function (k) {
+        var val = pv[k];
+        if (val === undefined || val === null) return;
+        if (typeof val === 'number' && !isFinite(val)) return;
+        prov[item.id + '#' + k] = { value: val, from: f.title, fromId: item.id };
+      });
+      Object.keys(from).forEach(function (k) {
+        if (!fieldKeys[k] || hasVal(params ? params[k] : undefined)) return;
+        out.filled[k] = { value: p[k], from: from[k].from, fromId: from[k].fromId };
+      });
+    });
+
+    // 即使消费该字段的公式因别的项缺失没算出来，字段本身该带入的值也照样显示
+    combo.fields.forEach(function (fd) {
+      if (hasVal(params ? params[fd.key] : undefined)) return;
+      var src = combo.fieldFrom && combo.fieldFrom[fd.key];
+      if (!src) return;
+      var hit = look(src);
+      if (hit) out.filled[fd.key] = { value: hit.value, from: hit.from, fromId: hit.fromId };
+    });
+
+    out.text = out.items.filter(function (x) { return x.computed; })
+      .map(function (x) { return x.text; }).join('\n\n');
+    return out;
+  }
+
   function defaults(id) {
     var f = BY_ID[id], p = {};
     if (!f) return p;
@@ -606,6 +854,8 @@
 
   return {
     CONST: CONST, GROUPS: GROUPS, FORMULAS: FORMULAS,
+    COMBOS: COMBOS, computeCombo: computeCombo,
+    comboById: function (id) { return COMBO_BY_ID[id] || null; },
     byId: function (id) { return BY_ID[id] || null; },
     defaults: defaults, compute: compute,
     // 底层口径暴露出来，便于单测与选型引擎交叉核对

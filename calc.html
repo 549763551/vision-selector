@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>工程计算器 · 机器视觉方案公式速算</title>
-<meta name="description" content="把机器视觉方案里常用的公式直接做成功能：像素精度、分辨率、焦距、实际视场、有效精度、景深与衍射、曝光、帧率、带宽、精度预算、安装空间、线扫行频、远心倍率、照明规则与单位换算。填完即算，自动输出公式、代入、结果与判定，结果可整段复制。不预填参数、不生成方案，纯前端离线可用。" />
+<meta name="description" content="把机器视觉方案里常用的 17 个公式按场景合成 6 个计算器：像素精度、分辨率、焦距、实际视场、有效精度、景深与衍射、曝光、帧率、带宽、精度预算、安装空间、线扫行频、远心倍率、照明规则与单位换算。同组条件只填一次，能算的立刻出结果，缺的只提示缺哪项。不预填参数、不生成方案，纯前端离线可用。" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
@@ -36,18 +36,18 @@
   }
   .topbar {
     background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
-    color: #fff; padding: 20px 28px 18px;
+    color: #fff; padding: 13px 22px 11px;
     border-top: 3px solid #e60012;
   }
   .topbar-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 16px 24px; flex-wrap: wrap; }
   .tb-brand { min-width: 0; }
-  .tb-title { font-size: 22px; font-weight: 700; letter-spacing: .3px; }
-  .tb-sub { margin-top: 7px; font-size: 13.5px; color: #93a4bd; line-height: 1.7; }
+  .tb-title { font-size: 19px; font-weight: 700; letter-spacing: .3px; }
+  .tb-sub { margin-top: 3px; font-size: 12.5px; color: #93a4bd; line-height: 1.6; }
   .tb-sub b { color: #fff; font-weight: 600; }
   .pnav { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .pnav > a, .pnav > .on {
     display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
-    font-size: 13px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 8px 15px;
+    font-size: 12.5px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 6px 12px;
     color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
     transition: .15s;
   }
@@ -57,53 +57,92 @@
     background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
     border-color: rgba(56, 189, 248, .7);
   }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 14px 22px 40px; }
   .intro {
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
+    padding: 11px 15px; margin-bottom: 2px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
   }
-  .intro h1 { font-size: 19px; margin: 0 0 6px; }
-  .intro p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .intro h1 { font-size: 17px; margin: 0 0 4px; }
+  .intro p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.65; }
   .intro b { color: var(--accent); }
   .toolbar {
     display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    position: sticky; top: 0; z-index: 12; padding: 10px 0;
+    position: sticky; top: 0; z-index: 12; padding: 6px 0;
     background: linear-gradient(180deg, var(--bg) 78%, rgba(238, 242, 247, 0));
   }
   .toolbar .anchor, .toolbar button, .btn {
     display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
-    font-size: 12.5px; font-weight: 600; line-height: 1; padding: 9px 13px;
+    font-size: 12px; font-weight: 600; line-height: 1; padding: 6px 11px;
     border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
     color: var(--ink); text-decoration: none; cursor: pointer; transition: .15s;
   }
   .toolbar .anchor:hover, .toolbar button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
-  .toolbar .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .toolbar .primary:hover { background: #1d4ed8; color: #fff; }
   .toolbar .sep { flex: 1 1 auto; }
-  section { scroll-margin-top: 64px; margin-top: 12px; }
-  h2.sec { font-size: 17px; margin: 20px 0 12px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  h2.sec small { font-size: 12.5px; font-weight: 400; color: var(--muted); }
-  .panel {
+  section { scroll-margin-top: 64px; }
+
+  /* ---------- 组合卡片 ---------- */
+  .combo {
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, .04); padding: 16px 18px;
+    padding: 12px 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04); margin-top: 10px;
   }
-  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
+  .chead { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+  .chead h2 { margin: 0; font-size: 15px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .chead h2 small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .cstat {
+    font-size: 12px; color: var(--muted); background: #f1f5f9;
+    border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; line-height: 1.45; font-size: 11.5px;
+  }
+  .cbtns { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
+  .cbtns .btn { font-size: 11px; padding: 5px 9px; }
+  .cdesc { margin: 5px 0 9px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px; }
+  .fsec + .fsec { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 5px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 8px; }
+  .cform .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .field.sel { grid-column: span 2; }
   .field { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .field.wide { grid-column: 1 / -1; }
   .field label { font-size: 12px; color: var(--muted); line-height: 1.35; }
   .field label .u { color: #94a3b8; font-size: 11px; }
+  .opt { font-size: 10px; color: #94a3b8; border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; margin-left: 2px; }
   .field input[type="number"], .field select {
     width: 100%; min-width: 0; font: inherit; font-size: 13px; color: var(--ink);
     background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
-    padding: 7px 9px; outline: none; transition: .15s;
+    padding: 5px 8px; outline: none; transition: .15s; font-size: 12.5px;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, .10); }
-  .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 14px; }
+  .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 11px; }
   .field.check label { font-size: 13px; color: var(--ink); }
   .field.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .ftag { font-size: 10px; color: var(--accent); min-height: 12px; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .field.auto input[type="number"], .field.auto select {
+    border-color: #bfdbfe; background: #f5f9ff; color: #1e40af; font-weight: 600;
+  }
+  .field.need input, .field.need select {
+    border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251, 146, 60, .16); background: #fff7ed;
+  }
+
+  /* ---------- 结果 ---------- */
+  .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; align-items: start; }
+  .cres.one { grid-template-columns: 1fr; }
+  .rcard { border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px; background: #fff; min-width: 0; }
+  .rcard.wait { border-style: dashed; background: #fbfdff; }
+  .rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .rhead h4 { margin: 0; font-size: 13px; }
+  .rtag {
+    font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+    border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+  }
+  .rcard.ok .rtag { color: var(--ok); background: var(--ok-bg); }
+  .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
+  .rcard.bad .rtag { color: var(--bad); background: var(--bad-bg); }
+  .rtag.wait { color: var(--muted); background: #f1f5f9; }
+  .rsym { font-size: 11px; color: var(--muted); margin: 3px 0 6px; word-break: break-word; }
   .verdict {
-    border-radius: 10px; padding: 10px 13px; font-size: 13px; font-weight: 600;
-    background: var(--accent-soft); color: #1e40af; border: 1px solid #bfdbfe; margin-bottom: 12px;
+    border-radius: 9px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+    background: var(--accent-soft); color: #1e40af; border: 1px solid #bfdbfe; margin-bottom: 7px;
     line-height: 1.6; word-break: break-word;
   }
   .verdict.bad { background: var(--bad-bg); border-color: #fecaca; color: var(--bad); }
@@ -112,9 +151,10 @@
   .steps { display: flex; flex-direction: column; gap: 6px; }
   .step {
     display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.9fr) minmax(96px, .8fr);
-    gap: 10px; align-items: start; padding: 8px 10px; border-radius: 9px;
-    background: #f8fafc; border: 1px solid var(--line); font-size: 12.5px;
+    gap: 8px; align-items: start; padding: 5px 8px; border-radius: 8px;
+    background: #f8fafc; border: 1px solid var(--line); font-size: 12px;
   }
+  .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 11.5px; }
   .step .sn { font-weight: 700; color: var(--ink); line-height: 1.45; word-break: break-word; }
   .step .sf { color: var(--muted); line-height: 1.5; word-break: break-word; }
   .step .sf b { color: #334155; font-weight: 600; }
@@ -124,40 +164,39 @@
   .step.ok .sv .flag { color: var(--ok); }
   .step.bad .sv .flag { color: var(--bad); }
   .step .snote { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
-  .notes { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
-  .notes div { font-size: 12px; color: var(--muted); line-height: 1.5; padding-left: 14px; position: relative; }
+  .notes { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .notes div { font-size: 11.5px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
   .notes div::before { content: '·'; position: absolute; left: 3px; color: var(--accent); }
   .notes .risk { color: var(--bad); }
   .notes .risk::before { content: '⚠'; color: var(--bad); }
-  .group { margin-top: 18px; }
-  .group-h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; font-size: 15px; }
-  .group-h small { color: var(--muted); font-size: 12.5px; font-weight: 400; }
-  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .fcard { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 15px 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04); min-width: 0; }
-  .fhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .fhead h3 { margin: 0; font-size: 14.5px; }
-  .fhead .fid { font-size: 11px; color: #94a3b8; font-weight: 400; }
-  .fsym { font-size: 11.5px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 8px; margin-bottom: 10px; word-break: break-word; }
-  .fcard .fields { gap: 8px; }
-  .fbody { min-height: 34px; }
-  .fcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(80px, .75fr); }
-  .fempty {
-    font-size: 12.5px; color: var(--muted); background: #f8fafc;
-    border: 1px dashed var(--line); border-radius: 9px; padding: 10px 12px; line-height: 1.6;
+  .rmiss {
+    font-size: 12px; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa;
+    border-radius: 8px; padding: 6px 9px; line-height: 1.6;
   }
-  .fbtns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
-  .fbtns .btn { font-size: 11.5px; padding: 7px 11px; }
-  .fbtns .btn.go { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .fbtns .btn.go:hover { background: #1d4ed8; color: #fff; }
-  footer.foot { margin-top: 28px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--line); padding-top: 14px; }
+  .rmiss b { color: #b45309; }
+  .rmiss .locate {
+    font: inherit; font-size: 11.5px; margin-left: 5px; border: 1px solid #fdba74;
+    background: #fff; color: #b45309; border-radius: 999px; padding: 3px 10px; cursor: pointer;
+  }
+  .rmiss .locate:hover { background: #ffedd5; }
+  .rauto {
+    margin-top: 6px; font-size: 11px; color: #1d4ed8; background: #f5f9ff;
+    border: 1px dashed #bfdbfe; border-radius: 8px; padding: 5px 8px; line-height: 1.5;
+  }
+  .rfoot { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .rfoot .btn { font-size: 11px; padding: 4px 8px; }
+  footer.foot { margin-top: 16px; color: var(--muted); font-size: 11.5px; line-height: 1.65; border-top: 1px solid var(--line); padding-top: 9px; }
   .toast {
     position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 16px);
     background: #0f172a; color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 999px;
     opacity: 0; pointer-events: none; transition: .22s; z-index: 40; box-shadow: 0 8px 24px rgba(15, 23, 42, .25);
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
-  @media (max-width: 900px) {
-    .cards { grid-template-columns: 1fr; }
+  @media (max-width: 1000px) {
+    .cform .fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 860px) {
+    .cres { grid-template-columns: 1fr; }
   }
   @media (max-width: 760px) {
     .topbar { padding: 16px 16px 14px; }
@@ -167,11 +206,13 @@
     .toolbar { gap: 6px; }
     .toolbar .anchor, .toolbar button { font-size: 11.5px; padding: 8px 10px; }
     .toolbar .sep { display: none; }
-    .fields { grid-template-columns: 1fr 1fr; }
+    .cform .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field.check { grid-column: 1 / -1; }   /* 窄屏下复选框独占一行，避免被读成相邻字段的标签 */
+    .chead h2 { font-size: 15px; }
+    .cbtns { margin-left: 0; }
     .step { grid-template-columns: 1fr; gap: 3px; }
     .step .sv { text-align: left; }
-    .fcard .step { grid-template-columns: 1fr; }
-    .panel, .fcard { padding: 13px 12px; }
+    .combo { padding: 13px 12px; }
   }
 </style>
 </head>
@@ -181,7 +222,7 @@
   <div class="topbar-inner">
     <div class="tb-brand">
       <div class="tb-title">机器视觉工程计算器</div>
-      <div class="tb-sub">方案里常算的公式，<b>填参数就出结果</b>：公式 / 代入 / 结果 / 判定全程摊开，可直接复制进方案书</div>
+      <div class="tb-sub">按场景合成的 <b>6 个计算器</b>：条件只填一次，结果一次算全</div>
     </div>
     <nav class="pnav" aria-label="页面导航">
       <a href="home.html">主页</a>
@@ -196,26 +237,25 @@
 <div class="wrap">
   <div class="intro">
     <h1>机器视觉工程计算器</h1>
-    <p>方案里常算的公式，<b>在这里填参数一键出结果</b>：公式、代入值、结果、单位与判定逐项摊开，可整段复制。不预填参数、不生成方案，只做纯计算。</p>
+    <p>按方案里的实际场景合成 <b>6 个计算器</b>：同一组的条件只填一次，组里「输入齐了」的公式立刻一起出结果；算不出的不报错，只提示还缺哪一项，点「去填」直接跳到那个输入框。上一组算出的放大倍率、有效像素精度、需求帧率和实际视场，会自动带到下一组并标明来源，可随时改。不预填示例值、不生成方案，纯前端离线可用。</p>
   </div>
 
   <div class="toolbar" id="toolbar">
-    <a class="anchor" href="#g_optics">光学几何</a>
-    <a class="anchor" href="#g_quality">图像质量与运动</a>
-    <a class="anchor" href="#g_system">系统与链路</a>
-    <a class="anchor" href="#g_quick">方案速查</a>
+    <a class="anchor" href="#c_camera">面阵成像</a>
+    <a class="anchor" href="#c_motion">运动曝光</a>
+    <a class="anchor" href="#c_link">接口安装</a>
+    <a class="anchor" href="#c_scan">线扫行频</a>
+    <a class="anchor" href="#c_tele">远心倍率</a>
+    <a class="anchor" href="#c_quick">照明与单位</a>
     <span class="sep"></span>
     <button type="button" id="btnClearAll">清空全部</button>
   </div>
 
-  <section id="singleSec">
-    <h2 class="sec">公式速算 <small id="singleCount"></small></h2>
-    <div id="groups"></div>
-  </section>
+  <div id="combos"></div>
 
   <footer class="foot">
-    口径来源：<b>engine.js</b> 与 docs/algorithm.md（k 表、光圈档、焦距档、接口有效带宽 = 线速 × 0.85、λ = 0.55 µm、弥散圆 c = 2 像元、彩色 Bayer × 1.2）。本页只做公式计算，不读写型号库、不生成方案。
-    几何光学近似不含像差，微距（m &gt; 0.3）误差会变大；照度、价格、货期需现场试样并向供应商确认。本工具为非官方辅助工具。
+    口径来源：<b>engine.js</b> 与 docs/algorithm.md（k 表、光圈档、焦距档、接口有效带宽 = 线速 × 0.85、λ = 0.55 µm、弥散圆 c = 2 像元、彩色 Bayer × 1.2）。组合只共享输入条件，不做方案推荐、不读写型号库：数值仍需按现场试样与供应商资料复核。
+    几何光学近似不含像差，微距（m &gt; 0.3）误差会变大；照度、价格、货期需现场确认。本工具为非官方辅助工具。
   </footer>
 </div>
 

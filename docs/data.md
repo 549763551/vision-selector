@@ -127,10 +127,10 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `opt-ctrl-catalog.js` | 奥普特光源控制器 43 款 + 视觉控制器 / 工控机 21 台，由 `tools/build-opt-full.py` 生成，勿手改 |
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
-| `calc.html` | **工程计算器页面**：17 个公式分四组独立速算，空白输入、填完即算，公式 / 代入 / 结果 / 判定逐项展示，可复制、清空，纯前端离线可用 |
-| `calc-engine.js` | **公式引擎**，纯计算、无 DOM、无隐式默认值；`FORMULAS` 元数据（输入定义 / 公式符号 / 判定）、`compute(id, params)`、`defaults(id)` 与 `core` 底层口径，浏览器 `window.CalcEngine` / Node `require`。口径与 `engine.js` 一致 |
-| `calc-app.js` | 计算器页面逻辑：按元数据生成空白输入、输入即算、计算 / 清空 / 复制结果；不含任何公式 |
-| `calc.test.js` | 30 个单元测试（元数据与缺参数拦截、k 表与接口带宽口径对照、17 式数值回归、边界与复制文本），`node calc.test.js` 运行 |
+| `calc.html` | **工程计算器页面**：6 个组合计算器（面阵成像 / 运动曝光 / 接口安装 / 线扫 / 远心 / 速查），组内共享输入、能算的先算、缺的定位，公式 / 代入 / 结果 / 判定逐项展示，可复制、清空，纯前端离线可用 |
+| `calc-engine.js` | **公式引擎**，纯计算、无 DOM、无隐式默认值；`FORMULAS`（17 式：输入定义 / 公式符号 / 判定 / `provides` 可传递量）、`COMBOS`（6 组：字段、小节、`fieldFrom` 跨式带入、`auto` 输入来源）、`compute(id, params)`、`computeCombo(id, params, seed)`、`defaults(id)` 与 `core` 底层口径；浏览器 `window.CalcEngine` / Node `require`。口径与 `engine.js` 一致 |
+| `calc-app.js` | 计算器页面逻辑：按组合元数据生成空白输入、输入即算、自动带入标注、缺项定位、复制本组 / 单式、清空；不含任何公式 |
+| `calc.test.js` | 41 个单元测试（元数据与缺参数拦截、k 表与接口带宽口径对照、17 式数值回归、6 组组合的共享输入 / 缺项根因 / 跨组带入 / 可选参数 / 覆盖完整性、边界与复制文本），`node calc.test.js` 运行 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
 | `engine.test.js` | 120 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
@@ -203,7 +203,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 ## 开发与发布
 
 ```bash
-npm test                 # node engine.test.js（120 项）+ node calc.test.js（30 项），共 150 项
+npm test                 # node engine.test.js（120 项）+ node calc.test.js（41 项），共 161 项
 ```
 
 测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口/最近摄距匹配、

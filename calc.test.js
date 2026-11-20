@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * 工程计算器公式测试：与选型引擎口径对齐 + 17 个公式的数值回归
+ * 工程计算器测试：与选型引擎口径对齐 + 17 个公式的数值回归 + 6 个组合的共享输入/缺项提示
  * 运行：node calc.test.js
  */
 
@@ -284,6 +284,123 @@ test('复制文本：含公式、代入、结果与结论，可直接贴方案',
   assert.ok(/75\.2026|75\.2/.test(o.text), '文本应含结果');
   assert.ok(/结论/.test(o.text));
   assert.ok(o.text.indexOf('输入：') >= 0, '文本应含输入摘要');
+});
+
+
+/* ---------------- 组合计算器（组内共享输入 / 缺项提示） ---------------- */
+
+const BASE = { precision: 0.15, task: 'defect', fovW: 60, fovH: 45, sw: 7.2, sh: 5.4,
+               camW: 2448, camH: 2048, wd: 250 };
+
+test('组合：6 组恰好覆盖 17 式，无重复无遗漏，字段都归到小节里', () => {
+  assert.strictEqual(C.COMBOS.length, 6);
+  const ids = C.COMBOS.reduce((a, c) => a.concat(c.items.map((i) => i.id)), []);
+  assert.strictEqual(ids.length, 17);
+  assert.deepStrictEqual([...new Set(ids)].sort(), C.FORMULAS.map((f) => f.id).sort());
+  C.COMBOS.forEach((c) => {
+    assert.ok(c.label && c.desc && c.sections.length, c.id + ' 元数据不全');
+    const placed = new Set(c.sections.reduce((a, s) => a.concat(s.fields.map((f) => f.key)), []));
+    c.fields.forEach((f) => assert.ok(placed.has(f.key), c.id + ' 字段未分组：' + f.key));
+  });
+});
+
+test('组合：字段数明显少于逐式输入之和（同一条件不再重复填）', () => {
+  const before = C.FORMULAS.reduce((a, f) => a + f.inputs.length, 0);
+  const after = C.COMBOS.reduce((a, c) => a + c.fields.length, 0);
+  assert.strictEqual(before, 77);
+  assert.strictEqual(after, 51);
+  assert.ok(after < before * 0.75);
+});
+
+test('组合：什么都没填时只给缺口清单，不出任何结果', () => {
+  const o = C.computeCombo('camera', {});
+  assert.strictEqual(o.done, 0);
+  assert.strictEqual(o.items.filter((i) => i.computed).length, 0);
+  assert.ok(o.items[0].missing.length >= 2);
+  assert.strictEqual(o.text, '');
+  clean(o);
+});
+
+test('组合：面阵组 9 个条件 → 8 式全算，焦距按建议档自动带入', () => {
+  const o = C.computeCombo('camera', BASE);
+  assert.strictEqual(o.done, 8);
+  assert.strictEqual(o.filled.focal.value, 25);
+  const fovItem = o.items.filter((i) => i.id === 'fov')[0];
+  near(fovItem.steps[1].raw, 64.8, 1e-9);
+  near(fovItem.steps[2].raw, 48.6, 1e-9);
+});
+
+test('组合：有效像素精度用「实际视场」而不是同名的「视野宽」', () => {
+  const o = C.computeCombo('camera', BASE);
+  const px = o.items.filter((i) => i.id === 'pxeff')[0];
+  near(px.result.value, 0.0264705882, 1e-8);      // 64.8 / 2448
+  assert.ok(px.result.value > 60 / 2448, '不能退回需求视野 60mm');
+  assert.ok(!o.filled.fovW, '用户填的视野不能被标成自动带入');
+});
+
+test('组合：缺的是上游条件时说清「先算哪一式、还缺什么」', () => {
+  const o = C.computeCombo('camera', { precision: 0.15, task: 'defect', fovW: 60, fovH: 45, sw: 7.2, sh: 5.4 });
+  const px = o.items.filter((i) => i.id === 'pxeff')[0];
+  assert.ok(!px.computed);
+  const m = px.missing[0];
+  assert.strictEqual(m.viaTitle, '实际视场（由焦距反算）');
+  assert.ok(/工作距离|镜头焦距/.test(m.rootLabel || m.label), '缺项根因：' + (m.rootLabel || m.label));
+  assert.strictEqual(o.done, 3, '没给工作距离：只有像素精度/分辨率/放大倍率先算得出');
+});
+
+test('组合：跨组带入放大倍率 / 有效像素精度 / 实际视场高', () => {
+  const cam = C.computeCombo('camera', BASE);
+  const mo = C.computeCombo('motion', { speed: 100, aperture: '5.6', pxUm: 3.45 }, cam.prov);
+  assert.strictEqual(mo.done, 3);
+  near(mo.filled.m.value, 0.12, 1e-9);
+  near(mo.filled.pxAcc.value, 0.0264705882, 1e-8);
+  near(mo.filled.fovH.value, 48.6, 1e-9);
+  near(mo.items.filter((i) => i.id === 'exposure')[0].result.value, 0.2647058823, 1e-8);
+});
+
+test('组合：接口组用上一组算出的需求帧率校核带宽', () => {
+  const cam = C.computeCombo('camera', BASE);
+  const mo = C.computeCombo('motion', { speed: 100, aperture: '5.6', pxUm: 3.45 }, cam.prov);
+  const seed = Object.assign({}, cam.prov, mo.prov);
+  const lk = C.computeCombo('link',
+    { camW: 2448, camH: 2048, bitDepth: '8', iface: 'GigE', wd: 250, lensLen: 50, camDepth: 45 }, seed);
+  assert.strictEqual(lk.done, 2);
+  assert.strictEqual(lk.filled.fps.value, 3);
+  near(lk.items.filter((i) => i.id === 'bandwidth')[0].result.value, 15.040512, 1e-6);
+});
+
+test('组合：可选参数留空也能算，只是不做那项判定', () => {
+  const cam = C.computeCombo('camera', BASE);
+  const mo = C.computeCombo('motion', { speed: 0, aperture: '8', pxUm: 3.45 }, cam.prov);
+  assert.strictEqual(mo.done, 3);
+  const d = mo.items.filter((i) => i.id === 'dof')[0];
+  assert.ok(/未判定/.test(d.verdict), '未填 Δh 应说明只给景深值');
+  const ls = C.computeCombo('scan', { speed: 500, precision: 0.15, task: 'defect', sensorPx: 8192, pxUm: 7.04 }, {});
+  assert.strictEqual(ls.done, 1);
+  const tl = C.computeCombo('tele', { fovW: 30, fovH: 22, sw: 7.2, sh: 5.4, wd: 110 }, {});
+  assert.strictEqual(tl.done, 1);
+  const qk = C.computeCombo('quick',
+    { task: 'defect', material: 'metal_shiny', value: 0.05, basis: 'mm', pxAcc: 0.05, fps: 30 }, {});
+  assert.strictEqual(qk.done, 2, '目标主色不填按「未指定」处理');
+});
+
+test('组合：自动带入不覆盖用户已填的值，结果无坏数字', () => {
+  const o = C.computeCombo('camera', BASE);
+  Object.keys(o.filled).forEach((k) => {
+    assert.ok(!(k in BASE), '用户填过的字段不能被标成自动带入：' + k);
+  });
+  clean(o);
+  const over = C.computeCombo('camera', Object.assign({}, BASE, { focal: 35 }));
+  const fovItem = over.items.filter((i) => i.id === 'fov')[0];
+  near(fovItem.steps[0].raw, 35 / 215, 1e-9, '用户指定焦距应生效');
+  assert.ok(!over.filled.focal);
+});
+
+test('组合：复制文本按组汇总，可整段贴进方案', () => {
+  const o = C.computeCombo('camera', BASE);
+  assert.ok(o.text.includes('【所需像素精度】'));
+  assert.ok(o.text.includes('结论：'));
+  assert.ok(o.text.includes('实际视场'));
 });
 
 console.log('\n' + '='.repeat(52));
