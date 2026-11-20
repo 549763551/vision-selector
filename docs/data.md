@@ -161,14 +161,15 @@ npm test                 # 等价于 node engine.test.js，110 项全绿才算�
 选型依据六维对比与判定自洽（次优按同一口径重新算分）、推荐结果与运行环境 locale 无关。
 
 - **CI**：`.github/workflows/test.yml`，push / PR 自动跑 `npm test`。
-- **发布**：版本号见 `package.json` 与 Git tag（当前 `v2.0.0`），
+- **发布**：版本号见 `package.json` 与 Git tag（当前 `v2.1.0`），
   用 `gh release create` 打 Release。
 - **部署**：GitHub Pages 从 `main` 分支根目录直接托管，纯静态无需构建；
   push 到 `main` 后几十秒自动更新。
 
-需要发新版本时：
+需要发新版本时（型号总数比上次发布增加 500 以上才发，发版前先与维护者确认）：
 
 ```bash
-git tag v2.0.0 && git push --tags
-gh release create v2.0.0 --title "v2.0.0" --notes "改了什么"
+VER=v2.1.0   # 改成实际版本号
+git tag -a "$VER" -m "$VER" && git push origin "$VER"
+gh release create "$VER" --title "$VER" --notes-file /tmp/release-notes.md
 ```
