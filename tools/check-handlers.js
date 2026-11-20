@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../小程序项目');
 
-const PAGES = ['home', 'index', 'library', 'combo', 'about'];
+const PAGES = ['home', 'index', 'library', 'combo', 'calc', 'calc-run', 'about'];
 const store = {};
 
 global.getApp = () => ({
@@ -21,6 +21,7 @@ global.getApp = () => ({
 global.wx = {
   showToast() {}, switchTab() {}, navigateTo() {}, navigateBack() {}, pageScrollTo() {},
   setClipboardData() {},
+  setNavigationBarTitle() {},
   getStorageSync: k => store[k], setStorageSync: (k, v) => { store[k] = v; },
   removeStorageSync: k => { delete store[k]; },
   getWindowInfo: () => ({ pixelRatio: 2 }),
