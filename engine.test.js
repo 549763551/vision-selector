@@ -1475,7 +1475,7 @@ test('共用合并模块：全量在售型号池（清洗后）', () => {
   assert.strictEqual(SEL_CAT.LINESCAN.length, 118, '线阵相机');
   assert.strictEqual(SEL_CAT.LENSES.length, 1144, '定焦镜头');
   assert.strictEqual(SEL_CAT.TELECENTRIC.length, 922, '远心镜头');
-  assert.strictEqual(SEL_CAT.LIGHTS.length, 4050, '光源');
+  assert.strictEqual(SEL_CAT.LIGHTS.length, 4066, '光源');
   assert.strictEqual(SEL_CAT.CONTROLLERS.length, 114, '光源控制器');
   assert.strictEqual(SEL_CAT.PROFILERS.length, 72, '3D 轮廓传感器');
 });
@@ -1500,7 +1500,7 @@ test('共用合并模块：必要参数缺失型号不进选型池', () => {
 
 test('共用合并模块：清洗统计与等价字段补齐', () => {
   assert.deepStrictEqual(SEL_CAT._stats.invalid, {
-    TELECENTRIC: 1, CAMERAS: 53, LENSES: 19, LIGHTS: 248
+    TELECENTRIC: 1, CAMERAS: 53, LENSES: 19, LIGHTS: 251
   });
   assert.deepStrictEqual(SEL_CAT._stats.filled, { pxH: 8, wdMax: 619 });
   // 康视达面阵相机官网未给卡口，必须被挡掉；线阵用 pxUm 补 pxH 后照常参与
@@ -1528,6 +1528,34 @@ test('参数复核回归：官网已公布尺寸 / 颜色 / 通道数的型号�
   assert.ok(!SEL_CAT.LIGHTS.some((x) => x.model === 'CST-2BS10238-IR850'));
 });
 
+test('康视达型号补充：红外 850nm 同规格派生与用户补充型号', () => {
+  const L = SEL_WIN.CstCatalog.LIGHTS;
+  const find = (m) => L.find((x) => x.model === m);
+  // 官网红外单品页「光源波长可定制 850、940 等」：17 款 -IR940 各派生一款 -IR850
+  const derived = L.filter((x) => /-IR850$/.test(x.model) && /定制波长变体/.test(x.note || ''));
+  assert.strictEqual(derived.length, 17, '应派生 17 款 850nm 变体');
+  ['CST-RS7460-IR850', 'CST-RS7430-IR850', 'CST-BS14020-IR850'].forEach((m) => {
+    const d = find(m), src = find(m.replace('-IR850', '-IR940'));
+    assert.ok(d && src, m + ' 与源型号都应存在');
+    assert.deepStrictEqual(d.size, src.size, m + ' 尺寸应与源型号一致');
+    assert.strictEqual(d.power, src.power, m + ' 功率应与源型号一致');
+    assert.ok(/规格同 /.test(d.note || ''), m + ' 应注明派生来源');
+  });
+  // 用户补充型号：只登记型号与类别，官网未公布规格的字段留空，不进选型池
+  const extra = find('CST-2BS10238-UV365-D28');
+  assert.ok(extra, '用户补充型号应在产品库');
+  assert.strictEqual(extra.type, 'uv');
+  assert.ok(!SEL_CAT.LIGHTS.some((x) => x.model === 'CST-2BS10238-UV365-D28'), '无尺寸不进选型池');
+  const extra2 = find('CST-CP80M80-W');
+  assert.ok(extra2, '第二个用户补充型号应在产品库');
+  assert.strictEqual(extra2.color, 'white');
+  assert.ok(!extra2.type && !extra2.size, '官网未收录时类型与规格不臆造');
+  assert.ok(!SEL_CAT.LIGHTS.some((x) => x.model === 'CST-CP80M80-W'), '类型/尺寸缺失不进选型池');
+  // 16 款派生变体有尺寸进池，CST-DS175-IR850 无尺寸被硬门槛挡住
+  assert.ok(SEL_CAT.LIGHTS.some((x) => x.model === 'CST-RS7460-IR850'));
+  assert.ok(!SEL_CAT.LIGHTS.some((x) => x.model === 'CST-DS175-IR850'));
+});
+
 test('必要参数规则：缺卡口 / 定焦距 / 尺寸 / 倍率的条目一律判否', () => {
   const cam = { model: 'X', w: 640, h: 480, pxUm: 5, sw: 3.2, sh: 2.4, fps: 30, iface: 'GigE', mount: 'C', color: '黑白' };
   assert.ok(SEL.isValid('CAMERAS', cam), '完整相机应通过');
@@ -1550,7 +1578,7 @@ test('品牌开关：镜头与光源按类目独立启停', () => {
   assert.strictEqual(noOptLens.TELECENTRIC.length, 303);
   assert.strictEqual(noOptLens.CAMERAS.length, SEL_CAT.CAMERAS.length, '关镜头品牌不应影响相机');
   const noHuaLight = SEL.merge(SEL_WIN, { light: SEL.brandKeys(SEL_WIN, 'light').filter((k) => k !== 'huarui') });
-  assert.strictEqual(noHuaLight.LIGHTS.length, 3788);
+  assert.strictEqual(noHuaLight.LIGHTS.length, 3804);
   assert.strictEqual(noHuaLight.CONTROLLERS.length, 94);
   assert.strictEqual(noHuaLight.LENSES.length, SEL_CAT.LENSES.length, '关光源品牌不应影响镜头');
 });

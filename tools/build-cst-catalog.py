@@ -13,6 +13,10 @@
     其余 = [长, 宽] mm。康视达不进选型链，size[1] 不会被 engine 当角度参与面积计算。
   * 远心 wdMin/wdMax、magMin/magMax 单值两个键都写，避免页面渲染 undefined。
   * 型号统一 CST- 前缀；AVT 代理相机保留原型号并在 series 注明。
+  * 补充型号：官网红外单品页写明「光源波长可定制 850、940 等」，故为在售 -IR940
+    派生同规格 -IR850 变体（只改型号名 + 备注，不新增/推算任何参数）；
+    EXTRA_LIGHTS 登记用户提供的型号，官网未公布规格的字段一律留空。
+    两类补充都会由 selection-catalog.js 的必要参数门槛决定是否进选型链。
 """
 from __future__ import annotations
 import io, os, re, json, html, datetime, collections
@@ -25,6 +29,26 @@ _spec.loader.exec_module(fc)
 ROOT = 'tmp/cst'
 PAGES = os.path.join(ROOT, 'pages')
 TODAY = '2026-11-20'
+
+# 用户补充的型号：官网分类页 / 系列型录未收录，只登记型号与归属类别。
+# 规格字段一律留空（不推算、不编造），产品库可见，缺 size 会被必要参数门槛挡在选型链外。
+# 后续用户再给新型号时，按同样格式往这里追加即可，重跑本脚本即可复现。
+EXTRA_LIGHTS = [
+    {
+        'model': 'CST-2BS10238-UV365-D28',
+        'type': 'uv', 'color': 'uv', 'series': '紫外光源', 'group': '紫外光源',
+        'note': '用户补充型号；官网分类页与系列型录未列规格，参数暂缺，不进选型链',
+    },
+    {
+        'model': 'CST-CP80M80-W',
+        'color': 'white', 'series': '用户补充型号', 'group': '光源',
+        'note': '用户补充型号；官网未收录，类型与规格待厂商资料确认，暂不进选型链',
+    },
+]
+
+# 官网红外单品页（如 /show/387.html、/show/386.html）：「采用进口高输出 IR-LED、
+# 光源波长可定制 850、940 等」。据此为在售 -IR940 型号派生 -IR850 同规格变体。
+IR850_DERIVE = True
 
 # ---------------------------------------------------------------- 分类映射
 LIGHT_MAP = {
@@ -488,8 +512,54 @@ def main():
     overlap = sorted({d['model'] for d in CAM + LINE + LENS + TELE + LIGHT + CTRL}
                      & existing)
 
+    # ---------------------------------------------------------- 补充型号
+    # 归一差集：只在型号确实不存在时才补，避免覆盖官网抓到的原始记录。
+    def norm(m):
+        return re.sub(r'\s+', '', m or '').upper()
+
+    seen = {norm(d['model']) for d in LIGHT}
+    added_derived, added_extra = 0, 0
+
+    if IR850_DERIVE:
+        for src in list(LIGHT):
+            m = src.get('model', '')
+            if 'IR940' not in m:
+                continue
+            target = m.replace('IR940', 'IR850')
+            key = norm(target)
+            if key in seen or key in existing:
+                continue
+            d = dict(src)                       # 规格逐字段复制，不改任何数值
+            d['model'] = target
+            if d.get('name'):
+                d['name'] = d['name'].replace('IR940', 'IR850')
+            d['note'] = (src.get('note', '') + '；' if src.get('note') else '') + \
+                        '850nm 定制波长变体（官网注明波长可定制 850 / 940），规格同 ' + m
+            LIGHT.append(d)
+            seen.add(key)
+            added_derived += 1
+
+    for extra in EXTRA_LIGHTS:
+        key = norm(extra['model'])
+        if key in seen or key in existing:
+            continue
+        d = cmpact({
+            'model': extra['model'], 'type': extra.get('type'), 'color': extra.get('color'),
+            'size': extra.get('size'), 'power': extra.get('power'),
+            'wavelength': extra.get('wavelength'),
+            'series': extra['series'], 'group': extra['group'],
+            'name': extra['group'] + ' ' + extra['model'],
+            'note': extra.get('note'),
+        })
+        LIGHT.append(d)
+        seen.add(key)
+        added_extra += 1
+
+    LIGHT.sort(key=lambda d: d['model'])        # 保持按型号排序，diff 只有新增行
+
     meta = {
-        'source': '康视达官网 cstmv.com（产品中心分类页 + 单品参数页 + 系列型号表）',
+        'source': '康视达官网 cstmv.com（产品中心分类页 + 单品参数页 + 系列型号表）'
+                  '；红外 850nm 变体按官网「波长可定制 850 / 940」同规格派生，另含用户补充型号',
         'brand': '康视达 CST', 'generated': TODAY,
         'cameras': len(CAM), 'linescan': len(LINE), 'lenses': len(LENS),
         'telecentric': len(TELE), 'lights': len(LIGHT), 'controllers': len(CTRL),
@@ -499,7 +569,9 @@ def main():
                ('TELECENTRIC', TELE), ('LIGHTS', LIGHT), ('CONTROLLERS', CTRL)],
               '康视达（CST）在售产品库：面阵 / 线阵相机、工业镜头、远心镜头、光源与控制器。\n'
               '生成脚本：tools/fetch-cst.py → tools/build-cst-catalog.py。本文件由脚本生成，请勿手工编辑。\n'
-              '说明：六品牌统一加载；面阵相机官网未给卡口，由 selection-catalog.js 的必要参数门槛挡在选型链外，其余类目正常参与。')
+              '说明：六品牌统一加载；面阵相机官网未给卡口，由 selection-catalog.js 的必要参数门槛挡在选型链外，其余类目正常参与。\n'
+              '补充：红外 -IR850 为官网注明「波长可定制 850 / 940」的同规格派生变体（带备注）；'
+              '用户补充型号未公布规格的字段留空。')
     write_umd('cst-misc-catalog.js', 'CstMiscCatalog',
               {'source': '康视达官网 非标产品 / 其它未归入 9 类页签的产品',
                'brand': '康视达 CST', 'generated': TODAY, 'misc': len(MISC)},
@@ -510,6 +582,7 @@ def main():
         'generated': TODAY, 'meta': meta, 'misc': len(MISC),
         'detailPagesHit': detail_hit, 'classifiedProducts': len(by_model),
         'overlapWithExisting': overlap,
+        'addedIR850Variants': added_derived, 'addedExtraLights': added_extra,
         'typeCount': dict(collections.Counter(d.get('type') for d in LIGHT)),
         'seriesTele': sum(1 for sid in ('1650', '1654') if sid in series),
     }

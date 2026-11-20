@@ -65,7 +65,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
     `library.html` 增 `multi`（多光谱）颜色标签。
   - **厂商未公布 / 无结构化数值，维持排除**：康视达 53 台面阵相机官方《工业相机系列》PDF 面阵页
     与官网 `show/1651.html` 系列表都没有「镜头接口」列（同册线阵页有且已解析）；
-    康视达 248 款光源官网分类表尺寸列全空，系列型录只有按「安装图序号」共用的尺寸示意图、
+    康视达 251 款光源官网分类表尺寸列全空（含 3 款新补的红外 850nm 派生 / 用户补充型号），系列型录只有按「安装图序号」共用的尺寸示意图、
     没有逐型号数值，按不推算原则不补。
   - **产品类型不适用该算路，维持排除**：奥普特 18 款变倍 / 显微镜头、康视达 1 款微距镜头
     （官网给的是放大倍率 / 工作距离 / NA，不是定焦镜头）、华睿 1 款远心（官网型号表只给型号）。
@@ -75,8 +75,8 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
   退市库条目本身也不进。线阵相机与远心镜头在**自动选型**里参与（线扫方案 / 远心建议），
   **搭配台**沿用既有的面阵 + 定焦镜头评定公式，只列 `CAMERAS` / `LENSES`。
 
-清洗后选型池：面阵 1982 / 线阵 118 / 定焦镜头 1144 / 远心 922 / 光源 4050 / 控制器 114 / 3D 轮廓 72；
-排除退市 4 款、必要参数不全或不适用 321 款，等价字段补齐 627 处。改动在售型录后要同步 `engine.test.js` 的池数字断言。
+清洗后选型池：面阵 1982 / 线阵 118 / 定焦镜头 1144 / 远心 922 / 光源 4066 / 控制器 114 / 3D 轮廓 72；
+排除退市 4 款、必要参数不全或不适用 324 款，等价字段补齐 627 处。改动在售型录后要同步 `engine.test.js` 的池数字断言。
 
 照明子类 `polar` / `rgb` / `strobe` / `darkfield` / `flood` 等新增时，`library.html` 与 `engine.js` 两处 `LIGHT_TYPE_LABEL` 都要同步。
 
@@ -105,12 +105,12 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
 | `combo.js` | 搭配页逻辑：经 `selection-catalog.js` 全量合并六品牌在售型录、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
-| `library.html` | **产品库**：8850 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
+| `library.html` | **产品库**：8868 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
 | `docs-data.js` | 主页官方资料清单（6 品牌 / 211 条），由 `tools/build-docs-data.py` 生成，勿手改；`return` 后是严格 JSON，下载脚本共用 |
 | `manuals/` | 本地 PDF 副本，`.gitignore` 忽略、**不入库不推送**；PDF 版权归厂商，线上只走官方直链 |
 | `selection-catalog.js` | **选型链目录合并（共用）**：型录源清单、按类目品牌启停、退市排除、必要参数硬门槛、等价字段补齐、`brandKeys()` / `merge()`；`index.html` / `combo.html` / `engine.test.js` 共用，保证三处口径一致 |
 | `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记，再到 `selection-catalog.js` 的 `SOURCES` 里登记型录来源 |
-| `cst-catalog.js` | 康视达型号库 1657 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1431 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。六品牌统一加载；面阵相机因缺卡口被必要参数门槛挡在选型链外，其余参与 |
+| `cst-catalog.js` | 康视达型号库 1676 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1450 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。六品牌统一加载；面阵相机因缺卡口被必要参数门槛挡在选型链外，其余参与 |
 | `cst-misc-catalog.js` | 康视达非标产品 54 款，按惯例只落盘备份、不挂任何页面 |
 | `hikrobot-catalog.js` | 海康型号库（面阵/线扫/镜头/远心/光源），由脚本生成，勿手改 |
 | `huarui-catalog.js` | 华睿型号库（面阵 / 线阵 / 镜头 / 光源 / 光源控制器），由 `tools/parse-huarui.py` + `tools/parse-huarui-linescan.py` + `tools/parse-huarui-lenses.py` + `tools/parse-huarui-lights.py` 生成，勿手改 |
@@ -128,7 +128,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
 | `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
-| `engine.test.js` | 119 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
+| `engine.test.js` | 120 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
 | `tools/fetch-opt-tree.js` | 抓标准光源侧栏分类树（`item-id` 不可信，按文档顺序归属；交替正则会吞节点） |
 | `tools/fetch-opt-ajax.js` | 按系列抓全量型号表（`ajax_series_<id>.html?pageSize=500`，并发 6） |
