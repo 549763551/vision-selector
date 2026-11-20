@@ -3,20 +3,15 @@
   'use strict';
 
   var BRANDS = window.BRANDS || {};
+  var SC = window.SelectionCatalog;
   var $ = function (id) { return document.getElementById(id); };
-  // 品牌数量的中文写法（加品牌不用改文案）
-  var CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
-  // 已加载且默认启用的品牌（脚本引入即视为可用）
-  var activeBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).slice();
-  // 镜头品牌：与相机分开筛选（仅纳入已入库镜头的品牌，初始全选）
-  var activeLensBrands = (window.availableBrands ? window.availableBrands() : ['hikrobot']).filter(function (k) {
-    var C = window[BRANDS[k].global];
-    if (C && (C.LENSES || []).length > 0) return true;
-    if (k === 'basler' && window.BaslerLensCatalog && (window.BaslerLensCatalog.LENSES || []).length > 0) return true;
-    return false;
-  });
-  if (!activeLensBrands.length) activeLensBrands = ['hikrobot'];
+  // 三个类目各自按「清洗后仍有有效型号」的品牌初始化，默认全选。
+  // 退市排除、必要参数硬门槛、等价字段补齐统一在 selection-catalog.js，
+  // 选型助手与自定义搭配共用同一套口径。
+  var activeBrands = SC.brandKeys(window, 'camera').slice();
+  var activeLensBrands = SC.brandKeys(window, 'lens').slice();
+  var activeLightBrands = SC.brandKeys(window, 'light').slice();
 
   function brandMeta(b) {
     if (!b) return null;
@@ -37,42 +32,13 @@
       '<span class="bf-mini-name" title="' + esc(m.name) + '">' + esc(m.short) + '</span>';
   }
 
-  // 把多个品牌型号库拼成一个目录：相机按「相机品牌」筛选，镜头按「镜头品牌」筛选，
-  // 其余类目（光源/线扫/远心/控制器）始终合并（当前仅海康提供，无筛选需求）
+  // 把多个品牌型录拼成一个目录：相机 / 镜头 / 光源各按自己的品牌筛选，
+  // 控制器与光源同品牌配套（跟随光源筛选）；线扫跟随相机、远心跟随镜头。
+  // 具体合并、退市排除与必要参数校验见 selection-catalog.js。
   function buildMergedCatalog() {
-    var cam = [], linescan = [], lenses = [], tele = [], lights = [], ctrls = [];
-    (window.availableBrands ? window.availableBrands() : []).forEach(function (key) {
-      var C = window[BRANDS[key].global];
-      if (!C) return;
-      // 相机：仅纳入“已启用”品牌；镜头：仅纳入“已启用镜头品牌”
-      var camSrc = (activeBrands.indexOf(key) >= 0) ? (C.CAMERAS || []) : [];
-      camSrc.forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; cam.push(x); });
-      if (activeLensBrands.indexOf(key) >= 0) {
-        (C.LENSES || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lenses.push(x); });
-      }
-      (C.LINESCAN || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; linescan.push(x); });
-      (C.LIGHTS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lights.push(x); });
-      tele = tele.concat(C.TELECENTRIC || []);
-      (C.CONTROLLERS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; ctrls.push(x); });
+    return SC.merge(window, {
+      camera: activeBrands, lens: activeLensBrands, light: activeLightBrands
     });
-    // Basler 镜头/远心独立库：勾选「Basler 镜头品牌」时参与镜头与远心比选
-    if (activeLensBrands.indexOf('basler') >= 0 && window.BaslerLensCatalog) {
-      (window.BaslerLensCatalog.LENSES || []).forEach(function (x) { x.brand = x.brand || 'Basler'; lenses.push(x); });
-      tele = tele.concat(window.BaslerLensCatalog.TELECENTRIC || []);
-    }
-    // 海康 3D 传感器（MV-DP 轮廓等）：供「高度 / 3D 轮廓测量」任务的建议
-    var profilers = [];
-    if (window.Hikrobot3DCatalog) {
-      (window.Hikrobot3DCatalog.PROFILERS || []).forEach(function (x) {
-        if (!x.brand) x.brand = BRANDS.hikrobot.name;
-        profilers.push(x);
-      });
-    }
-    return {
-      META: { source: '多品牌合并目录', brand: '多品牌', generated: '', cameras: cam.length },
-      CAMERAS: cam, LINESCAN: linescan, LENSES: lenses,
-      TELECENTRIC: tele, LIGHTS: lights, CONTROLLERS: ctrls, PROFILERS: profilers
-    };
   }
 
   var CAT = buildMergedCatalog();
@@ -115,22 +81,17 @@
     });
   }
 
-  // 有镜头入库的品牌才出现在镜头筛选条（Basler 镜头在独立库 basler-lens-catalog.js）
-  function lensBrandKeys() {
-    return (window.availableBrands ? window.availableBrands() : []).filter(function (k) {
-      var C = window[BRANDS[k].global];
-      if (C && (C.LENSES || []).length > 0) return true;
-      if (k === 'basler' && window.BaslerLensCatalog && (window.BaslerLensCatalog.LENSES || []).length > 0) return true;
-      return false;
-    });
-  }
-
+  // 筛选条只列出「清洗后仍有有效型号」的品牌，避免点了没反应的空 chip
   function renderBrandFilter() {
-    renderFilterBox('brandFilter', window.availableBrands ? window.availableBrands() : [], activeBrands, '相机品牌');
+    renderFilterBox('brandFilter', SC.brandKeys(window, 'camera'), activeBrands, '相机品牌');
   }
 
   function renderLensFilter() {
-    renderFilterBox('lensFilter', lensBrandKeys(), activeLensBrands, '镜头品牌');
+    renderFilterBox('lensFilter', SC.brandKeys(window, 'lens'), activeLensBrands, '镜头品牌');
+  }
+
+  function renderLightFilter() {
+    renderFilterBox('lightFilter', SC.brandKeys(window, 'light'), activeLightBrands, '光源品牌');
   }
 
   /* ---------------- 预设场景 ---------------- */
@@ -1013,12 +974,23 @@
     }).map(function (k) {
       return '<img src="' + esc(BRANDS[k].logo) + '" alt="' + esc(BRANDS[k].short) + '" style="--logo-scale:' + (BRANDS[k].logoScale || 1) + ';height:calc(14px * var(--logo-scale,1));vertical-align:-2px;margin-right:8px" />';
     }).join('');
+    var st = CAT._stats || {}, inv = st.invalid || {}, fill = st.filled || {};
+    function sumObj(o) {
+      var n = 0;
+      for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) n += o[k];
+      return n;
+    }
+    var invN = sumObj(inv), fillN = sumObj(fill), retN = st.retired || 0;
     $('catalogNote').innerHTML =
       bLogos +
       '已启用：面阵 <b>' + CAT.CAMERAS.length + '</b> 台、线扫 <b>' + (CAT.LINESCAN || []).length +
       '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支、远心 <b>' + (CAT.TELECENTRIC || []).length +
       '</b> 系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款、控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。' +
-      '<span style="color:#94a3b8">数据来自' + (CN_NUM[activeBrands.length] || activeBrands.length) + '品牌官方型录；靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
+      '<span style="color:#94a3b8">已启用：相机 ' + activeBrands.length + ' / 镜头 ' + activeLensBrands.length +
+      ' / 光源 ' + activeLightBrands.length + ' 品牌在售官方型录；已排除 <b>' + retN + '</b> 款退市型号与 <b>' +
+      invN + '</b> 款必要参数缺失型号（缺卡口 / 定焦距 / 尺寸 / 倍率等），' +
+      (fillN ? '另按等价字段补齐 ' + fillN + ' 处（pxH←pxUm、wdMax←wdMin），' : '') +
+      '避免算出不可行方案。靶面缺项按像素尺寸推导并标注「估算」，不影响选型计算。非官方辅助工具。</span>';
 
     $('calcBody').innerHTML = r.calc.map(function (x) {
       return '<tr><td>' + esc(x.step) + '</td>' +
@@ -1270,6 +1242,7 @@
   function init() {
     renderBrandFilter();
     renderLensFilter();
+    renderLightFilter();
     fillSelects();
 
     Array.prototype.forEach.call(document.querySelectorAll('input, select'), function (el) {
@@ -1344,17 +1317,7 @@
       });
     }
 
-    // 品牌范围折叠：默认收起，需要时再选品牌
-    var brandsToggle = $('brandsToggle');
-    if (brandsToggle) {
-      brandsToggle.addEventListener('click', function () {
-        var card = document.querySelector('.req-card');
-        if (!card) return;
-        var open = card.classList.toggle('brands-open');
-        this.textContent = open ? '收起品牌范围 ▴' : '品牌范围（默认' + (CN_NUM[activeBrands.length] || activeBrands.length) + '品牌全部启用）▾';
-      });
-    }
-
+    // 品牌范围常驻显示，不再折叠（见 index.html .brands-fold）
     /* ---------------- 仿小程序移动端交互 ---------------- */
     var mqMobile = window.matchMedia('(max-width: 760px)');
 

@@ -499,7 +499,7 @@ def main():
                ('TELECENTRIC', TELE), ('LIGHTS', LIGHT), ('CONTROLLERS', CTRL)],
               '康视达（CST）在售产品库：面阵 / 线阵相机、工业镜头、远心镜头、光源与控制器。\n'
               '生成脚本：tools/fetch-cst.py → tools/build-cst-catalog.py。本文件由脚本生成，请勿手工编辑。\n'
-              '说明：康视达数据只挂产品库，不引入选型助手 / 自定义搭配的引擎目录。')
+              '说明：六品牌统一加载；面阵相机官网未给卡口，由 selection-catalog.js 的必要参数门槛挡在选型链外，其余类目正常参与。')
     write_umd('cst-misc-catalog.js', 'CstMiscCatalog',
               {'source': '康视达官网 非标产品 / 其它未归入 9 类页签的产品',
                'brand': '康视达 CST', 'generated': TODAY, 'misc': len(MISC)},

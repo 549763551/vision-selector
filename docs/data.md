@@ -45,14 +45,29 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 
 改完跑一次 `node engine.test.js`，测试会告诉你有没有算歪。
 
-### 康视达：只挂产品库、不进选型链
+### 选型链纳入口径（selection-catalog.js）
 
-康视达（`cst-catalog.js`，1657 款）是第一个「只进产品库」的品牌。官网相机表没给卡口与曝光范围，若并入自动推荐会算出装不上或跑不到节拍的方案，因此：
+选型助手 `index.html` 与自定义搭配 `combo.html` 现在加载**六品牌全部在售型录**（主库 + 独立镜头 / 光源 / 控制器库），
+由共用的 `selection-catalog.js` 合成一个目录，两页与测试用同一套口径：
 
-- `brands.js` 照常登记 `cst`；`home.html` / `library.html` 引 `cst-catalog.js` 并加进 `SRC`；
-- **`index.html` / `combo.html` 故意不引**，两页的 `availableBrands()` 会按「全局是否存在」自动把 `cst` 排除，选型助手与自定义搭配仍是五品牌，页面文案里的「五品牌」不用改；
-- 产品库 `BRAND_OF` 加 `/^(CST-|MAKO)/`（`MAKO` 是官网列出的 AVT 代理相机），保证跨页签搜索能自动切到正确类别；
-- 新增照明子类 `polar` / `rgb` / `strobe` 时，`library.html` 与 `engine.js` 两处 `LIGHT_TYPE_LABEL` 都要同步。
+- **纳入**：面阵 + 线阵相机、定焦 + 远心镜头、光源 + 配套控制器；相机 / 镜头 / 光源三类各自按品牌独立启停
+  （线扫跟相机、远心跟镜头、控制器跟光源）。品牌筛选条只列出「清洗后仍有有效型号」的品牌。
+- **排除退市**：两页也加载 `retired-catalog.js`，但只读型号清单做按型号排除，不展示退市条目。
+  另有 4 款在售型录与退市库重名（`MV-CH089-10GM/GC`、`acA2000-165um/uc`）会被剔除。
+- **必要参数硬门槛**：按引擎实际算路依赖校验，缺任一项即不纳入（`REQUIRED` 表见源码）。
+  典型被挡的：康视达 53 台面阵相机（官网未给卡口）、奥普特 16 支变倍显微镜头与康视达 1 支微距镜头（无定焦距，
+  直接并进 `LENSES` 会算出 0 焦距 / 无穷视场）、288 款无尺寸光源（引擎读 `size[0]` 会抛错）、
+  2 款无通道数的控制器、1 条无倍率与工作距离的远心。引擎已有 `null` 保护的字段（镜头 `ic`/`mp`、相机 `expMinUs` 等）不算必要。
+- **等价字段补齐**：信息本身存在、只是键名不完整的，搬运已有数值后照常参与，不推测不编造 ——
+  线阵 `pxH ← pxUm`（康视达 8 台）、远心 `wdMax ← wdMin`（奥普特 619 款单值工作距离）。
+- **不纳入**：3D / 智能相机 / 红外 / 工控机 / 非标产品，字段口径与「相机 + 镜头 + 光源」分离算路不兼容；
+  退市库条目本身也不进。线阵相机与远心镜头在**自动选型**里参与（线扫方案 / 远心建议），
+  **搭配台**沿用既有的面阵 + 定焦镜头评定公式，只列 `CAMERAS` / `LENSES`。
+
+清洗后选型池：面阵 1982 / 线阵 118 / 定焦镜头 1144 / 远心 922 / 光源 4011 / 控制器 112 / 3D 轮廓 72；
+排除退市 4 款、必要参数缺失 363 款，等价字段补齐 627 处。改动在售型录后要同步 `engine.test.js` 的池数字断言。
+
+照明子类 `polar` / `rgb` / `strobe` / `darkfield` / `flood` 等新增时，`library.html` 与 `engine.js` 两处 `LIGHT_TYPE_LABEL` 都要同步。
 
 抓取链路（站点 `www.cstmv.com` 有 JS 挑战页、**去掉 www 直连 200**）：
 `tools/fetch-cst.py discover`（BFS 分类树）→ `pages`（翻页）→ `collect`（汇总去重）→ `series`（相机/远心系列表）→ `details`（1605 个单品参数页）→ `tools/build-cst-catalog.py` 生成型录。
@@ -78,12 +93,13 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `home.html` | **主页**：四页统一入口、数据速览（实时统计型号库）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
-| `combo.js` | 搭配页逻辑：合并五品牌型号库、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
+| `combo.js` | 搭配页逻辑：经 `selection-catalog.js` 全量合并六品牌在售型录、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
 | `library.html` | **产品库**：8850 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
 | `docs-data.js` | 主页官方资料清单（6 品牌 / 211 条），由 `tools/build-docs-data.py` 生成，勿手改；`return` 后是严格 JSON，下载脚本共用 |
 | `manuals/` | 本地 PDF 副本，`.gitignore` 忽略、**不入库不推送**；PDF 版权归厂商，线上只走官方直链 |
-| `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记；康视达登记了「只挂产品库」的说明 |
-| `cst-catalog.js` | 康视达型号库 1657 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1431 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。只挂主页与产品库，不进选型链 |
+| `selection-catalog.js` | **选型链目录合并（共用）**：型录源清单、按类目品牌启停、退市排除、必要参数硬门槛、等价字段补齐、`brandKeys()` / `merge()`；`index.html` / `combo.html` / `engine.test.js` 共用，保证三处口径一致 |
+| `brands.js` | **品牌注册表**（品牌名 / logo / 全局变量名），接入新品牌先在这里登记，再到 `selection-catalog.js` 的 `SOURCES` 里登记型录来源 |
+| `cst-catalog.js` | 康视达型号库 1657 款（面阵 53 / 线阵 8 / 镜头 91 / 远心 48 / 光源 1431 / 控制器 26），由 `tools/build-cst-catalog.py` 生成，勿手改。六品牌统一加载；面阵相机因缺卡口被必要参数门槛挡在选型链外，其余参与 |
 | `cst-misc-catalog.js` | 康视达非标产品 54 款，按惯例只落盘备份、不挂任何页面 |
 | `hikrobot-catalog.js` | 海康型号库（面阵/线扫/镜头/远心/光源），由脚本生成，勿手改 |
 | `huarui-catalog.js` | 华睿型号库（面阵 / 线阵 / 镜头 / 光源 / 光源控制器），由 `tools/parse-huarui.py` + `tools/parse-huarui-linescan.py` + `tools/parse-huarui-lenses.py` + `tools/parse-huarui-lights.py` 生成，勿手改 |
@@ -100,8 +116,8 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `opt-ctrl-catalog.js` | 奥普特光源控制器 43 款 + 视觉控制器 / 工控机 21 台，由 `tools/build-opt-full.py` 生成，勿手改 |
 | `opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
-| `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；多品牌目录合并与品牌筛选在此生效 |
-| `engine.test.js` | 110 个单元测试（含多品牌合并 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
+| `app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
+| `engine.test.js` | 118 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
 | `tools/fetch-opt-tree.js` | 抓标准光源侧栏分类树（`item-id` 不可信，按文档顺序归属；交替正则会吞节点） |
 | `tools/fetch-opt-ajax.js` | 按系列抓全量型号表（`ajax_series_<id>.html?pageSize=500`，并发 6） |
@@ -142,8 +158,9 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 | `CHANGELOG.md` | 版本更新记录，按版本倒序 |
 
 > 想改选型规则只动 `engine.js`；想换型号库只重跑对应 `tools/parse-*.py`；
-> 想加新品牌：在 `brands.js` 登记 → 写一份 `*catalog.js`（UMD，挂到 `root.XxxCatalog`，每条加 `brand` 字段）→ 在 `index.html` 引入；
-> 想改界面只动 `index.html` / `app.js`。
+> 想加新品牌：在 `brands.js` 登记 → 写一份 `*catalog.js`（UMD，挂到 `root.XxxCatalog`）→
+> 在 `selection-catalog.js` 的 `SOURCES` 登记「全局变量名 → 品牌键」→ 四个页面脚本区引入；
+> 想改界面只动 `index.html` / `app.js`（或 `combo.html` / `combo.js`）。
 > 主页与产品库（`home.html` / `library.html`）通过 `brands.js` + 各 `*catalog.js` 读取型号库，
 > 新品牌入库后两者的数据速览与产品列表会自动带上该品牌，无需另改。
 
@@ -151,12 +168,19 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > hikr
 
 1. 在 `brands.js` 的 `BRANDS` 里加一项：`key / name / short / logo / color / global`（如 `daheng: { ..., global: 'DahengCatalog' }`）。
    若用官方字标图（字母占满画布），加 `logoScale: 0.8` 与自制归属标对齐视觉大小；自制归属标保持主文字占画布 ~80%。
-2. 生成 `daheng-catalog.js`：UMD 包裹，把整库挂到 `root.DahengCatalog`，相机每条带 `brand: '大恒图像'`。
-3. 在 `index.html` 的脚本区追加 `<script src="daheng-catalog.js"></script>`（放在 `engine.js` 之前）。
-4. 顶栏「相机品牌」会自动出现该品牌的可勾选标签；若该品牌带 `LENSES`，「镜头品牌」筛选条也会出现，无需改引擎。
-5. **相机必须带 `mount`**（C/M12/M42/M58/M72/F/Bare）：引擎的镜头匹配对空 mount 直接判不兼容，缺了该品牌相机会被静默排除。
-6. 若提供 `LINESCAN`（线阵：`{model,w,taps,pxH,pxV,lineRate,color,iface,mount,...}`），面阵不可行时自动进入线扫比选；表单勾选「优先线扫方案」后随时可看线阵建议。
-7. 若提供 `LIGHTS` / `CONTROLLERS`，该品牌灯具会自动进入光源选型（与海康同台比价，取刚好够用的最小规格）与「备选型号」；无需改引擎。
+2. 生成 `daheng-catalog.js`：UMD 包裹，把整库挂到 `root.DahengCatalog`（`brand` 字段可省，合并时按品牌键补）。
+3. 在 `selection-catalog.js` 的 `SOURCES` 追加 `{ g: 'DahengCatalog', b: 'daheng' }`；四页脚本区各加一份
+   `<script src="daheng-catalog.js"></script>`（放在 `engine.js` 之前）。独立镜头 / 光源 / 控制器库同样在
+   `SOURCES` 里登记成同一品牌键即可，不必塞进主库。
+4. 三条品牌筛选条会按「清洗后仍有有效型号」自动出现该品牌，无需改引擎或界面代码。
+5. **必要参数是硬门槛**（`selection-catalog.js` 的 `REQUIRED`）：相机需 `model/w/h/pxUm/sw/sh/fps/iface/mount/color`，
+   镜头需 `model/focal/mount/fmin`，光源需 `model/type/color/size`，远心需 `model/mount/magMin/magMax/wdMin/wdMax`，
+   控制器需 `model/channels/mode`。缺任一项整条不进选型池（页面 `catalogNote` 会显示排除数量）。
+   引擎已有 `null` 保护的字段（`ic`/`mp`/`expMinUs`/`power` 等）不算必要。
+6. 若提供 `LINESCAN`（线阵：`{model,w,taps,pxH,pxV,lineRate,color,iface,mount,...}`），面阵不可行时自动进入线扫比选；
+   表单勾选「优先线扫方案」后随时可看线阵建议。只有 `pxUm` 没有 `pxH` 时合并层会自动补齐。
+7. 若提供 `LIGHTS` / `CONTROLLERS`，该品牌灯具会自动进入光源选型（与其它品牌同台比价，取刚好够用的最小规格）与「备选型号」；无需改引擎。
+8. 改完跑 `node engine.test.js`，同步全量选型池的数字断言与 README / 本文的当前数量。
 
 > 大恒的解析可作参考：`tools/parse-daheng-cams.py` 用「find_tables 定列区间 + 型号 span 锚点定行 + span 原文定值」的混合策略，
 > 处理了型录里单元格文本垂直错位、行矩形跨行合并、靶面写成 `11.1 mm`、`M/C` 双 SKU 拆分等坑。

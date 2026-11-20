@@ -709,10 +709,11 @@
     backlight_side: '侧导面光源', dome: '穹顶光源', coaxial: '同轴光源',
     line: '线光源', line_high: '高亮线光源', line_focus: '聚光线光源', line_coax: '同轴线光源',
     point: '点光源', flat_shadowless: '平面无影光源',
+    darkfield: '暗场光源', flood: '泛光面光源',
     // 奥普特（OPT）标准光源的细分类，海康/Basler 型录里没有这些子类
     fiber: '光纤光源', pattern: '程控图案光源', struct: '结构光源', zone: '分区照明光源',
     high_cri: '高显色指数光源', ir: '红外光源', uv: '紫外光源',
-    // 康视达（CST）光源细分：偏光 / 三色 / 爆闪（该品牌只挂产品库，不进选型链）
+    // 康视达（CST）光源细分：偏光 / 三色 / 爆闪
     polar: '偏光光源', rgb: '三色光源', strobe: '爆闪光源'
   };
 

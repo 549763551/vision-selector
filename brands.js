@@ -49,9 +49,8 @@
       global: 'OptCatalog'
     },
     cst: {
-      // 仅产品库 / 主页加载（index.html 与 combo.html 不引 cst-catalog.js），
-      // availableBrands() 会自动把它排除在选型链之外：康视达相机缺卡口与曝光范围，
-      // 暂不参与自动推荐与搭配评定，只在产品库查询。
+      // 六品牌统一加载。康视达面阵相机官网未给卡口，会被 selection-catalog.js 的
+      // 必要参数硬门槛自动挡在选型链外；线阵相机 / 镜头 / 远心 / 光源参数齐全，照常参与。
       key: 'cst',
       name: '康视达 CST',
       short: '康视达',

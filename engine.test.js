@@ -1441,6 +1441,111 @@ test('硬约束：自动推荐机型帧率与链路带宽跑得动', () => {
     '带宽 ' + r.camera.bandwidthMBps + ' 超过有效带宽 ' + I.ifaceCapOf(r.camera.interface));
 });
 
+/* ---------------- 选型链全量在售目录（selection-catalog.js） ---------------- */
+console.log('\n[选型链全量在售目录]');
+const SEL = require('./selection-catalog.js');
+const SEL_WIN = {};
+[
+  ['HikrobotCatalog', 'hikrobot-catalog.js'],
+  ['Hikrobot3DCatalog', 'hikrobot-3d-catalog.js'],
+  ['HuaruiCatalog', 'huarui-catalog.js'],
+  ['BaslerCatalog', 'basler-catalog.js'],
+  ['BaslerLensCatalog', 'basler-lens-catalog.js'],
+  ['BaslerLightCatalog', 'basler-light-catalog.js'],
+  ['DahengCatalog', 'daheng-catalog.js'],
+  ['OptCatalog', 'opt-catalog.js'],
+  ['OptLensCatalog', 'opt-lens-catalog.js'],
+  ['OptLightCatalog', 'opt-light-catalog.js'],
+  ['OptCtrlCatalog', 'opt-ctrl-catalog.js'],
+  ['CstCatalog', 'cst-catalog.js']
+].forEach(([g, f]) => { SEL_WIN[g] = require('./' + f); });
+Object.assign(SEL_WIN, require('./brands.js'));
+Object.assign(SEL_WIN, require('./retired-catalog.js'));
+const SEL_CAT = SEL.merge(SEL_WIN);
+
+test('共用合并模块：六品牌型录全部加载，筛选条品牌键正确', () => {
+  const keys = SEL.allBrandKeys(SEL_WIN);
+  assert.deepStrictEqual(keys.camera, ['hikrobot', 'huarui', 'basler', 'daheng', 'opt', 'cst']);
+  assert.deepStrictEqual(keys.lens, ['hikrobot', 'huarui', 'daheng', 'cst', 'basler', 'opt']);
+  assert.deepStrictEqual(keys.light, ['hikrobot', 'huarui', 'cst', 'basler', 'opt']);
+});
+
+test('共用合并模块：全量在售型号池（清洗后）', () => {
+  assert.strictEqual(SEL_CAT.CAMERAS.length, 1982, '面阵相机');
+  assert.strictEqual(SEL_CAT.LINESCAN.length, 118, '线阵相机');
+  assert.strictEqual(SEL_CAT.LENSES.length, 1144, '定焦镜头');
+  assert.strictEqual(SEL_CAT.TELECENTRIC.length, 922, '远心镜头');
+  assert.strictEqual(SEL_CAT.LIGHTS.length, 4011, '光源');
+  assert.strictEqual(SEL_CAT.CONTROLLERS.length, 112, '光源控制器');
+  assert.strictEqual(SEL_CAT.PROFILERS.length, 72, '3D 轮廓传感器');
+});
+
+test('共用合并模块：退市型号不进选型池', () => {
+  assert.strictEqual(SEL_CAT._stats.retired, 4, '应排除 4 款与退市库重名的在售条目');
+  ['MV-CH089-10GM', 'MV-CH089-10GC', 'acA2000-165um', 'acA2000-165uc'].forEach((m) => {
+    assert.ok(!SEL_CAT.CAMERAS.some((x) => x.model === m), m + ' 仍在选型池里');
+  });
+});
+
+test('共用合并模块：必要参数缺失型号不进选型池', () => {
+  const kinds = [
+    ['CAMERAS', 'CAMERAS'], ['LINESCAN', 'LINESCAN'], ['LENSES', 'LENSES'],
+    ['TELECENTRIC', 'TELECENTRIC'], ['LIGHTS', 'LIGHTS'], ['CONTROLLERS', 'CONTROLLERS']
+  ];
+  kinds.forEach(([listKey, rule]) => {
+    const bad = SEL_CAT[listKey].filter((x) => !SEL.isValid(rule, x));
+    assert.strictEqual(bad.length, 0, listKey + ' 仍有 ' + bad.length + ' 条缺必要参数：' + bad.slice(0, 3).map((x) => x.model));
+  });
+});
+
+test('共用合并模块：清洗统计与等价字段补齐', () => {
+  assert.deepStrictEqual(SEL_CAT._stats.invalid, {
+    TELECENTRIC: 1, CAMERAS: 53, LENSES: 19, LIGHTS: 288, CONTROLLERS: 2
+  });
+  assert.deepStrictEqual(SEL_CAT._stats.filled, { pxH: 8, wdMax: 619 });
+  // 康视达面阵相机官网未给卡口，必须被挡掉；线阵用 pxUm 补 pxH 后照常参与
+  assert.strictEqual(SEL_CAT.CAMERAS.filter((x) => /^CST-/.test(x.model)).length, 0);
+  assert.strictEqual(SEL_CAT.LINESCAN.filter((x) => /^CST-/.test(x.model)).length, 8);
+  assert.ok(SEL_CAT.TELECENTRIC.filter((x) => /^OPT-/.test(x.model)).every((x) => x.wdMax > 0));
+});
+
+test('必要参数规则：缺卡口 / 定焦距 / 尺寸 / 倍率的条目一律判否', () => {
+  const cam = { model: 'X', w: 640, h: 480, pxUm: 5, sw: 3.2, sh: 2.4, fps: 30, iface: 'GigE', mount: 'C', color: '黑白' };
+  assert.ok(SEL.isValid('CAMERAS', cam), '完整相机应通过');
+  assert.strictEqual(SEL.isValid('CAMERAS', Object.assign({}, cam, { mount: null })), false, '缺卡口');
+  assert.strictEqual(SEL.isValid('CAMERAS', Object.assign({}, cam, { sw: 0 })), false, '靶面为 0');
+  assert.strictEqual(SEL.isValid('CAMERAS', Object.assign({}, cam, { fps: null })), false, '缺帧率');
+  const lens = { model: 'L', focal: 25, mount: 'C', fmin: 2.8 };
+  assert.ok(SEL.isValid('LENSES', lens));
+  assert.strictEqual(SEL.isValid('LENSES', Object.assign({}, lens, { focal: null })), false, '变倍镜头无定焦距');
+  assert.strictEqual(SEL.isValid('LIGHTS', { model: 'S', type: 'ring', color: 'white', size: null }), false, '光源缺尺寸');
+  assert.ok(SEL.isValid('LIGHTS', { model: 'S', type: 'ring', color: 'white', size: [100, 90] }));
+  const tele = { model: 'T', mount: 'C', magMin: 0.5, magMax: 0.5, wdMin: 110, wdMax: 110 };
+  assert.ok(SEL.isValid('TELECENTRIC', tele));
+  assert.strictEqual(SEL.isValid('TELECENTRIC', Object.assign({}, tele, { wdMax: null })), false, '远心缺工作距离上界');
+});
+
+test('品牌开关：镜头与光源按类目独立启停', () => {
+  const noOptLens = SEL.merge(SEL_WIN, { lens: SEL.brandKeys(SEL_WIN, 'lens').filter((k) => k !== 'opt') });
+  assert.strictEqual(noOptLens.LENSES.length, 884);
+  assert.strictEqual(noOptLens.TELECENTRIC.length, 303);
+  assert.strictEqual(noOptLens.CAMERAS.length, SEL_CAT.CAMERAS.length, '关镜头品牌不应影响相机');
+  const noHuaLight = SEL.merge(SEL_WIN, { light: SEL.brandKeys(SEL_WIN, 'light').filter((k) => k !== 'huarui') });
+  assert.strictEqual(noHuaLight.LIGHTS.length, 3749);
+  assert.strictEqual(noHuaLight.CONTROLLERS.length, 92);
+  assert.strictEqual(noHuaLight.LENSES.length, SEL_CAT.LENSES.length, '关光源品牌不应影响镜头');
+});
+
+test('全量在售池可解出可行方案', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const r = E.solve(base());
+  assert.strictEqual(r.ok, true);
+  assert.ok(r.camera && r.camera.model && r.lens && r.lens.model, '应给出相机与镜头型号');
+  assert.ok(r.score > 0);
+  assert.ok(SEL_CAT.CAMERAS.some((c) => c.model === r.camera.model), '推荐相机必须来自在售池');
+  assert.ok(SEL_CAT.LENSES.some((l) => l.model === r.lens.model), '推荐镜头必须来自在售池');
+});
+
 console.log('\n' + '='.repeat(52));
 console.log(pass + ' 通过, ' + fail + ' 失败');
 if (fail > 0) {

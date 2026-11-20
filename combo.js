@@ -7,31 +7,11 @@
   var DRAFT_KEY = 'vs-combo';          // 搭配台草稿（与产品库共用）
   var APPLY_KEY = 'vs-combo-apply';    // 只在「应用到选型助手」时写入，由 app.js 一次性读取
 
-  /* ---------------- 目录合并（与 app.js 口径一致） ---------------- */
+  /* ---------------- 目录合并（与 app.js 共用 selection-catalog.js，全量纳入） ---------------- */
+  // 搭配台不做品牌筛选，但仍走同一套退市排除 + 必要参数硬门槛，
+  // 保证「选型助手能推的型号」与「搭配台能选的型号」完全一致。
   function buildCatalog() {
-    var cam = [], linescan = [], lenses = [], tele = [], lights = [], ctrls = [];
-    (window.availableBrands ? window.availableBrands() : []).forEach(function (key) {
-      var C = window[BRANDS[key].global];
-      if (!C) return;
-      (C.CAMERAS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; cam.push(x); });
-      (C.LENSES || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lenses.push(x); });
-      (C.LINESCAN || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; linescan.push(x); });
-      (C.LIGHTS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; lights.push(x); });
-      tele = tele.concat(C.TELECENTRIC || []);
-      (C.CONTROLLERS || []).forEach(function (x) { if (!x.brand) x.brand = BRANDS[key].name; ctrls.push(x); });
-    });
-    if (window.BaslerLensCatalog) {
-      (window.BaslerLensCatalog.LENSES || []).forEach(function (x) {
-        x.brand = x.brand || 'Basler';
-        lenses.push(x);
-      });
-      tele = tele.concat(window.BaslerLensCatalog.TELECENTRIC || []);
-    }
-    return {
-      META: { source: '多品牌合并目录', brand: '多品牌', generated: '', cameras: cam.length },
-      CAMERAS: cam, LINESCAN: linescan, LENSES: lenses,
-      TELECENTRIC: tele, LIGHTS: lights, CONTROLLERS: ctrls, PROFILERS: []
-    };
+    return window.SelectionCatalog.merge(window);
   }
 
   var CAT = buildCatalog();

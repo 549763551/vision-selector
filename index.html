@@ -4,11 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉智能选型助手 · 相机 / 镜头 / 光源</title>
-<meta name="description" content="输入视野、精度、任务与材质，自动推导机器视觉相机 + 镜头 + 光源方案，并摊开每一步算术供复核。内置海康机器人、华睿、Basler、大恒、奥普特五品牌型号库，支持跨品牌等价替换、转接环、备选方案与线扫/远心建议。纯前端单页，离线可用。" />
+<meta name="description" content="输入视野、精度、任务与材质，自动推导机器视觉相机 + 镜头 + 光源方案，并摊开每一步算术供复核。内置海康机器人、华睿、Basler、大恒、奥普特、康视达六品牌在售型号库（退市与必要参数不全的型号不参与选型），支持跨品牌等价替换、转接环、备选方案与线扫/远心建议。纯前端单页，离线可用。" />
 <meta name="keywords" content="机器视觉,选型,工业相机,镜头,光源,海康机器人,华睿,Basler,大恒,线扫,远心镜头,视觉方案" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="机器视觉智能选型助手 · 相机 / 镜头 / 光源" />
-<meta property="og:description" content="填需求 → 出方案：海康 / 华睿 / Basler / 大恒 / 奥普特五品牌型号库自动比选，每一步算术可复核。" />
+<meta property="og:description" content="填需求 → 出方案：海康 / 华睿 / Basler / 大恒 / 奥普特 / 康视达六品牌在售型号库自动比选，每一步算术可复核。" />
 <meta property="og:url" content="https://549763551.github.io/vision-selector/" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
@@ -147,15 +147,11 @@
   .check input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex: 0 0 auto; }
   .unit { color: #94a3b8; font-size: 12.5px; font-weight: 400; }
 
-  /* 品牌范围：默认收起，不占视线 */
+  /* 品牌范围：常驻显示，不折叠 */
   .brands-fold { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 12px; }
-  .brands-toggle {
-    font-family: inherit; font-size: 13px; cursor: pointer; border: 0; background: transparent;
-    color: var(--muted); padding: 2px 0; display: inline-flex; align-items: center; gap: 6px;
-  }
-  .brands-toggle:hover { color: var(--accent); }
-  .brands-body { display: none; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
-  .req-card.brands-open .brands-body { display: flex; }
+  .brands-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .brands-title small { font-size: 12px; font-weight: 400; color: #94a3b8; margin-left: 8px; }
+  .brands-body { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
   .brand-filter { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .brand-filter .bf-label { font-size: 12.5px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
   .bf-chip {
@@ -707,7 +703,7 @@
   <div class="topbar-inner">
     <div class="brand">
       <h1>机器视觉智能选型助手</h1>
-      <p>五品牌型号库 · 本地计算</p>
+      <p>六品牌在售型号库 · 本地计算</p>
     </div>
     <nav class="pnav" aria-label="页面导航">
       <a href="home.html">主页</a>
@@ -824,12 +820,13 @@
 
     </div>
 
-    <!-- 品牌范围：默认收起 -->
+    <!-- 品牌范围：常驻显示，不折叠 -->
     <div class="brands-fold">
-      <button type="button" class="brands-toggle" id="brandsToggle">品牌范围（默认五品牌全部启用）▾</button>
+      <div class="brands-title">品牌范围 <small>点击品牌可排除 / 纳入</small></div>
       <div class="brands-body" id="brandsBody">
         <div class="brand-filter" id="brandFilter"><span class="bf-label">相机</span></div>
         <div class="brand-filter" id="lensFilter"><span class="bf-label">镜头</span></div>
+        <div class="brand-filter" id="lightFilter"><span class="bf-label">光源</span></div>
       </div>
     </div>
   </section>
@@ -951,8 +948,15 @@
 <script src="huarui-catalog.js"></script>
 <script src="basler-catalog.js"></script>
 <script src="basler-lens-catalog.js"></script>
+<script src="basler-light-catalog.js"></script>
 <script src="daheng-catalog.js"></script>
 <script src="opt-catalog.js"></script>
+<script src="opt-lens-catalog.js"></script>
+<script src="opt-light-catalog.js"></script>
+<script src="opt-ctrl-catalog.js"></script>
+<script src="cst-catalog.js"></script>
+<script src="retired-catalog.js"></script>
+<script src="selection-catalog.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>
