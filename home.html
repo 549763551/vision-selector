@@ -214,8 +214,8 @@
     .brand-row { padding: 14px 16px; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   }
 
-  /* ---------- 品牌标识（工业精密：取景角 + 准星环 + 光轴点 + 青色锁定角） ---------- */
-  .tb-mark { width: 28px; height: 28px; flex: 0 0 auto; }
+  /* ---------- 品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
+  .tb-mark { width: 32px; height: 32px; flex: 0 0 auto; }
   .tb-title { display: inline-flex; align-items: center; gap: 10px; }
   .tb-txt { min-width: 0; }
   .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
@@ -239,7 +239,7 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="tb-brand">
-      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M4 12V4h8"/><path d="M4 20v8h8"/><path d="M20 28h8v-8"/></g><rect x="20" y="4" width="8" height="8" fill="#22d3ee"/></svg><span class="tb-txt">机器视觉选型工具集</span></div>
+      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M4 12V4h8"/><path d="M4 20v8h8"/><path d="M20 28h8v-8"/></g><rect x="22" y="2" width="8" height="8" fill="#22d3ee"/></svg><span class="tb-txt">机器视觉选型工具集</span></div>
       <div class="tb-sub">
         海康机器人 / 华睿 / Basler / 大恒图像 / 奥普特 / 康视达 六品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
       </div>
