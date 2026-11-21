@@ -37,7 +37,7 @@
     background-size: 44px 44px, 44px 44px;
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     font-variant-numeric: tabular-nums;
@@ -107,7 +107,7 @@
   }
   .card + .card, .card + .cards, .card + .fold, .cards + .fold, .cards + div, div + .fold { margin-top: 16px; }
   h2.sec {
-    margin: 0 0 16px; font-size: 17px; font-weight: 700;
+    margin: 0 0 14px; font-size: 16px; font-weight: 700;
     display: flex; align-items: center; gap: 10px; letter-spacing: .2px;
   }
   h2.sec::before {
@@ -134,7 +134,7 @@
   .req-col .req-more .span2 { grid-column: auto; }
   .req-col .field > label { font-size: 12.5px; margin-bottom: 6px; }
   .req-col .field > label em { font-size: 11.5px; }
-  .req-col input[type="text"], .req-col input[type="number"], .req-col select { height: 40px; font-size: 14px; }
+  .req-col input[type="text"], .req-col input[type="number"], .req-col select { height: 38px; font-size: 13.5px; }
   .req-col .more-btn { height: 40px; font-size: 13px; }
   .req-col .check { font-size: 13px; padding: 9px 11px; }
   .req-col .brands-fold { margin-top: 14px; padding-top: 12px; }
@@ -174,8 +174,8 @@
   .req-card.more-open .req-more { display: grid; }
   .req-more .span2 { grid-column: span 2; }
   input[type="text"], input[type="number"], select {
-    width: 100%; height: 44px; padding: 0 12px;
-    font-family: inherit; font-size: 15px; color: var(--ink);
+    width: 100%; height: 40px; padding: 0 11px;
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
     background: #fbfdff; border: 1px solid #d6e0ea; border-radius: 10px;
     outline: none; transition: .15s;
   }
@@ -184,7 +184,7 @@
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .check {
     display: flex; align-items: center; gap: 10px; cursor: pointer;
-    font-size: 14px; color: #475569; padding: 11px 13px;
+    font-size: 13.5px; color: #475569; padding: 10px 12px;
     background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
     user-select: none; line-height: 1.5;
   }
@@ -213,12 +213,12 @@
   /* ---------- 结果卡 ---------- */
   .score-top { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
   .score-num {
-    font-size: 52px; font-weight: 800; line-height: 1; white-space: nowrap;
-    letter-spacing: -1.5px; font-variant-numeric: tabular-nums;
+    font-size: 38px; font-weight: 800; line-height: 1; white-space: nowrap;
+    letter-spacing: -1.2px; font-variant-numeric: tabular-nums;
     background: linear-gradient(135deg, #155e8a, #0891b2);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-  .score-num small { font-size: 19px; font-weight: 700; color: #5b6b82; -webkit-text-fill-color: #5b6b82; vertical-align: 9px; margin-left: 1px; letter-spacing: 0; }
+  .score-num small { font-size: 14px; font-weight: 700; color: #5b6b82; -webkit-text-fill-color: #5b6b82; vertical-align: 6px; margin-left: 1px; letter-spacing: 0; }
   .score-mid { flex: 1; min-width: 220px; }
   .score-mid .lbl { font-size: 13.5px; color: var(--muted); margin-bottom: 9px; display: flex; justify-content: space-between; align-items: center; }
   .score-note { margin-top: 9px; font-size: 12.5px; line-height: 1.6; color: #5b6b82; }
@@ -251,7 +251,7 @@
   .summary {
     margin-top: 16px; padding: 13px 15px; border-radius: 12px;
     background: #f8fafc; border: 1px dashed #cfdae7;
-    font-size: 15px; line-height: 1.85; color: #334155;
+    font-size: 14px; line-height: 1.8; color: #334155;
     word-break: break-word;
   }
   .score-items { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
@@ -275,21 +275,21 @@
     padding: 3px 10px; white-space: nowrap; flex: 0 0 auto;
   }
   .lib-link:hover { background: #dbeafe; }
-  .ico { width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto; display: grid; place-items: center; font-size: 17px; }
+  .ico { width: 32px; height: 32px; border-radius: 9px; flex: 0 0 auto; display: grid; place-items: center; font-size: 15px; }
   .cam .ico { background: #eaf4fb; }
   .lens .ico { background: #f5f3ff; }
   .light .ico { background: #fffbeb; }
-  .hero { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1.3; }
+  .hero { font-size: 18px; font-weight: 700; letter-spacing: -.3px; line-height: 1.35; }
   .hero-sub {
     display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; justify-content: space-between;
     font-size: 13px; color: var(--muted); margin: 4px 0 14px;
   }
   .hero-sub > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14.5px; border-top: 1px dashed #eef2f7; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13.5px; border-top: 1px dashed #eef2f7; }
   .kv:first-of-type { border-top: 1px solid #eef2f7; }
   .kv span { color: var(--muted); flex: 0 0 auto; }
   .kv b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; flex: 0 1 auto; min-width: 0; }
-  .kv-block { padding: 10px 0; border-top: 1px dashed #eef2f7; font-size: 14.5px; }
+  .kv-block { padding: 9px 0; border-top: 1px dashed #eef2f7; font-size: 13.5px; }
   .kv-block:first-of-type { border-top: 1px solid #eef2f7; }
   .kv-block span { display: block; color: var(--muted); margin-bottom: 4px; }
   .kv-block p { margin: 0; line-height: 1.65; color: #1e293b; word-break: break-word; }
@@ -320,7 +320,7 @@
   }
   .fold > summary {
     list-style: none; cursor: pointer; padding: 16px 22px;
-    font-size: 16px; font-weight: 700; color: var(--ink);
+    font-size: 15px; font-weight: 700; color: var(--ink);
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
   .fold > summary::-webkit-details-marker { display: none; }
@@ -359,12 +359,12 @@
   .q-k { flex: 0 0 62px; font-size: 13px; color: var(--muted); }
   .q-v { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .q-v b {
-    font-size: 17px; font-weight: 700; letter-spacing: -.2px;
+    font-size: 15.5px; font-weight: 700; letter-spacing: -.1px;
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink);
     overflow-wrap: anywhere;
   }
   .q-v i { font-style: normal; font-size: 13px; color: var(--muted); }
-  .q-arw { flex: 0 0 auto; color: #c3cfdd; font-size: 17px; line-height: 1; }
+  .q-arw { flex: 0 0 auto; color: #c3cfdd; font-size: 15px; line-height: 1; }
   .q-row:hover .q-arw { color: var(--accent); }
   .hero-actions { display: flex; gap: 10px; margin-top: 18px; }
   .hero-actions .btn { height: 46px; }
@@ -386,7 +386,7 @@
   .detail-body .fold.sub {
     margin-top: 16px; background: #fbfdff; border-color: #eef2f7; box-shadow: none;
   }
-  .detail-body .fold.sub > summary { padding: 13px 16px; font-size: 14.5px; }
+  .detail-body .fold.sub > summary { padding: 11px 16px; font-size: 13.5px; }
   .detail-body .fold.sub > summary::before {
     width: 3px; height: 14px; background: linear-gradient(180deg, #cbd5e1, #a9b8ca);
   }
@@ -472,10 +472,10 @@
   .sl-head { display: flex; align-items: center; gap: 8px; }
   .sl-title { font-size: 12.5px; color: var(--muted); }
   .sl-score {
-    margin-left: auto; font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -1px;
+    margin-left: auto; font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: -.6px;
     font-variant-numeric: tabular-nums; color: var(--accent); padding: 0 4px; border-radius: 6px;
   }
-  .sl-score i { font-style: normal; font-size: 13px; font-weight: 600; color: #5b6b82; }
+  .sl-score i { font-style: normal; font-size: 11.5px; font-weight: 600; color: #5b6b82; }
   @keyframes slPulse { from { background: #dbeafe; } to { background: transparent; } }
   .sl-score.pulse { animation: slPulse .8s ease-out; }
   .sl-badge {
@@ -597,7 +597,7 @@
     margin-top: 14px; padding: 11px 14px; border-radius: 11px;
     background: #f8fafc; border: 1px solid #eef2f7; font-size: 13.5px; color: #475569;
   }
-  .budget-sum b { color: #0f172a; font-size: 15px; }
+  .budget-sum b { color: #0f172a; font-size: 14px; }
   .budget-sum .tag { margin-left: auto; }
   .dg { width: 100%; height: auto; display: block; margin: 2px 0 8px; }
   .dg text { font-family: inherit; }
@@ -634,7 +634,7 @@
     box-sizing: border-box;
   }
   .p-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 11px; flex: 0 0 auto; }
-  .p-title { font-size: 16px; font-weight: 700; }
+  .p-title { font-size: 15px; font-weight: 700; }
   .p-tip { font-size: 11.5px; color: #5b6b82; }
   .p-body {
     flex: 1 1 0; min-height: 0; min-width: 0; background: #f8fafc; border: 1px solid var(--line);
@@ -657,7 +657,7 @@
     .req-col .bf-chip .bf-logo { height: 14px; }
     .req-col .f-row > label { font-size: 13px; margin-bottom: 6px; }
     .req-col .f-row > label em { display: inline; }
-    .req-col .f-row input, .req-col .f-row select { height: 42px; font-size: 14.5px; padding: 0 12px; }
+    .req-col .f-row input, .req-col .f-row select { height: 40px; font-size: 13.5px; padding: 0 11px; }
     .req-col .req-grid .fov-cell { grid-column: span 2; }
     .req-col .req-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-col .req-more .span2 { grid-column: span 2; }
@@ -697,7 +697,7 @@
     .sib-tab { padding: 7px 12px; font-size: 12.5px; flex: 0 0 auto; }
     .sib-hint { display: none; }
     .sib-live { padding: 12px 13px 11px; }
-    .sl-score { font-size: 26px; }
+    .sl-score { font-size: 17px; }
     .sl-item { padding: 5px 6px; }
     .sl-m { padding: 5px 0; font-size: 12px; }
     .sib-wrap .sib-scroll { max-height: 320px; }
@@ -755,14 +755,14 @@
     .req-card:not(.form-open) .more-btn,
     .req-card:not(.form-open) .req-more,
     .req-card:not(.form-open) .brands-fold { display: none; }
-    .kv { padding: 9px 0; font-size: 14px; }
-    .hero { font-size: 20px; }
+    .kv { padding: 8px 0; font-size: 13.5px; }
+    .hero { font-size: 17px; }
     .hero-sub { font-size: 12.5px; }
-    .summary { font-size: 14.5px; }
+    .summary { font-size: 13.5px; }
     /* 评分区收紧为一行，避免 100 分单独占一大块 */
     .score-top { gap: 13px; flex-wrap: nowrap; }
-    .score-num { font-size: 42px; }
-    .score-num small { font-size: 15px; vertical-align: 6px; }
+    .score-num { font-size: 30px; }
+    .score-num small { font-size: 12px; vertical-align: 5px; }
     .score-mid { min-width: 0; }
     .score-mid .lbl { font-size: 12.5px; margin-bottom: 7px; }
     .score-mid .lbl .tag { font-size: 11.5px; padding: 3px 8px; }

@@ -34,7 +34,7 @@
     background-size: 44px 44px, 44px 44px;
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 15px; line-height: 1.65;
+    font-size: 14px; line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     font-variant-numeric: tabular-nums;
   }
@@ -68,7 +68,7 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 11px 15px; margin-bottom: 2px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
   }
-  .intro h1 { font-size: 17px; margin: 0 0 4px; }
+  .intro h1 { font-size: 16px; margin: 0 0 4px; }
   .intro p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.65; }
   .intro b { color: var(--accent); }
   .toolbar {
@@ -109,13 +109,13 @@
   .field.sel { grid-column: span 2; }
   .field { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .field.wide { grid-column: 1 / -1; }
-  .field label { font-size: 12px; color: var(--muted); line-height: 1.35; }
-  .field label .u { color: #5b6b82; font-size: 11px; }
+  .field label { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+  .field label .u { color: #5b6b82; font-size: 11.5px; }
   .opt { font-size: 10px; color: #5b6b82; border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; margin-left: 2px; }
   .field input[type="number"], .field select {
-    width: 100%; min-width: 0; font: inherit; font-size: 13px; color: var(--ink);
+    width: 100%; min-width: 0; font: inherit; font-size: 13.5px; color: var(--ink);
     background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
-    padding: 5px 8px; outline: none; transition: .15s; font-size: 12.5px;
+    padding: 6px 9px; outline: none; transition: .15s;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(21, 94, 138, .10); }
   .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 11px; }
@@ -145,7 +145,7 @@
   .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
   .rcard.bad .rtag { color: var(--bad); background: var(--bad-bg); }
   .rtag.wait { color: var(--muted); background: #f1f5f9; }
-  .rsym { font-size: 11px; color: var(--muted); margin: 3px 0 6px; word-break: break-word; }
+  .rsym { font-size: 11.5px; color: var(--muted); margin: 3px 0 6px; word-break: break-word; }
   .verdict {
     border-radius: 9px; padding: 6px 10px; font-size: 12px; font-weight: 600;
     background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 7px;
@@ -160,7 +160,7 @@
     gap: 8px; align-items: start; padding: 5px 8px; border-radius: 8px;
     background: #f8fafc; border: 1px solid var(--line); font-size: 12px;
   }
-  .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 11.5px; }
+  .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 12px; }
   .step .sn { font-weight: 700; color: var(--ink); line-height: 1.45; word-break: break-word; }
   .step .sf { color: var(--muted); line-height: 1.5; word-break: break-word; }
   .step .sf b { color: #334155; font-weight: 600; }
@@ -169,9 +169,9 @@
   .step .sv .flag { font-size: 11px; margin-left: 4px; }
   .step.ok .sv .flag { color: var(--ok); }
   .step.bad .sv .flag { color: var(--bad); }
-  .step .snote { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+  .step .snote { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.5; }
   .notes { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
-  .notes div { font-size: 11.5px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
+  .notes div { font-size: 12px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
   .notes div::before { content: '·'; position: absolute; left: 3px; color: var(--accent); }
   .notes .risk { color: var(--bad); }
   .notes .risk::before { content: '⚠'; color: var(--bad); }
