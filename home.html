@@ -7,6 +7,7 @@
 <meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询六品牌 8868 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
+<link rel="apple-touch-icon" href="assets/brand/icon-180.png" />
 <style>
   :root {
     --bg: #eff2f6;
@@ -74,13 +75,13 @@
   a.entry:hover { border-color: #7fb8d4; box-shadow: 0 10px 30px -18px rgba(21, 94, 138, .55); transform: translateY(-1px); }
   .entry-head { display: flex; align-items: center; gap: 12px; }
   .entry-ico {
-    width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
-    font-size: 20px; color: #fff; flex: 0 0 auto;
+    width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center;
+    color: #22d3ee; flex: 0 0 auto;
+    /* 与品牌标识同一套：深墨底 + 青色字形，四个模块只靠图形区分 */
+    background: linear-gradient(158deg, #12293d 0%, #0b1a28 100%);
+    border: 1px solid rgba(34, 211, 238, .2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   }
-  .entry-ico.sel { background: linear-gradient(135deg, #0e7490, #155e8a); }
-  .entry-ico.lib { background: linear-gradient(135deg, #0f766e, #115e59); }
-  .entry-ico.cmb { background: linear-gradient(135deg, #a16207, #78350f); }
-  .entry-ico.cal { background: linear-gradient(135deg, #5b21b6, #3b0764); }
   .entry h2 { margin: 0; font-size: 18px; }
   .entry .go { margin-left: auto; color: var(--accent); font-size: 13.5px; white-space: nowrap; }
   .entry p.desc { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.75; flex: 1 1 auto; }
@@ -102,14 +103,20 @@
   .stat.total b { color: var(--accent); }
   .brand-row {
     margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    /* 品牌数量会变（四家 → 五家 → …）：用 auto-fit 均分，避免最后一家被挤到单独一行 */
-    padding: 14px 22px;
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-    gap: 10px 24px; align-items: center;
+    /* 品牌数量会变（四家 → 五家 → 六家）：auto-fit 均分；logo 与计数上下两行，
+       否则六家挤一行时计数会被压成竖排单字 */
+    padding: 16px 22px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+    gap: 16px 20px; align-items: start;
   }
-  .brand-item { display: flex; align-items: center; gap: 9px; }
-  .brand-item img { height: 17px; max-width: 120px; object-fit: contain; }
-  .brand-item small { font-size: 12.5px; color: var(--muted); }
+  .brand-item { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 0; }
+  .brand-item > img, .brand-item > b {
+    height: 16px; max-width: 100%; object-fit: contain; object-position: left center;
+  }
+  .brand-item > b { display: flex; align-items: center; font-size: 13px; color: var(--ink); }
+  .b-meta { font-size: 12px; color: var(--muted); line-height: 1.45; white-space: nowrap; }
+  .b-meta b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .b-meta time { display: block; font-size: 11px; color: #93a4bd; letter-spacing: .1px; }
 
   /* 使用步骤 */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -204,7 +211,7 @@
     .docs { grid-template-columns: minmax(0, 1fr); }
     .qrs { max-width: 320px; }
     .qr-card img { max-width: 150px; }
-    .brand-row { padding: 14px 16px; gap: 8px 20px; }
+    .brand-row { padding: 14px 16px; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   }
 
   /* ---------- 品牌标识（工业精密：取景角 + 准星环 + 光轴点 + 青色锁定角） ---------- */
@@ -232,7 +239,7 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="tb-brand">
-      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 11V5h6"/><path d="M5 21v6h6"/><path d="M21 27h6v-6"/></g><circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M21 5h6v6" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="square"/></svg><span class="tb-txt">机器视觉选型工具集</span></div>
+      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M4 12V4h8"/><path d="M4 20v8h8"/><path d="M20 28h8v-8"/></g><rect x="20" y="4" width="8" height="8" fill="#22d3ee"/></svg><span class="tb-txt">机器视觉选型工具集</span></div>
       <div class="tb-sub">
         海康机器人 / 华睿 / Basler / 大恒图像 / 奥普特 / 康视达 六品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
       </div>
@@ -419,7 +426,8 @@
       .map(function (x) { return x.meta.generated; }).sort().pop();
     return '<div class="brand-item">' +
       (logo(bk) ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" />' : '<b>' + esc(short(bk)) + '</b>') +
-      '<small>' + cnt + ' 个型号' + (gen ? ' · ' + esc(gen) : '') + '</small></div>';
+      '<span class="b-meta"><b>' + cnt + '</b> 个型号' +
+      (gen ? '<time>' + esc(gen) + '</time>' : '') + '</span></div>';
   }).join('');
 
   var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();
