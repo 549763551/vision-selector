@@ -1774,35 +1774,44 @@
    */
   function scoreOf(m) {
     var items = [];
-    function d(label, penalty, detail) {
+    // checks 与 items 同源：items 只收「扣了分」的项（界面展示扣分构成），
+    // checks 把每一项都记下来（含通过），供界面显示「N / N 项核查通过」。
+    var checks = [];
+    function d(label, checkLabel, penalty, detail) {
+      checks.push({ label: checkLabel, ok: !(penalty > 0), detail: detail || '' });
       if (penalty > 0) items.push({ label: label, penalty: penalty, detail: detail || '' });
     }
-    if (!m.feasible) d('硬性条件不满足', 45, m.feasibleWhy || '精度 / 视场 / 卡口等硬性约束未通过');
+    d('硬性条件不满足', '硬性条件', m.feasible ? 0 : 45,
+      m.feasible ? '' : (m.feasibleWhy || '精度 / 视场 / 卡口等硬性约束未通过'));
 
-    d('精度余量不足', ramp(0.15 - m.margin, 12, 0.15),
+    d('精度余量不足', '精度余量', ramp(0.15 - m.margin, 12, 0.15),
       '余量 ' + Math.round(Math.max(0, m.margin) * 100) + '%，建议提高一档分辨率');
     var dofGap = m.heightDiff > 0 ? (m.heightDiff - m.dof) / m.heightDiff : (m.dofOK ? 0 : 1);
-    d('景深不足', ramp(dofGap, 15, 0.5),
+    d('景深不足', '景深', ramp(dofGap, 15, 0.5),
       '景深 ' + fmt(m.dof) + ' mm < 高度变化 ' + fmt(m.heightDiff) + ' mm');
-    d('衍射限制', ramp(m.blurPx - 2.5, 8, 2.5),
+    d('衍射限制', '衍射', ramp(m.blurPx - 2.5, 8, 2.5),
       'F' + m.ap + ' 下衍射弥散约 ' + fmt(m.blurPx) + ' 像素');
-    d('曝光上限过短', ramp(1 - m.tMaxMs, 6, 1),
+    d('曝光上限过短', '曝光上限', ramp(1 - m.tMaxMs, 6, 1),
       '最长 ' + fmt(m.tMaxMs) + ' ms，需频闪光源 + 触发同步');
-    d('焦距档位偏离', ramp(m.fErr - 0.15, 8, 0.35),
+    d('焦距档位偏离', '焦距档位', ramp(m.fErr - 0.15, 8, 0.35),
       '最接近焦距与理论值差 ' + Math.round(m.fErr * 100) + '%');
-    d('视场过剩', ramp(m.fovOver - 0.2, 6, 0.5),
+    d('视场过剩', '视场利用', ramp(m.fovOver - 0.2, 6, 0.5),
       '实际视场比需求大 ' + Math.round(m.fovOver * 100) + '%，像素被摊薄');
-    d('帧率不足', ramp(m.fps - m.camFps, 10, Math.max(1, m.camFps)),
+    d('帧率不足', '帧率', ramp(m.fps - m.camFps, 10, Math.max(1, m.camFps)),
       '需要 ' + m.fps + ' fps，相机最高 ' + m.camFps + ' fps');
-    d('带宽超限', ramp(m.bandwidth - m.ifaceCap, 10, Math.max(1, m.ifaceCap)),
+    d('带宽超限', '带宽', ramp(m.bandwidth - m.ifaceCap, 10, Math.max(1, m.ifaceCap)),
       fmt(m.bandwidth) + ' MB/s 超过 ' + m.camIface + ' 有效带宽约 ' + fmt(m.ifaceCap) + ' MB/s');
-    d('曝光短于相机下限', ramp(m.expMinGap || 0, 8, 1),
+    d('曝光短于相机下限', '最短曝光', ramp(m.expMinGap || 0, 8, 1),
       '所需曝光短于该相机最短曝光，需降速或换机型');
-    if (m.adapter) d('需转接环', 3, 'C 口镜头经转接环装大口径机身，法兰距与像面余量需确认');
+    if (m.adapter) d('需转接环', '转接环', 3, 'C 口镜头经转接环装大口径机身，法兰距与像面余量需确认');
 
     var total = 0;
     items.forEach(function (x) { total += x.penalty; });
-    return { score: Math.max(5, Math.min(100, Math.round(100 - total))), items: items };
+    return {
+      score: Math.max(5, Math.min(100, Math.round(100 - total))),
+      items: items,
+      checks: checks
+    };
   }
 
   /**
@@ -2720,6 +2729,7 @@
       feasible: feasible,
       score: score,
       scoreItems: scoreItems,
+      checks: sc.checks,
       margin: margin,
       input: inp,
       task: { key: inp.task, label: task.label, k: k },

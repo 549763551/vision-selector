@@ -120,7 +120,7 @@
     display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
     font-size: 13.5px; font-weight: 600; color: #475569; margin-bottom: 7px;
   }
-  .field > label em { font-style: normal; font-weight: 400; color: #94a3b8; font-size: 12px; }
+  .field > label em { font-style: normal; font-weight: 400; color: #5b6b82; font-size: 12px; }
   .more-btn {
     font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
     height: 44px; width: 100%; border-radius: 10px;
@@ -151,12 +151,12 @@
     user-select: none; line-height: 1.5;
   }
   .check input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex: 0 0 auto; }
-  .unit { color: #94a3b8; font-size: 12.5px; font-weight: 400; }
+  .unit { color: #5b6b82; font-size: 12.5px; font-weight: 400; }
 
   /* 品牌范围：常驻显示，不折叠 */
   .brands-fold { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 12px; }
   .brands-title { font-size: 13px; font-weight: 600; color: var(--muted); }
-  .brands-title small { font-size: 12px; font-weight: 400; color: #94a3b8; margin-left: 8px; }
+  .brands-title small { font-size: 12px; font-weight: 400; color: #5b6b82; margin-left: 8px; }
   .brands-body { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
   .brand-filter { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .brand-filter .bf-label { font-size: 12.5px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
@@ -180,9 +180,28 @@
     background: linear-gradient(135deg, #155e8a, #0891b2);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-  .score-num small { font-size: 15px; font-weight: 600; color: var(--muted); -webkit-text-fill-color: var(--muted); vertical-align: 5px; margin-left: 2px; }
+  .score-num small { font-size: 19px; font-weight: 700; color: #5b6b82; -webkit-text-fill-color: #5b6b82; vertical-align: 9px; margin-left: 1px; letter-spacing: 0; }
   .score-mid { flex: 1; min-width: 220px; }
   .score-mid .lbl { font-size: 13.5px; color: var(--muted); margin-bottom: 9px; display: flex; justify-content: space-between; align-items: center; }
+  .score-note { margin-top: 9px; font-size: 12.5px; line-height: 1.6; color: #5b6b82; }
+  /* 指标判定：✓ 够 / ! 偏紧 / ✕ 不足，让人不用换算就知道结论 */
+  .verdicts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .vd {
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 8px;
+    border-radius: 9px; border: 1px solid #e2e8f0; background: #f8fafc;
+    font-size: 12.5px; line-height: 1.55; color: #3d4f63;
+  }
+  .vd b { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .vd i {
+    font-style: normal; font-weight: 700; font-size: 11px; width: 15px; height: 15px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; color: #fff; background: #64748b;
+  }
+  .vd.ok { border-color: #bfe3cf; background: #f2fbf5; }
+  .vd.ok i { background: #15803d; }
+  .vd.tight { border-color: #f0dcb4; background: #fdf8ee; }
+  .vd.tight i { background: #b45309; }
+  .vd.bad { border-color: #f2c6c6; background: #fdf3f3; }
+  .vd.bad i { background: #b91c1c; }
   .bar { height: 10px; border-radius: 999px; background: #e6edf5; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: 999px; transition: width .45s ease; background: linear-gradient(90deg, #0f766e, #0891b2 62%, #155e8a); }
   .tag {
@@ -321,7 +340,7 @@
     display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
     font-size: 14px; font-weight: 700; color: #334155; margin: 0 0 12px;
   }
-  .det-h .det-tip { font-weight: 400; font-size: 12px; color: #94a3b8; }
+  .det-h .det-tip { font-weight: 400; font-size: 12px; color: #5b6b82; }
   .detail-body .cards .card {
     border: 1px solid #eef2f7; border-radius: 12px; padding: 15px 16px; background: #fff;
   }
@@ -349,7 +368,7 @@
   .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12.5px; color: #475569; }
   td.num { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
   td.unit { color: var(--muted); white-space: nowrap; font-size: 12.5px; }
-  .foot-note { margin-top: 12px; font-size: 12.5px; color: #94a3b8; line-height: 1.75; }
+  .foot-note { margin-top: 12px; font-size: 12.5px; color: #5b6b82; line-height: 1.75; }
 
   /* ---------- 风险 ---------- */
   .risk {
@@ -370,7 +389,7 @@
   .catalog-note {
     margin-top: 18px; padding: 12px 16px; border-radius: 12px;
     background: rgba(255, 255, 255, .6); border: 1px dashed #cfdae7;
-    font-size: 12.5px; line-height: 1.75; color: #94a3b8;
+    font-size: 12.5px; line-height: 1.75; color: #5b6b82;
   }
   .catalog-note b { color: #475569; font-weight: 600; }
 
@@ -394,14 +413,14 @@
     font-size: 13.5px; font-weight: 600; color: #475569; cursor: pointer;
     padding: 8px 15px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff;
   }
-  .sib-tab b { font-size: 11.5px; font-weight: 600; color: #94a3b8; }
+  .sib-tab b { font-size: 11.5px; font-weight: 600; color: #5b6b82; }
   .sib-tab:hover { border-color: #b6dcec; background: #f8fbff; }
   .sib-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   .sib-tab.on b { color: rgba(255, 255, 255, .8); }
-  .sib-hint { margin-left: auto; font-size: 12.5px; color: #94a3b8; }
+  .sib-hint { margin-left: auto; font-size: 12.5px; color: #5b6b82; }
   .sib-pane { display: none; }
   .sib-pane.on { display: block; }
-  .sib-pane-h { font-size: 12.5px; color: #94a3b8; margin-bottom: 7px; }
+  .sib-pane-h { font-size: 12.5px; color: #5b6b82; margin-bottom: 7px; }
   .sib-wrap .sib-scroll { max-height: 420px; }
   .sib-wrap table.mini { font-size: 13.5px; }
   .sib-wrap table.mini thead th { font-size: 12.5px; padding: 0 10px 9px; }
@@ -418,7 +437,7 @@
     margin-left: auto; font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -1px;
     font-variant-numeric: tabular-nums; color: var(--accent); padding: 0 4px; border-radius: 6px;
   }
-  .sl-score i { font-style: normal; font-size: 13px; font-weight: 600; color: #94a3b8; }
+  .sl-score i { font-style: normal; font-size: 13px; font-weight: 600; color: #5b6b82; }
   @keyframes slPulse { from { background: #dbeafe; } to { background: transparent; } }
   .sl-score.pulse { animation: slPulse .8s ease-out; }
   .sl-badge {
@@ -433,7 +452,7 @@
   .sl-k { flex: 0 0 26px; font-size: 12px; color: var(--muted); }
   .sl-v { flex: 1 1 auto; min-width: 0; }
   .sl-v b { display: block; font-size: 13px; font-weight: 600; font-family: Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
-  .sl-v i { font-style: normal; font-size: 11.5px; color: #94a3b8; }
+  .sl-v i { font-style: normal; font-size: 11.5px; color: #5b6b82; }
   .sl-v i.sl-prev { display: block; font-size: 11px; color: #b6c2d2; margin-top: 1px; }
   .sl-item em {
     flex: 0 0 auto; font-style: normal; font-size: 10.5px; font-weight: 600;
@@ -445,7 +464,7 @@
   }
   .sl-m span { flex: 1 1 auto; color: var(--muted); }
   .sl-m b { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .sl-m i { font-style: normal; font-size: 11.5px; padding: 1px 5px; border-radius: 5px; background: #f8fafc; color: #94a3b8; }
+  .sl-m i { font-style: normal; font-size: 11.5px; padding: 1px 5px; border-radius: 5px; background: #f8fafc; color: #5b6b82; }
   .sl-m i.good { background: #f0fdf4; color: #15803d; }
   .sl-m i.bad { background: #fffbeb; color: #b45309; }
   .sl-act { display: flex; gap: 8px; margin-top: 12px; }
@@ -464,17 +483,17 @@
     color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 7px; font-weight: 600;
     vertical-align: 1px; white-space: nowrap;
   }
-  .sib-note { margin-top: 12px; font-size: 12.5px; color: #94a3b8; line-height: 1.75; }
+  .sib-note { margin-top: 12px; font-size: 12.5px; color: #5b6b82; line-height: 1.75; }
   .sib-sub { margin-top: 10px; border-top: 1px dashed #eef2f7; padding-top: 8px; overflow-x: auto; }
   .sib-sub-h { font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 5px; }
   .bf-mini { font-size: 9px; margin-right: 3px; }
   .bf-mini-name { display: inline-block; font-size: 10px; line-height: 1.5; color: #475569; margin-right: 4px; padding: 0 4px; border: 1px solid #e2e8f0; border-radius: 3px; background: #f8fafc; vertical-align: 1px; }
-  .bf-mini-brand { font-size: 9.5px; color: #94a3b8; margin-left: 2px; }
+  .bf-mini-brand { font-size: 9.5px; color: #5b6b82; margin-left: 2px; }
   table.mini tbody tr[data-kind] { cursor: pointer; }
 
   /* ---------- 选型依据 ---------- */
   .why-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 700; color: #334155; }
-  .why-title .hint { font-weight: 400; font-size: 12px; color: #94a3b8; }
+  .why-title .hint { font-weight: 400; font-size: 12px; color: #5b6b82; }
   .why-sum {
     margin: 9px 0 12px; padding: 10px 13px; border-radius: 10px;
     background: #f8fafc; border: 1px solid #eef2f7; font-size: 13.5px; line-height: 1.75; color: #475569;
@@ -578,7 +597,7 @@
   }
   .p-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 11px; flex: 0 0 auto; }
   .p-title { font-size: 16px; font-weight: 700; }
-  .p-tip { font-size: 11.5px; color: #94a3b8; }
+  .p-tip { font-size: 11.5px; color: #5b6b82; }
   .p-body {
     flex: 1 1 0; min-height: 0; min-width: 0; background: #f8fafc; border: 1px solid var(--line);
     border-radius: 12px; padding: 11px 12px; box-sizing: border-box; overflow-y: auto;
@@ -656,15 +675,15 @@
     [data-anchor="calc"] td:first-child { font-weight: 600; color: #334155; margin-bottom: 3px; }
     [data-anchor="calc"] td.num, [data-anchor="calc"] td.unit { display: inline; text-align: left; }
     [data-anchor="calc"] td.num { margin-right: 5px; }
-    [data-anchor="calc"] td.num::before { content: "= "; color: #94a3b8; font-weight: 400; }
+    [data-anchor="calc"] td.num::before { content: "= "; color: #5b6b82; font-weight: 400; }
     /* 选型依据对比表 */
     .why-table thead { display: none; }
     .why-table, .why-table tbody, .why-table tr, .why-table td { display: block; width: auto; }
     .why-table tr { padding: 8px 0; border-bottom: 1px dashed #eef2f7; }
     .why-table tbody td { border: 0; padding: 1px 0; }
     .why-table td:first-child { font-weight: 600; color: #64748b; }
-    .why-table td:nth-child(2)::before { content: "本方案　"; color: #94a3b8; }
-    .why-table td:nth-child(3)::before { content: "次优　　"; color: #94a3b8; }
+    .why-table td:nth-child(2)::before { content: "本方案　"; color: #5b6b82; }
+    .why-table td:nth-child(3)::before { content: "次优　　"; color: #5b6b82; }
     /* 方案清单 BOM */
     .bom-table thead { display: none; }
     .bom-table, .bom-table tbody { display: block; width: auto; }
@@ -677,7 +696,7 @@
     table.bom-table tbody td.cat { grid-area: 1 / 1; padding-top: 2px; }
     table.bom-table tbody td.model { grid-area: 1 / 2; overflow-wrap: anywhere; }
     table.bom-table tbody td.qty { grid-area: 1 / 3; padding-top: 2px; }
-    table.bom-table tbody td.qty::before { content: "×"; color: #94a3b8; }
+    table.bom-table tbody td.qty::before { content: "×"; color: #5b6b82; }
     table.bom-table tbody td:nth-child(4) { grid-area: 2 / 1 / 3 / -1; color: var(--muted); font-size: 12.5px; line-height: 1.65; }
     table.bom-table tbody td:nth-child(5) { grid-area: 1 / 4; justify-self: end; }
     /* 移动端：吸顶分段 / 表单收起摘要 */
@@ -695,7 +714,7 @@
     /* 评分区收紧为一行，避免 100 分单独占一大块 */
     .score-top { gap: 13px; flex-wrap: nowrap; }
     .score-num { font-size: 42px; }
-    .score-num small { font-size: 12.5px; vertical-align: 3px; }
+    .score-num small { font-size: 15px; vertical-align: 6px; }
     .score-mid { min-width: 0; }
     .score-mid .lbl { font-size: 12.5px; margin-bottom: 7px; }
     .score-mid .lbl .tag { font-size: 11.5px; padding: 3px 8px; }
@@ -863,13 +882,15 @@
   <!-- ==================== 2. 一眼结论：买什么 ==================== -->
   <section class="card score-card" id="scoreCard" data-anchor="sol">
     <div class="score-top">
-      <div class="score-num" id="scoreNum">--<small>/100</small></div>
+      <div class="score-num" id="scoreNum">--</div>
       <div class="score-mid">
-        <div class="lbl"><span>方案匹配度</span><span id="stateChip" class="tag">计算中</span></div>
+        <div class="lbl"><span>工程核查通过</span><span id="stateChip" class="tag">计算中</span></div>
         <div class="bar"><i id="scoreBar" style="width:0%"></i></div>
+        <div class="score-note" id="scoreNote"></div>
       </div>
     </div>
     <div class="summary" id="summary">—</div>
+    <div class="verdicts" id="verdicts"></div>
 
     <!-- 三件套速览：一眼看清买什么；点任意一行直接跳到详细参数 -->
     <div class="quick" id="quick"></div>

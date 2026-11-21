@@ -426,6 +426,29 @@ test('匹配度 0~100', () => {
   assert.ok(r.score >= 0 && r.score <= 100, 'score=' + r.score);
 });
 
+test('核查清单：常规需求 10 项全通过，与扣分项同源', () => {
+  const r = Engine.solve(base());
+  const chk = r.checks;
+  assert.ok(Array.isArray(chk), 'checks 不是数组');
+  assert.strictEqual(chk.length, 10, '核查项数 ' + chk.length);
+  assert.strictEqual(chk.filter((c) => c.ok).length, 10, '全通过时应有 10 项 ok');
+  assert.strictEqual(r.scoreItems.length, 0, '全通过时不应有扣分项');
+  chk.forEach((c) => {
+    assert.ok(typeof c.label === 'string' && c.label, '核查项缺少名称');
+    assert.ok(c.label.indexOf('不足') < 0 && c.label.indexOf('超限') < 0,
+      '核查项名称应为中性描述，实际 ' + c.label);
+  });
+});
+
+test('核查清单：不达标时扣分项与未通过项对得上', () => {
+  // 精度要求远超型号库能力 → 必有未通过的核查项，且扣分项数量与之一致
+  const r = Engine.solve(base({ precision: 0.0005 }));
+  assert.ok(r.checks.length >= 10, '核查项数 ' + r.checks.length);
+  const bad = r.checks.filter((c) => !c.ok).length;
+  assert.strictEqual(bad, r.scoreItems.length, '未通过 ' + bad + ' 项，扣分项 ' + r.scoreItems.length + ' 项');
+  assert.ok(bad > 0, '极端需求下应有未通过项');
+});
+
 // ---------------- 多品牌（华睿 + Basler） ----------------
 // 引擎在 Node require 下只导出"绑定海康库的实例"，无法换目录重建；
 // 多品牌需要工厂函数，故用 vm 在全局作用域加载（走浏览器分支，挂 VisionEngineFactory）。

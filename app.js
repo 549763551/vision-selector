@@ -291,12 +291,50 @@
     }).join('');
   }
 
-  /** 结论行：型号已在上方速览里，这里只留最该扫一眼的两个数 */
+  /** 指标判定：把数字翻成「够不够」，外行看结论、内行看数值 */
+  function verdictsHtml(r) {
+    var out = [];
+    function chip(tone, icon, label, text) {
+      out.push('<span class="vd ' + tone + '"><i>' + icon + '</i><span>' + label +
+        ' <b>' + text + '</b></span></span>');
+    }
+    var m = r.margin;
+    if (m != null) {
+      var tone = m >= 0.15 ? 'ok' : (m >= 0 ? 'tight' : 'bad');
+      chip(tone, m >= 0.15 ? '✓' : (m >= 0 ? '!' : '✕'), '精度',
+        num(r.camera.pxAcc, 4) + ' mm/px（需求 ' + num(r.pxAccReq, 3) +
+        (m >= 0 ? '，余 ' + pct(m) + '）' : '，差 ' + pct(-m) + '）'));
+    }
+    var dof = r.lens && r.lens.dof;
+    var hd = r.input ? r.input.heightDiff : 0;
+    if (dof != null) {
+      if (!(hd > 0)) chip('ok', '✓', '景深', num(dof, 2) + ' mm，未填高低差');
+      else chip(dof >= hd ? 'ok' : 'bad', dof >= hd ? '✓' : '✕', '景深',
+        num(dof, 2) + ' mm，' + (dof >= hd
+          ? '覆盖高低差 ' + num(hd, 2) + ' mm'
+          : '小于高低差 ' + num(hd, 2) + ' mm'));
+    }
+    var sp = r.space;
+    if (sp) {
+      if (sp.pass == null) {
+        chip('ok', 'i', '安装', '按总长 ' + num(sp.need, 0) + ' mm 预留（未填可用空间）');
+      } else if (sp.pass) {
+        chip('ok', '✓', '安装', '总长 ' + num(sp.need, 0) + ' mm，余 ' + num(sp.available - sp.need, 0) + ' mm');
+      } else {
+        chip('bad', '✕', '安装', '总长 ' + num(sp.need, 0) + ' mm，超出 ' + num(sp.over, 0) + ' mm');
+      }
+    }
+    return out.join('');
+  }
+
+  /** 结论行：数字都在下面的判定标签里，这里只说「这套能不能用」 */
   function heroLine(r) {
-    var parts = String(r.summary || '').split('｜');
-    var line = parts.length >= 3 ? parts.slice(-2).join(' · ').trim() : String(r.summary || '');
-    if (line && r.margin != null && r.margin >= 0) line += ' · 精度余量 ' + pct(r.margin);
-    return line;
+    var i = r.input || {};
+    var cond = '视野 ' + num(i.fovW, 0) + '×' + num(i.fovH, 0) + ' mm、最小特征 ' + num(i.precision, 2) + ' mm';
+    if (r.feasible) {
+      return '按「' + cond + '」，硬性条件（精度、视场、卡口、曝光）全部满足，可直接按下方清单询价。';
+    }
+    return '按「' + cond + '」，型号库里没有完全达标的组合：下面是最接近的一套，先按风险提示调整条件再定。';
   }
 
   /** 一眼结论：三件套速览（点任意一行跳到详细参数卡） */
@@ -926,8 +964,10 @@
     });
 
     if (!r.ok) {
-      $('scoreNum').innerHTML = '--<small>/100</small>';
+      $('scoreNum').innerHTML = '--';
       $('scoreBar').style.width = '0%';
+      $('scoreNote').textContent = '';
+      $('verdicts').innerHTML = '';
       $('stateChip').className = 'tag bad';
       $('stateChip').textContent = '输入有误';
       $('summary').innerHTML = '<span style="color:#b91c1c">' + esc(r.error) + '</span>';
@@ -945,11 +985,27 @@
       return;
     }
 
-    $('scoreNum').innerHTML = r.score + '<small>/100</small>';
-    $('scoreBar').style.width = r.score + '%';
+    // 主数字是「通过了多少项工程核查」，不是质量分：100 分只代表没有触发扣分项，
+    // 容易被读成「画质满分」，0-100 只留在备选方案之间做比较（见 scoreNote）。
+    var chk = r.checks || [];
+    var passN = 0;
+    for (var ci = 0; ci < chk.length; ci++) if (chk[ci].ok) passN++;
+    if (chk.length) {
+      $('scoreNum').innerHTML = passN + '<small>/' + chk.length + '</small>';
+      $('scoreBar').style.width = Math.round(passN / chk.length * 100) + '%';
+      $('scoreNote').textContent =
+        (passN === chk.length ? '共 ' + chk.length + ' 项工程核查全部通过'
+                              : '共 ' + chk.length + ' 项工程核查，' + (chk.length - passN) + ' 项未通过') +
+        ' · 匹配度 ' + r.score + ' 分（仅用于备选方案间比较）';
+    } else {
+      $('scoreNum').innerHTML = r.score + '<small>/100</small>';
+      $('scoreBar').style.width = r.score + '%';
+      $('scoreNote').textContent = '';
+    }
     $('stateChip').className = 'tag ' + (r.feasible ? 'ok' : 'bad');
     $('stateChip').textContent = r.feasible ? '方案可行' : '需升级方案';
     $('summary').innerHTML = esc(heroLine(r));
+    $('verdicts').innerHTML = verdictsHtml(r);
     $('quick').innerHTML = quickRows(r);
     $('scoreItems').innerHTML = scoreItemsHtml(r);
     $('rationale').innerHTML = rationaleCard(r);
