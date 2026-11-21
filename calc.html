@@ -63,7 +63,7 @@
     background: linear-gradient(180deg, rgba(34, 211, 238, .26), rgba(14, 116, 144, .55));
     border-color: rgba(34, 211, 238, .62);
   }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 14px 22px 40px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 14px 28px 40px; }
   .intro {
     background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 11px 15px; margin-bottom: 2px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
@@ -89,7 +89,7 @@
   /* ---------- 组合卡片 ---------- */
   .combo {
     background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
-    padding: 12px 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04); margin-top: 10px;
+    padding: 11px 13px 12px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04); margin-top: 10px;
   }
   .chead { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
   .chead h2 { margin: 0; font-size: 15px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
@@ -100,11 +100,11 @@
   }
   .cbtns { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
   .cbtns .btn { font-size: 11px; padding: 5px 9px; }
-  .cdesc { margin: 5px 0 9px; font-size: 12px; color: var(--muted); line-height: 1.55; }
-  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px; }
-  .fsec + .fsec { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
-  .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 5px; }
-  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 8px; }
+  .cdesc { margin: 4px 0 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px 9px; }
+  .fsec + .fsec { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
+  .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 4px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
   .cform .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .field.sel { grid-column: span 2; }
   .field { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -131,9 +131,9 @@
   }
 
   /* ---------- 结果 ---------- */
-  .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; align-items: start; }
+  .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; align-items: start; }
   .cres.one { grid-template-columns: 1fr; }
-  .rcard { border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px; background: #fff; min-width: 0; }
+  .rcard { border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: #fff; min-width: 0; }
   .rcard.wait { border-style: dashed; background: #fbfdff; }
   .rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .rhead h4 { margin: 0; font-size: 13px; }
@@ -145,19 +145,19 @@
   .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
   .rcard.bad .rtag { color: var(--bad); background: var(--bad-bg); }
   .rtag.wait { color: var(--muted); background: #f1f5f9; }
-  .rsym { font-size: 11.5px; color: var(--muted); margin: 3px 0 6px; word-break: break-word; }
+  .rsym { font-size: 11.5px; color: var(--muted); margin: 2px 0 5px; word-break: break-word; }
   .verdict {
-    border-radius: 9px; padding: 6px 10px; font-size: 12px; font-weight: 600;
-    background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 7px;
-    line-height: 1.6; word-break: break-word;
+    border-radius: 9px; padding: 5px 9px; font-size: 12px; font-weight: 600;
+    background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 6px;
+    line-height: 1.55; word-break: break-word;
   }
   .verdict.bad { background: var(--bad-bg); border-color: #fecaca; color: var(--bad); }
   .verdict.warn { background: var(--warn-bg); border-color: #fde68a; color: var(--warn); }
   .verdict.ok { background: var(--ok-bg); border-color: #bbf7d0; color: var(--ok); }
-  .steps { display: flex; flex-direction: column; gap: 6px; }
+  .steps { display: flex; flex-direction: column; gap: 5px; }
   .step {
     display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.9fr) minmax(96px, .8fr);
-    gap: 8px; align-items: start; padding: 5px 8px; border-radius: 8px;
+    gap: 8px; align-items: start; padding: 4px 8px; border-radius: 8px;
     background: #f8fafc; border: 1px solid var(--line); font-size: 12px;
   }
   .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 12px; }
@@ -198,6 +198,31 @@
     opacity: 0; pointer-events: none; transition: .22s; z-index: 40; box-shadow: 0 8px 24px rgba(15, 23, 42, .25);
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  /* ---------- 宽屏：一行两个模块（每个 570 左右） ---------- */
+  @media (min-width: 1200px) {
+    /* 双列瀑布流：模块内容多寡差得远（面阵 8 个结果、线扫 1 个），
+       用栅格强行对齐会让短的那一半空出两屏白；多列布局按内容自动分摊。 */
+    #combos { column-count: 2; column-gap: 12px; }
+    #combos .combo { margin: 0 0 12px; break-inside: avoid; }
+    #combos .chead { row-gap: 4px; }
+    /* 待填统计（「待填: 水平像素、垂直像素…」）很长，挤在同一行会把右侧按钮顶出卡片 */
+    #combos .cstat { order: 3; flex: 1 1 100%; }
+    #combos .cbtns { margin-left: auto; }
+    /* 半栏宽度下 4 列输入会挤成一条缝，回到 2 列 */
+    #combos .cform .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* 下拉若还占两列，2 列栅格会被它切断成一行一个字段，右侧留大洞；统一单列宽 */
+    #combos .cform .field.sel { grid-column: auto; }
+    /* 复选独占一行：否则它跟 FOV 挤在一格，勾选框会贴到格子底部看着像错行 */
+    #combos .cform .field.check { grid-column: 1 / -1; align-self: start; }
+    /* 半栏里「名称 / 公式 / 数值」三列放不下，改成两行：名称+数值一行，公式一行 */
+    #combos .step { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+    #combos .step .sn { grid-row: 1; grid-column: 1; }
+    #combos .step .sv { grid-row: 1; grid-column: 2; }
+    #combos .step .sf { grid-row: 2; grid-column: 1 / -1; }
+    #combos .step .snote { grid-row: 3; }
+    /* 通过的结论与上方数值标签重复，只留异常提示 */
+    #combos .verdict:not(.bad):not(.warn) { display: none; }
+  }
   @media (max-width: 1000px) {
     .cform .fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
