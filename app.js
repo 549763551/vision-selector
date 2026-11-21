@@ -505,11 +505,6 @@
       kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
       kv('镜头总长', esc(lenTxt)) +
       kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
-      (r.lensAlternates && r.lensAlternates.length
-        ? kv('备选镜头', esc(r.lensAlternates.map(function (a) {
-          return a.lens + ' ' + a.focal + ' mm' + (a.adapter ? '（转接）' : '');
-        }).join('；')) + '<br><span style="color:#94a3b8">均为同一相机下仍满足精度的替代款，可在左栏「同系列参数」点选</span>')
-        : '') +
       '</div>';
   }
 
@@ -533,12 +528,6 @@
       (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
       block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
       block('控制方式', esc(g.controller)) +
-      (g.skuAlts && g.skuAlts.length
-        ? block('备选型号', g.skuAlts.map(function (x) {
-          return esc((x.brand ? '[' + x.brand + '] ' : '') + x.model +
-            '（' + ((x.size || []).join(' × ')) + ' mm' + (x.power != null ? '，' + x.power + ' W' : '') + '）');
-        }).join('<br>') + '<br><span style="color:#94a3b8">同一照明方式下尺寸够用的其他款，可在左栏「同系列参数」点选</span>')
-        : '') +
       (g.reasons.length
         ? '<ul class="why kv-extra">' + g.reasons.slice(0, 3).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
         : '') +
@@ -1145,11 +1134,6 @@
       num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm');
     lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口' +
       (l.adapter ? '（需 ' + r.camera.mount + '→' + l.mount + ' 转接环，约 12mm）' : ''));
-    if (r.lensAlternates && r.lensAlternates.length) {
-      lines.push('　 备选镜头：' + r.lensAlternates.map(function (a) {
-        return a.lens + ' ' + a.focal + 'mm' + (a.adapter ? '（转接）' : '');
-      }).join('；'));
-    }
     lines.push('· 光源：' + (g.skuBrand ? '[' + g.skuBrand + '] ' : '') + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
     lines.push('　 型号构成：' + g.example);
     if (g.skuNote) lines.push('　 选型说明：' + g.skuNote);
@@ -1160,12 +1144,6 @@
     if (g.power != null) {
       lines.push('　 功率：' + g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W' +
         (g.controllerModel ? '；控制器 ' + g.controllerModel + '（' + g.controllerChannels + ' 通道）' : ''));
-    }
-    if (g.skuAlts && g.skuAlts.length) {
-      lines.push('　 备选光源：' + g.skuAlts.map(function (x) {
-        return (x.brand ? '[' + x.brand + '] ' : '') + x.model +
-          '（' + (x.size || []).join('×') + 'mm' + (x.power != null ? '，' + x.power + 'W' : '') + '）';
-      }).join('；'));
     }
     if (r.lineScan) {
       var ls = r.lineScan;
