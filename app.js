@@ -337,20 +337,29 @@
     return '按「' + cond + '」，型号库里没有完全达标的组合：下面是最接近的一套，先按风险提示调整条件再定。';
   }
 
-  /** 一眼结论：三件套速览（点任意一行跳到详细参数卡） */
+  /**
+   * 一眼结论：三件套压成两行。
+   * 第一行只放型号（点型号跳到对应参数卡），第二行放真正能判断合不合适的规格，
+   * 像素数、帧率这类卡里已经有的不再重复。
+   */
   function quickRows(r) {
-    function row(goto, ico, label, model, meta) {
-      return '<button type="button" class="q-row" data-goto="' + goto + '">' +
-        '<span class="q-k">' + ico + ' ' + label + '</span>' +
-        '<span class="q-v"><b>' + esc(model) + '</b>' + (meta ? '<i>' + esc(meta) + '</i>' : '') + '</span>' +
-        '<span class="q-arw">›</span></button>';
+    function seg(goto, label, model) {
+      return '<button type="button" class="q-seg" data-goto="' + goto + '" title="查看' + label + '完整参数">' +
+        '<i>' + label + '</i><b>' + esc(model) + '</b></button>';
     }
-    var camMeta = [num(r.camera.w * r.camera.h / 1e6, 1) + 'MP', r.camera.w + '×' + r.camera.h, r.camera.fps + ' fps'].join(' · ');
-    var lensMeta = [r.lens.f + ' mm', 'F' + r.lens.aperture, r.lens.mount + ' 口'].join(' · ');
-    var lightMeta = [r.light.colorName || '', r.light.wavelength || ''].filter(Boolean).join(' · ');
-    return row('cam', '📷', '相机', r.camera.model, camMeta) +
-      row('lens', '🔍', '镜头', r.lens.model, lensMeta) +
-      row('light', '💡', '光源', r.light.sku || r.light.seriesName || '—', lightMeta);
+    var c = r.camera, l = r.lens;
+    var lightName = r.light.sku || r.light.seriesName || '—';
+    var line1 = seg('cam', '相机', c.model) + '<span class="q-sep">/</span>' +
+      seg('lens', '镜头', l.model) + '<span class="q-sep">/</span>' +
+      seg('light', '光源', lightName);
+    var spec = [
+      c.w + '×' + c.h + ' · ' + num(c.w * c.h / 1e6, 1) + ' MP',
+      num(l.f, 0) + ' mm F' + l.aperture,
+      (r.light.colorName || '') + (r.light.wavelength ? ' ' + r.light.wavelength : ''),
+      '实际 <b>' + num(c.pxAcc, 3) + ' mm/px</b>',
+      '余量 ' + Math.round(Math.max(0, r.margin) * 100) + '%'
+    ].filter(Boolean).join(' · ');
+    return '<div class="q-line">' + line1 + '</div><div class="q-sub">' + spec + '</div>';
   }
 
   function readInput() {
@@ -1025,11 +1034,11 @@
     $('budget').innerHTML = budgetCard(r);
     $('diagram').innerHTML = diagramCard(r);
 
-    var bLogos = Object.keys(BRANDS).filter(function (k) {
+    // 这段是 12.5px 的说明小字，六家 logo 混排时双行锁定稿（华睿 / 奥普特）会被压到看不清，
+    // 统一改用品牌名文本，跟正文同字号反而更整齐。
+    var bNames = Object.keys(BRANDS).filter(function (k) {
       return activeBrands.indexOf(k) >= 0 && window[BRANDS[k].global];
-    }).map(function (k) {
-      return '<img src="' + esc(BRANDS[k].logo) + '" alt="' + esc(BRANDS[k].short) + '" style="--logo-scale:' + (BRANDS[k].logoScale || 1) + ';height:calc(14px * var(--logo-scale,1));vertical-align:-2px;margin-right:8px" />';
-    }).join('');
+    }).map(function (k) { return esc(BRANDS[k].short); }).join(' · ');
     var st = CAT._stats || {}, inv = st.invalid || {}, fill = st.filled || {};
     function sumObj(o) {
       var n = 0;
@@ -1038,7 +1047,7 @@
     }
     var invN = sumObj(inv), fillN = sumObj(fill), retN = st.retired || 0;
     $('catalogNote').innerHTML =
-      bLogos +
+      (bNames ? '在售品牌 <b>' + bNames + '</b>。' : '') +
       '已启用：面阵 <b>' + CAT.CAMERAS.length + '</b> 台、线扫 <b>' + (CAT.LINESCAN || []).length +
       '</b> 台、镜头 <b>' + CAT.LENSES.length + '</b> 支、远心 <b>' + (CAT.TELECENTRIC || []).length +
       '</b> 系列、光源 <b>' + (CAT.LIGHTS || []).length + '</b> 款、控制器 <b>' + (CAT.CONTROLLERS || []).length + '</b> 款。' +
@@ -1301,9 +1310,21 @@
     renderLightFilter();
     fillSelects();
 
+    // 输入框逐字符触发全量重算（型号库 8868 条），120ms 内的连续输入合并成一次；
+    // 下拉与复选框是离散动作，立刻算，不等防抖。
+    var renderTimer = null;
+    function renderSoon() {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(render, 120);
+    }
+    function renderNow() {
+      clearTimeout(renderTimer);
+      render();
+    }
     Array.prototype.forEach.call(document.querySelectorAll('input, select'), function (el) {
-      el.addEventListener('input', render);
-      el.addEventListener('change', render);
+      var discrete = el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio';
+      el.addEventListener('input', discrete ? renderNow : renderSoon);
+      el.addEventListener('change', renderNow);
     });
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (btn) {
@@ -1324,10 +1345,6 @@
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
     if (detailWrap) {
-      var syncDetailBtn = function () {
-        var b = $('detailBtn');
-        if (b) b.textContent = detailWrap.open ? '收起详细 ▴' : '详细方案 ▾';
-      };
       // 大屏：详细方案与同系列默认展开；验算过程与工程细节默认收起（要看再点）
       var mqWide = window.matchMedia('(min-width: 1021px)');
       var wideFolds = ['sib'];
@@ -1340,29 +1357,58 @@
         });
       }
       applyWideFolds();
-      syncDetailBtn();
       if (mqWide.addEventListener) mqWide.addEventListener('change', applyWideFolds);
-      detailWrap.addEventListener('toggle', syncDetailBtn);
-      if ($('detailBtn')) {
-        $('detailBtn').addEventListener('click', function () {
-          detailWrap.open = !detailWrap.open;
-          syncDetailBtn();
-          jumpTo(detailWrap);
-        });
-      }
-      // 速览行：展开详细方案并跳到对应参数卡
+      // 速览型号：展开详细方案并跳到对应参数卡
       if ($('quick')) {
         $('quick').addEventListener('click', function (e) {
-          var row = e.target.closest('[data-goto]');
-          if (!row) return;
+          var seg = e.target.closest('[data-goto]');
+          if (!seg) return;
           detailWrap.open = true;
-          syncDetailBtn();
-          jumpTo(document.getElementById('card-' + row.getAttribute('data-goto')));
+          jumpTo(document.getElementById('card-' + seg.getAttribute('data-goto')));
         });
       }
     }
 
-    // 桌面端「更多参数」折叠：默认只留 6 项常用需求，降低首屏密度
+    /* ---------------- 导出 PDF：打印前把折叠全展开 ---------------- */
+    // 打印稿里折叠区如果保持收起，导出的 PDF 就只有半页结论；beforeprint 里统一摊开，
+    // afterprint 再还原，Ctrl+P 走同一套逻辑，不必依赖按钮。
+    var foldState = null;
+    function openAllFolds() {
+      if (foldState) return;   // 点击按钮已展开过一次，beforeprint 再触发时别覆盖原始状态
+      var list = document.querySelectorAll('details');
+      foldState = Array.prototype.map.call(list, function (d) { return d.open; });
+      Array.prototype.forEach.call(list, function (d) { d.open = true; });
+      var req = $('printReq');
+      if (req) {
+        var i = readInput();
+        var taskSel = $('task');
+        var taskTxt = taskSel && taskSel.options[taskSel.selectedIndex]
+          ? taskSel.options[taskSel.selectedIndex].textContent : i.task;
+        req.textContent = '需求：视野 ' + num(i.fovW, 0) + '×' + num(i.fovH, 0) + ' mm · 最小特征 ' +
+          num(i.precision, 2) + ' mm · 工作距离 ' + num(i.wd, 0) + ' mm · ' + taskTxt +
+          '　|　生成时间 ' + new Date().toLocaleString('zh-CN', { hour12: false });
+      }
+    }
+    function restoreFolds() {
+      if (!foldState) return;
+      var list = document.querySelectorAll('details');
+      Array.prototype.forEach.call(list, function (d, i) {
+        if (i < foldState.length) d.open = foldState[i];
+      });
+      foldState = null;
+    }
+    window.addEventListener('beforeprint', openAllFolds);
+    window.addEventListener('afterprint', restoreFolds);
+    if ($('pdfBtn')) {
+      $('pdfBtn').addEventListener('click', function () {
+        openAllFolds();
+        window.print();
+        // 某些浏览器不派发 afterprint，兜底还原
+        setTimeout(restoreFolds, 400);
+      });
+    }
+
+    // 桌面端「更多参数」折叠：常用项（含景深、速度）常驻，节拍/安装空间/彩色/线扫收在里面
     var moreBtn = $('moreBtn');
     if (moreBtn) {
       moreBtn.addEventListener('click', function () {

@@ -347,25 +347,23 @@
   #suggest .card h2.sec { font-size: 16px; }
   #bom > .card { margin-top: 16px; }
 
-  /* ---------- 一眼结论：三件套速览 ---------- */
-  .quick { margin-top: 16px; border-top: 1px solid #eef2f7; }
-  .q-row {
-    display: flex; align-items: baseline; gap: 10px; width: 100%;
-    padding: 12px 4px; border: 0; border-bottom: 1px dashed #f1f5f9;
-    background: transparent; font-family: inherit; text-align: left; cursor: pointer;
+  /* ---------- 一眼结论：三件套压成两行（型号 + 关键规格） ---------- */
+  .quick { margin-top: 14px; padding-top: 12px; border-top: 1px solid #eef2f7; }
+  .q-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+  .q-seg {
+    display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 0; border: 0;
+    background: transparent; font-family: inherit; color: var(--ink); cursor: pointer;
   }
-  .q-row:last-child { border-bottom: 0; }
-  .q-row:hover { background: #f8fbff; }
-  .q-k { flex: 0 0 62px; font-size: 13px; color: var(--muted); }
-  .q-v { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .q-v b {
-    font-size: 15.5px; font-weight: 700; letter-spacing: -.1px;
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink);
-    overflow-wrap: anywhere;
+  .q-seg > i { font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .q-seg > b {
+    font-size: 15px; font-weight: 700; letter-spacing: -.1px; overflow-wrap: anywhere;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    border-bottom: 1px dashed transparent; transition: .15s;
   }
-  .q-v i { font-style: normal; font-size: 13px; color: var(--muted); }
-  .q-arw { flex: 0 0 auto; color: #c3cfdd; font-size: 15px; line-height: 1; }
-  .q-row:hover .q-arw { color: var(--accent); }
+  .q-seg:hover > b { color: var(--accent); border-bottom-color: rgba(21, 94, 138, .4); }
+  .q-sep { color: #c3cfdd; font-size: 12.5px; }
+  .q-sub { margin-top: 6px; font-size: 12.5px; color: #5b6b82; line-height: 1.55; }
+  .q-sub b { font-weight: 700; color: #334155; }
   .hero-actions { display: flex; gap: 10px; margin-top: 18px; }
   .hero-actions .btn { height: 46px; }
   .hero-actions a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; }
@@ -644,7 +642,41 @@
   .p-foot { flex: 0 0 auto; display: flex; gap: 9px; margin-top: 11px; }
   .p-foot .btn { flex: 1; }
 
-  /* ---------- 断点 ---------- */
+  /* ---------- 打印 / 导出 PDF：只留结论与方案，去掉所有交互件 ---------- */
+  .print-head { display: none; }
+  @media print {
+    @page { margin: 14mm 12mm; }
+    html, body { background: #fff; }
+    body { font-size: 10.5pt; }
+    .topbar, .segbar, .req-col, .hero-actions, #suggest, .brands-fold,
+    .sum-act, .lib-link, .more-btn, .fs-btn, .toggle { display: none !important; }
+    .print-head { display: block; margin: 0 0 12px; padding-bottom: 9px; border-bottom: 2px solid #0b1a28; }
+    .ph-title { font-size: 15pt; font-weight: 700; color: #0b1a28; letter-spacing: .02em; }
+    .ph-sub { margin-top: 4px; font-size: 9pt; color: #47556b; line-height: 1.6; }
+    /* 用户选「无页边距」时 @page 会被顶掉，这里留一道最小安全边 */
+    .wrap { max-width: none; padding: 0 6mm; }
+    .layout { display: block; }
+    .card, .fold { box-shadow: none !important; border-color: #cfdae7 !important; }
+    .card { break-inside: avoid; page-break-inside: avoid; }
+    .res-col > * + * { margin-top: 10px; }
+    .score-card { padding: 14px 16px !important; }
+    .score-num { font-size: 30pt !important; }
+    .detail-wrap { margin-top: 10px; }
+    details > summary { list-style: none; padding: 9px 14px !important; font-size: 11pt !important; }
+    details > summary::before, details > summary::after { display: none !important; }
+    details > summary::-webkit-details-marker { display: none; }
+    details[open] > .fold-body, .fold-body { display: block !important; }
+    .cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .detail-body .cards .card { border-color: #dbe4ee !important; }
+    table { font-size: 9pt; }
+    thead th, tbody td { padding: 4px 6px !important; }
+    .q-sub { font-size: 9pt; }
+    .q-seg > b { font-size: 11pt; }
+    a { color: inherit; text-decoration: none; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; color: #5b6b82; }
+  }
+
+/* ---------- 断点 ---------- */
   @media (max-width: 1020px) {
     .wrap { padding: 16px; }
     /* 窄屏没有横向空间做悬浮栏，回到单列堆叠 */
@@ -759,6 +791,8 @@
     .hero { font-size: 17px; }
     .hero-sub { font-size: 12.5px; }
     .summary { font-size: 13.5px; }
+    .q-seg > b { font-size: 13.5px; }
+    .q-sub { font-size: 12px; }
     /* 评分区收紧为一行，避免 100 分单独占一大块 */
     .score-top { gap: 13px; flex-wrap: nowrap; }
     .score-num { font-size: 30px; }
@@ -818,6 +852,12 @@
 </nav>
 
 <div class="wrap">
+
+<div class="print-head" id="printHead">
+  <div class="ph-title">机器视觉选型方案</div>
+  <div class="ph-sub" id="printReq">—</div>
+</div>
+
  <div class="layout">
 
   <!-- ==================== 左栏：检测需求（悬浮，随时可改） ==================== -->
@@ -875,22 +915,22 @@
         <select id="colorTarget"></select>
       </div>
 
+      <div class="field f-row">
+        <label>高度变化 <em>决定景深</em></label>
+        <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
+      </div>
+
+      <div class="field f-row">
+        <label>运动速度 <span class="unit">mm/s</span></label>
+        <input type="number" id="speed" min="0" step="10" value="0" />
+      </div>
+
       <div class="field btn-cell">
         <button type="button" class="more-btn" id="moreBtn">更多参数 ＋</button>
       </div>
 
-      <!-- 更多参数：默认收起 -->
+      <!-- 更多参数：默认收起（节拍 / 安装空间 / 彩色 / 线扫） -->
       <div class="req-more" id="reqMore">
-        <div class="field f-row">
-          <label>高度变化 <em>决定景深</em></label>
-          <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
-        </div>
-
-        <div class="field f-row">
-          <label>运动速度 <span class="unit">mm/s</span></label>
-          <input type="number" id="speed" min="0" step="10" value="0" />
-        </div>
-
         <div class="field f-row">
           <label>生产节拍 <span class="unit">件/分</span></label>
           <input type="number" id="cpm" min="0" step="1" value="0" />
@@ -949,7 +989,7 @@
     <div class="quick" id="quick"></div>
 
     <div class="hero-actions">
-      <button type="button" class="btn" id="detailBtn">详细方案 ▾</button>
+      <button type="button" class="btn primary" id="pdfBtn" title="按当前需求导出打印稿，浏览器里选「另存为 PDF」">导出 PDF</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
       <a class="btn" href="combo.html" data-combo-link>自定义搭配</a>
     </div>
