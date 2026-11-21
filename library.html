@@ -5,37 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>产品库 · 机器视觉选型助手</title>
 <meta name="description" content="六品牌机器视觉产品库：面阵 / 线阵相机、镜头、远心镜头、光源与控制器、3D 传感器、工控机、红外相机全量型号，支持分类筛选、关键词查询与全参数查看，手机 / 电脑均可使用。" />
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
-    --bg: #eef2f7;
+    --bg: #eff2f6;
     --panel: #ffffff;
-    --ink: #0f172a;
-    --muted: #64748b;
-    --line: #e3e9f1;
-    --accent: #2563eb;
-    --accent-soft: #eff6ff;
+    --ink: #0a1220;
+    --muted: #5a6b80;
+    --line: #dce3ec;
+    --accent: #155e8a;
+    --accent-soft: #eaf4fb;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background:
-      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
-      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
-      var(--bg);
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(rgba(15, 32, 52, .026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 32, 52, .026) 1px, transparent 1px);
+    background-size: 44px 44px, 44px 44px;
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
     font-size: 15px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
 
   /* ---------- 顶栏 ---------- */
   .topbar {
-    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    background:
+      linear-gradient(180deg, rgba(34, 211, 238, .11) 0%, rgba(34, 211, 238, 0) 96px),
+      linear-gradient(180deg, #091320 0%, #112334 62%, #0d1b29 100%);
     color: #fff;
     padding: 20px 28px 18px;
-    border-top: 3px solid #e60012;
+    border-top: 2px solid #22d3ee;
   }
   .topbar-inner { max-width: 1200px; margin: 0 auto; }
   .tb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -46,14 +51,14 @@
   .pnav > a, .pnav > .on {
     display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
     font-size: 13px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 8px 15px;
-    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    color: #c3d3e3; background: rgba(255, 255, 255, .06); border: 1px solid rgba(160, 196, 220, .22);
     transition: .15s;
   }
-  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > a:hover { background: rgba(34, 211, 238, .15); border-color: rgba(34, 211, 238, .45); color: #fff; }
   .pnav > .on {
     color: #fff; font-weight: 600;
-    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
-    border-color: rgba(56, 189, 248, .7);
+    background: linear-gradient(180deg, rgba(34, 211, 238, .26), rgba(14, 116, 144, .55));
+    border-color: rgba(34, 211, 238, .62);
   }
   .tb-stats { margin-top: 10px; font-size: 13.5px; color: #93a4bd; }
   .tb-stats b { color: #fff; font-weight: 600; }
@@ -88,12 +93,12 @@
     white-space: nowrap; transition: all .15s;
   }
   .tab small { color: var(--muted); font-size: 12.5px; margin-left: 5px; }
-  .tab.on { background: linear-gradient(180deg, #38bdf8, #2563eb); border-color: transparent; color: #fff; }
+  .tab.on { background: linear-gradient(180deg, #0e7490, #155e8a); border-color: transparent; color: #fff; }
   .tab.on small { color: rgba(255,255,255,.85); }
 
   /* ---------- 筛选区 ---------- */
   .filters {
-    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end;
   }
   /* 传感器系列名很长（如「通用型光电传感器-EZ-A1/EZ-D/T/R/EZL-D/T/R/E系列」），
@@ -105,14 +110,14 @@
     border: 1px solid var(--line); background: #fbfdff; color: var(--ink); font-family: inherit;
     font-size: 13px; border-radius: 999px; padding: 6px 13px; cursor: pointer; transition: all .12s;
   }
-  .chip:hover { border-color: #93c5fd; }
-  .chip.on { background: var(--accent-soft); border-color: #2563eb; color: var(--accent); font-weight: 600; }
+  .chip:hover { border-color: #7fb8d4; }
+  .chip.on { background: var(--accent-soft); border-color: #155e8a; color: var(--accent); font-weight: 600; }
   .filters select, .filters input[type="number"], .filters input[type="text"] {
     font-family: inherit; font-size: 13.5px; color: var(--ink); background: #fbfdff;
     border: 1px solid #d6e0ea; border-radius: 8px; padding: 8px 10px; outline: none;
     min-width: 0; max-width: 100%; text-overflow: ellipsis;
   }
-  .filters select:focus, .filters input:focus { border-color: #2563eb; }
+  .filters select:focus, .filters input:focus { border-color: #155e8a; }
   .f-num { width: 104px; }
   .f-reset {
     margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--muted);
@@ -144,9 +149,9 @@
   .repl-chip {
     display: inline-block; margin: 0 4px; padding: 2px 10px; border-radius: 999px;
     font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
-    color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe;
+    color: #0b4a6b; background: #eaf4fb; border: 1px solid #b6dcec;
   }
-  .repl-chip:hover { background: #dbeafe; border-color: #93c5fd; }
+  .repl-chip:hover { background: #dbeafe; border-color: #7fb8d4; }
   .sheet-eol {
     color: #b91c1c; font-weight: 600; padding: 1px 8px; border-radius: 999px;
     background: #fee2e2; border: 1px solid #fecaca;
@@ -168,7 +173,7 @@
 
   /* ---------- 未收录型号：说明 + 型号解读 + 现售替代 ---------- */
   .miss {
-    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 18px 20px 16px;
   }
   .miss[hidden] { display: none; }
@@ -222,7 +227,7 @@
   /* ---------- 表格（桌面） ---------- */
   /* 桌面：不做内嵌滚动，表格随页面一起滚到底（表头吸顶） */
   .tbl-wrap {
-    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     overflow: visible; min-height: 0;
   }
   /* 中等宽度：列挤不下时才允许横向滚动，避免撑破页面 */
@@ -237,19 +242,19 @@
   thead th:last-child { border-top-right-radius: 13px; }
   #thead th:last-child, #tbody td:last-child { padding-right: 18px; }
   thead th {
-    position: sticky; top: 0; background: #f8fafc; color: #475569; font-size: 13px; font-weight: 600;
-    text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 2;
-    box-shadow: 0 6px 10px -10px rgba(15, 23, 42, .5);
+    position: sticky; top: 0; background: #e9eef5; color: #33465c; font-size: 12.5px; font-weight: 600;
+    letter-spacing: .2px; text-align: left; padding: 11px 12px; border-bottom: 1px solid #cbd6e2; white-space: nowrap; z-index: 2;
+    box-shadow: 0 6px 10px -12px rgba(10, 24, 40, .55);
   }
-  tbody td { padding: 11px 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; vertical-align: middle; }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid #edf1f6; white-space: nowrap; vertical-align: middle; }
   tbody tr { cursor: pointer; transition: background .1s; }
   tbody tr:hover { background: var(--accent-soft); }
   tbody tr:last-child td { border-bottom: 0; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   td.model { font-weight: 600; font-family: Consolas, "Courier New", monospace; font-size: 13.5px; }
   .brand-tag {
-    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #475569;
-    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: #f8fafc; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #3d4f63;
+    border: 1px solid #dbe3ec; border-radius: 5px; padding: 1px 6px; background: #f7f9fc; white-space: nowrap;
   }
   .brand-tag .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
   .cat-tag {
@@ -275,7 +280,7 @@
   }
   .cmp-tray.show { display: flex; }
   .inquiry-tray { bottom: 70px; background: #14532d; }
-  .inquiry-tray .t-go { background: #22c55e; }
+  .inquiry-tray .t-go { background: #0f766e; }
   .inquiry-tray .t-clear { background: rgba(255, 255, 255, .14); }
   .combo-tray { bottom: 122px; background: #1e3a8a; }
   .combo-tray .t-go { background: #38bdf8; text-decoration: none; display: inline-block; }
@@ -284,7 +289,7 @@
   .cmp-tray button {
     font-family: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
   }
-  .cmp-tray .t-go { background: linear-gradient(180deg, #38bdf8, #2563eb); color: #fff; }
+  .cmp-tray .t-go { background: linear-gradient(180deg, #0e7490, #155e8a); color: #fff; }
   .cmp-tray .t-clear { background: rgba(255, 255, 255, .14); color: #e2e8f0; }
   .fit-tag {
     display: inline-block; font-size: 11px; border-radius: 5px; padding: 1px 6px; white-space: nowrap;
@@ -292,19 +297,19 @@
   .fit-tag.direct { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
   .fit-tag.adapter { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
   .lf-banner {
-    flex: 1 1 100%; background: var(--accent-soft); border: 1px solid #bfdbfe; color: #1e40af;
+    flex: 1 1 100%; background: var(--accent-soft); border: 1px solid #b6dcec; color: #0b4a6b;
     border-radius: 10px; padding: 8px 12px; font-size: 12.5px; display: flex; align-items: center;
     gap: 6px; flex-wrap: wrap;
   }
   .lf-banner b { font-weight: 700; }
   .lf-banner .lf-close {
-    margin-left: auto; font-family: inherit; font-size: 11.5px; border: 1px solid #93c5fd;
+    margin-left: auto; font-family: inherit; font-size: 11.5px; border: 1px solid #7fb8d4;
     background: #fff; color: var(--accent); border-radius: 8px; padding: 4px 10px; cursor: pointer;
   }
   .x-block { padding: 4px 18px 12px; }
   .x-btn {
     width: 100%; font-family: inherit; font-size: 13px; color: var(--accent); background: var(--accent-soft);
-    border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    border: 1px solid #b6dcec; border-radius: 10px; padding: 10px 12px; cursor: pointer;
   }
   .x-btn:hover { background: #dbeafe; }
   a.x-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
@@ -317,9 +322,9 @@
   .inq-actions .x-btn { width: auto; flex: 0 0 auto; white-space: nowrap; }
   .inq-actions .inq-copy {
     flex: 1 1 auto; color: #fff; border-color: transparent; font-weight: 600;
-    background: linear-gradient(180deg, #38bdf8, #2563eb);
+    background: linear-gradient(180deg, #0e7490, #155e8a);
   }
-  .inq-actions .inq-copy:hover { background: linear-gradient(180deg, #38bdf8, #2563eb); filter: brightness(1.06); }
+  .inq-actions .inq-copy:hover { background: linear-gradient(180deg, #0e7490, #155e8a); filter: brightness(1.06); }
   .inq-actions .inq-clear { color: #dc2626; background: #fff; border-color: #fecaca; }
   .inq-actions .inq-clear:hover { background: #fef2f2; border-color: #fca5a5; }
   .sheet-inq, .sheet-combo { padding-bottom: 0; }
@@ -335,7 +340,7 @@
     display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
     border: 1px solid var(--line); background: #fbfdff; border-radius: 10px; padding: 5px 9px 5px 5px;
   }
-  .x-item:hover { border-color: #93c5fd; background: var(--accent-soft); }
+  .x-item:hover { border-color: #7fb8d4; background: var(--accent-soft); }
   .x-item svg { width: 30px; height: 30px; border-radius: 6px; }
   .x-item .x-model { font-size: 12px; font-weight: 600; font-family: Consolas, "Courier New", monospace; }
   .inq-add {
@@ -344,8 +349,8 @@
     white-space: nowrap;
   }
   .inq-add.on { background: #dcfce7; border-color: #86efac; font-weight: 600; }
-  .combo-add { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
-  .combo-add.on { background: #dbeafe; border-color: #93c5fd; font-weight: 600; color: #1e40af; }
+  .combo-add { color: #0b4a6b; background: #eaf4fb; border-color: #b6dcec; }
+  .combo-add.on { background: #dbeafe; border-color: #7fb8d4; font-weight: 600; color: #0b4a6b; }
   .combo-add + .inq-add { margin-left: 0; }
   /* 收藏：列表星标 + 详情按钮，收藏后搭配页选择器可直接选 */
   td.fav-col, th.fav-col { text-align: center; width: 30px; padding-left: 4px; padding-right: 0; }
@@ -363,7 +368,7 @@
     font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
     color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
   }
-  .x-mini:hover { border-color: #93c5fd; }
+  .x-mini:hover { border-color: #7fb8d4; }
   .x-mini.danger { color: #dc2626; border-color: #fecaca; }
   .x-mini.danger:hover { background: #fef2f2; }
   .sheet-wide { max-width: 920px; }
@@ -384,7 +389,7 @@
   /* ---------- 卡片（移动端） ---------- */
   .cards { display: none; margin-top: 10px; flex-direction: column; gap: 10px; }
   .card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px;
     cursor: pointer;
   }
   .card:active { background: var(--accent-soft); }
@@ -417,7 +422,7 @@
     color: var(--ink); border-radius: 10px; padding: 9px 18px; cursor: pointer;
   }
   .pager button:disabled { opacity: .4; cursor: default; }
-  .pager button:not(:disabled):hover { border-color: #2563eb; color: var(--accent); }
+  .pager button:not(:disabled):hover { border-color: #155e8a; color: var(--accent); }
   .pager .pg-info { font-size: 13.5px; color: var(--muted); }
 
   /* ---------- 详情弹层 ---------- */
@@ -434,7 +439,7 @@
   .sheet * { min-width: 0; }
   @media (min-width: 640px) {
     .mask { align-items: center; padding: 20px; }
-    .sheet { border-radius: 18px; }
+    .sheet { border-radius: 13px; }
   }
   .sheet-head {
     position: sticky; top: 0; background: var(--panel); padding: 16px 18px 10px;
@@ -494,6 +499,25 @@
     .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
     .pnav > a, .pnav > .on { font-size: 12.5px; padding: 7px 13px; }
   }
+
+  /* ---------- 品牌标识（工业精密：取景角 + 准星环 + 光轴点 + 青色锁定角） ---------- */
+  .tb-mark { width: 28px; height: 28px; flex: 0 0 auto; }
+  .tb-title { display: inline-flex; align-items: center; gap: 10px; }
+  .tb-txt { min-width: 0; }
+  .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+  .brand-txt { min-width: 0; }
+
+  /* ---------- 模块图标 ---------- */
+  .entry-ico svg { width: 22px; height: 22px; }
+
+  /* ---------- 移动端：标识与导航收紧，5 个页签一屏放下 ---------- */
+  @media (max-width: 860px) {
+    .tb-mark { width: 24px; height: 24px; }
+    .tb-title { gap: 8px; }
+    .brand { gap: 9px; }
+    .pnav { gap: 4px; }
+    .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -501,7 +525,7 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="tb-row">
-      <span class="tb-title">产品库<small>机器视觉选型助手 · 全量型号查询</small></span>
+      <span class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 11V5h6"/><path d="M5 21v6h6"/><path d="M21 27h6v-6"/></g><circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M21 5h6v6" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="square"/></svg><span class="tb-txt">产品库<small>机器视觉选型助手 · 全量型号查询</small></span></span>
       <nav class="pnav" aria-label="页面导航">
         <a href="home.html">主页</a>
         <a href="index.html">选型助手</a>
@@ -620,7 +644,7 @@
     polar: '偏光光源', rgb: '三色光源', strobe: '爆闪光源'
   };
   var COLOR_LABEL = { white: '白', red: '红', blue: '蓝', green: '绿', ir: '红外', uv: '紫外', cyan: '青', yellow: '黄', multi: '多光谱' };
-  var COLOR_CSS = { white: '#94a3b8', red: '#dc2626', blue: '#2563eb', green: '#16a34a', ir: '#7c3aed', uv: '#a21caf', cyan: '#0891b2', yellow: '#ca8a04', multi: '#0f766e' };
+  var COLOR_CSS = { white: '#94a3b8', red: '#dc2626', blue: '#155e8a', green: '#16a34a', ir: '#7c3aed', uv: '#a21caf', cyan: '#0891b2', yellow: '#ca8a04', multi: '#0f766e' };
   var MOUNT_LABEL = { Bare: '板级无口', 'M42/F': 'M42/F', V38: 'V38（线扫口）' };
   var FORM_LABEL = { area: '面阵', board: '板级', '面阵': '面阵', '板级': '板级' };
 
@@ -1302,7 +1326,7 @@
       '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" rx="5" fill="' + ART_DARK + '"/>' +
       '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + (bh * 0.16) + '" rx="3" fill="' + ART_DEEP + '"/>' +
       '<circle cx="32" cy="34" r="' + (bh * 0.24) + '" fill="' + ART_DEEP + '" stroke="' + ART_EDGE + '" stroke-width="1.5"/>' +
-      '<circle cx="32" cy="34" r="' + (bh * 0.13) + '" fill="#0b1220"/>' +
+      '<circle cx="32" cy="34" r="' + (bh * 0.13) + '" fill="#0a1523"/>' +
       '<circle cx="' + (x + bw - 6) + '" cy="' + (y + bh * 0.08 + 2.5) + '" r="1.5" fill="#22c55e"/>' +
       badge(x + 4, y + bh - 7, brandC(bk)));
   }
@@ -1313,7 +1337,7 @@
       '<rect x="8" y="24" width="42" height="16" rx="4" fill="' + ART_DARK + '"/>' +
       '<rect x="8" y="24" width="42" height="5" rx="2.5" fill="' + ART_DEEP + '"/>' +
       '<circle cx="52" cy="32" r="6" fill="' + ART_DEEP + '" stroke="' + ART_EDGE + '" stroke-width="1.5"/>' +
-      '<circle cx="52" cy="32" r="2.6" fill="#0b1220"/>' +
+      '<circle cx="52" cy="32" r="2.6" fill="#0a1523"/>' +
       '<rect x="13" y="30" width="20" height="3" rx="1.5" fill="#475569"/>' +
       badge(13, 35.5, brandC(bk)));
   }
@@ -1328,7 +1352,7 @@
     return artWrap(
       '<rect x="' + x0 + '" y="' + y0 + '" width="' + len + '" height="' + h + '" rx="3" fill="' + ART_DARK + '"/>' +
       '<rect x="' + x0 + '" y="' + y0 + '" width="' + (len * 0.16) + '" height="' + h + '" rx="3" fill="' + ART_DEEP + '"/>' +
-      '<rect x="' + (x0 + len - 6) + '" y="' + (y0 + 2.5) + '" width="6" height="' + (h - 5) + '" fill="#0b1220"/>' +
+      '<rect x="' + (x0 + len - 6) + '" y="' + (y0 + 2.5) + '" width="6" height="' + (h - 5) + '" fill="#0a1523"/>' +
       '<ellipse cx="' + (x0 + len - 5.5) + '" cy="32" rx="3" ry="' + (h / 2 - 3) + '" fill="' + ART_GLASS + '"/>' +
       knurl +
       badge(x0 + 3, y0 - 7, brandC(bk)));
@@ -1340,7 +1364,7 @@
       '<rect x="18" y="22" width="30" height="20" rx="3" fill="' + ART_DARK + '"/>' +
       '<rect x="14" y="20" width="8" height="24" rx="3" fill="' + ART_DEEP + '"/>' +
       '<ellipse cx="15" cy="32" rx="3.5" ry="10" fill="' + ART_GLASS + '"/>' +
-      '<rect x="44" y="25" width="6" height="14" fill="#0b1220"/>' +
+      '<rect x="44" y="25" width="6" height="14" fill="#0a1523"/>' +
       badge(24, 15, brandC(bk)));
   }
 
@@ -1413,7 +1437,7 @@
     if (n > 4) knobs += '<text x="32" y="46" font-size="7" fill="' + ART_EDGE + '" text-anchor="middle">×' + n + '</text>';
     return artWrap(
       '<rect x="10" y="20" width="44" height="26" rx="4" fill="' + ART_DEEP + '"/>' +
-      '<rect x="10" y="20" width="44" height="6" rx="3" fill="#0b1220"/>' + knobs +
+      '<rect x="10" y="20" width="44" height="6" rx="3" fill="#0a1523"/>' + knobs +
       (d.strobe ? '<circle cx="49" cy="30" r="2" fill="#fbbf24"/>' : '') +
       badge(14, 38, brandC(bk)));
   }
@@ -1463,7 +1487,7 @@
     return artWrap(
       '<rect x="18" y="10" width="28" height="44" rx="3" fill="' + ART_DEEP + '"/>' +
       '<rect x="22" y="14" width="20" height="4" rx="1" fill="#475569"/>' +
-      '<rect x="22" y="21" width="20" height="12" rx="1" fill="#0b1220"/>' +
+      '<rect x="22" y="21" width="20" height="12" rx="1" fill="#0a1523"/>' +
       '<rect x="22" y="36" width="20" height="3" rx="1" fill="#475569"/>' +
       '<rect x="22" y="41" width="20" height="3" rx="1" fill="#475569"/>' +
       '<circle cx="41" cy="49" r="1.8" fill="#22c55e"/>' +

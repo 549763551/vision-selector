@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>工程计算器 · 机器视觉方案公式速算</title>
 <meta name="description" content="把机器视觉方案里常用的 17 个公式按场景合成 6 个计算器：像素精度、分辨率、焦距、实际视场、有效精度、景深与衍射、曝光、帧率、带宽、精度预算、安装空间、线扫行频、远心倍率、照明规则与单位换算。同组条件只填一次，能算的立刻出结果，缺的只提示缺哪项。不预填参数、不生成方案，纯前端离线可用。" />
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
-    --bg: #eef2f7;
+    --bg: #eff2f6;
     --panel: #ffffff;
-    --ink: #0f172a;
-    --muted: #64748b;
-    --line: #e3e9f1;
-    --accent: #2563eb;
-    --accent-soft: #eff6ff;
+    --ink: #0a1220;
+    --muted: #5a6b80;
+    --line: #dce3ec;
+    --accent: #155e8a;
+    --accent-soft: #eaf4fb;
     --ok: #15803d;
     --ok-bg: #f0fdf4;
     --warn: #b45309;
@@ -25,19 +26,23 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background:
-      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
-      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
-      var(--bg);
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(rgba(15, 32, 52, .026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 32, 52, .026) 1px, transparent 1px);
+    background-size: 44px 44px, 44px 44px;
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
     font-size: 15px; line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
   .topbar {
-    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    background:
+      linear-gradient(180deg, rgba(34, 211, 238, .11) 0%, rgba(34, 211, 238, 0) 96px),
+      linear-gradient(180deg, #091320 0%, #112334 62%, #0d1b29 100%);
     color: #fff; padding: 13px 22px 11px;
-    border-top: 3px solid #e60012;
+    border-top: 2px solid #22d3ee;
   }
   .topbar-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 16px 24px; flex-wrap: wrap; }
   .tb-brand { min-width: 0; }
@@ -48,18 +53,18 @@
   .pnav > a, .pnav > .on {
     display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
     font-size: 12.5px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 6px 12px;
-    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    color: #c3d3e3; background: rgba(255, 255, 255, .06); border: 1px solid rgba(160, 196, 220, .22);
     transition: .15s;
   }
-  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > a:hover { background: rgba(34, 211, 238, .15); border-color: rgba(34, 211, 238, .45); color: #fff; }
   .pnav > .on {
     color: #fff; font-weight: 600;
-    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
-    border-color: rgba(56, 189, 248, .7);
+    background: linear-gradient(180deg, rgba(34, 211, 238, .26), rgba(14, 116, 144, .55));
+    border-color: rgba(34, 211, 238, .62);
   }
   .wrap { max-width: 1200px; margin: 0 auto; padding: 14px 22px 40px; }
   .intro {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 11px 15px; margin-bottom: 2px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
   }
   .intro h1 { font-size: 17px; margin: 0 0 4px; }
@@ -82,7 +87,7 @@
 
   /* ---------- 组合卡片 ---------- */
   .combo {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 12px 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .04); margin-top: 10px;
   }
   .chead { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
@@ -111,14 +116,14 @@
     background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
     padding: 5px 8px; outline: none; transition: .15s; font-size: 12.5px;
   }
-  .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, .10); }
+  .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(21, 94, 138, .10); }
   .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 11px; }
   .field.check label { font-size: 13px; color: var(--ink); }
   .field.check input { width: 16px; height: 16px; accent-color: var(--accent); }
   .ftag { font-size: 10px; color: var(--accent); min-height: 12px; line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .field.auto input[type="number"], .field.auto select {
-    border-color: #bfdbfe; background: #f5f9ff; color: #1e40af; font-weight: 600;
+    border-color: #b6dcec; background: #f5f9ff; color: #0b4a6b; font-weight: 600;
   }
   .field.need input, .field.need select {
     border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251, 146, 60, .16); background: #fff7ed;
@@ -142,7 +147,7 @@
   .rsym { font-size: 11px; color: var(--muted); margin: 3px 0 6px; word-break: break-word; }
   .verdict {
     border-radius: 9px; padding: 6px 10px; font-size: 12px; font-weight: 600;
-    background: var(--accent-soft); color: #1e40af; border: 1px solid #bfdbfe; margin-bottom: 7px;
+    background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 7px;
     line-height: 1.6; word-break: break-word;
   }
   .verdict.bad { background: var(--bad-bg); border-color: #fecaca; color: var(--bad); }
@@ -180,8 +185,8 @@
   }
   .rmiss .locate:hover { background: #ffedd5; }
   .rauto {
-    margin-top: 6px; font-size: 11px; color: #1d4ed8; background: #f5f9ff;
-    border: 1px dashed #bfdbfe; border-radius: 8px; padding: 5px 8px; line-height: 1.5;
+    margin-top: 6px; font-size: 11px; color: #0b4a6b; background: #eef6fb;
+    border: 1px dashed #b6dcec; border-radius: 8px; padding: 5px 8px; line-height: 1.5;
   }
   .rfoot { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
   .rfoot .btn { font-size: 11px; padding: 4px 8px; }
@@ -214,6 +219,25 @@
     .step .sv { text-align: left; }
     .combo { padding: 13px 12px; }
   }
+
+  /* ---------- 品牌标识（工业精密：取景角 + 准星环 + 光轴点 + 青色锁定角） ---------- */
+  .tb-mark { width: 28px; height: 28px; flex: 0 0 auto; }
+  .tb-title { display: inline-flex; align-items: center; gap: 10px; }
+  .tb-txt { min-width: 0; }
+  .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+  .brand-txt { min-width: 0; }
+
+  /* ---------- 模块图标 ---------- */
+  .entry-ico svg { width: 22px; height: 22px; }
+
+  /* ---------- 移动端：标识与导航收紧，5 个页签一屏放下 ---------- */
+  @media (max-width: 860px) {
+    .tb-mark { width: 24px; height: 24px; }
+    .tb-title { gap: 8px; }
+    .brand { gap: 9px; }
+    .pnav { gap: 4px; }
+    .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -221,7 +245,7 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="tb-brand">
-      <div class="tb-title">机器视觉工程计算器</div>
+      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 11V5h6"/><path d="M5 21v6h6"/><path d="M21 27h6v-6"/></g><circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M21 5h6v6" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="square"/></svg><span class="tb-txt">机器视觉工程计算器</span></div>
       <div class="tb-sub">按场景合成的 <b>6 个计算器</b>：条件只填一次，结果一次算全</div>
     </div>
     <nav class="pnav" aria-label="页面导航">

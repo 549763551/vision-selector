@@ -5,34 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>机器视觉选型工具集 · 主页</title>
 <meta name="description" content="机器视觉选型助手与全量产品库的统一入口：输入检测需求自动推导相机 / 镜头 / 光源方案，或按型号查询六品牌 8868 个产品的全参数（含 3D 相机 / 工控机 / 红外相机，同规格跨品牌互标备注）。纯前端离线可用。" />
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
 <style>
   :root {
-    --bg: #eef2f7;
+    --bg: #eff2f6;
     --panel: #ffffff;
-    --ink: #0f172a;
-    --muted: #64748b;
-    --line: #e3e9f1;
-    --accent: #2563eb;
-    --accent-soft: #eff6ff;
+    --ink: #0a1220;
+    --muted: #5a6b80;
+    --line: #dce3ec;
+    --accent: #155e8a;
+    --accent-soft: #eaf4fb;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background:
-      radial-gradient(1100px 520px at 12% -12%, rgba(30, 58, 138, .10), transparent 70%),
-      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, .10), transparent 65%),
-      var(--bg);
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(rgba(15, 32, 52, .026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 32, 52, .026) 1px, transparent 1px);
+    background-size: 44px 44px, 44px 44px;
     color: var(--ink);
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
     font-size: 15px; line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
 
   .topbar {
-    background: linear-gradient(135deg, #0b1220 0%, #132a4a 55%, #0d1b2e 100%);
+    background:
+      linear-gradient(180deg, rgba(34, 211, 238, .11) 0%, rgba(34, 211, 238, 0) 96px),
+      linear-gradient(180deg, #091320 0%, #112334 62%, #0d1b29 100%);
     color: #fff; padding: 20px 28px 18px;
-    border-top: 3px solid #e60012;
+    border-top: 2px solid #22d3ee;
   }
   .topbar-inner {
     max-width: 1200px; margin: 0 auto;
@@ -47,14 +52,14 @@
   .pnav > a, .pnav > .on {
     display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
     font-size: 13px; font-weight: 500; line-height: 1; border-radius: 999px; padding: 8px 15px;
-    color: #cfdcee; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .18);
+    color: #c3d3e3; background: rgba(255, 255, 255, .06); border: 1px solid rgba(160, 196, 220, .22);
     transition: .15s;
   }
-  .pnav > a:hover { background: rgba(56, 189, 248, .22); border-color: rgba(56, 189, 248, .55); color: #fff; }
+  .pnav > a:hover { background: rgba(34, 211, 238, .15); border-color: rgba(34, 211, 238, .45); color: #fff; }
   .pnav > .on {
     color: #fff; font-weight: 600;
-    background: linear-gradient(180deg, rgba(56, 189, 248, .34), rgba(37, 99, 235, .34));
-    border-color: rgba(56, 189, 248, .7);
+    background: linear-gradient(180deg, rgba(34, 211, 238, .26), rgba(14, 116, 144, .55));
+    border-color: rgba(34, 211, 238, .62);
   }
 
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
@@ -63,19 +68,19 @@
   .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
   a.entry {
     display: flex; flex-direction: column; text-decoration: none; color: var(--ink);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 18px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px 18px;
     transition: all .15s;
   }
-  a.entry:hover { border-color: #93c5fd; box-shadow: 0 10px 30px -18px rgba(37, 99, 235, .55); transform: translateY(-1px); }
+  a.entry:hover { border-color: #7fb8d4; box-shadow: 0 10px 30px -18px rgba(21, 94, 138, .55); transform: translateY(-1px); }
   .entry-head { display: flex; align-items: center; gap: 12px; }
   .entry-ico {
     width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
     font-size: 20px; color: #fff; flex: 0 0 auto;
   }
-  .entry-ico.sel { background: linear-gradient(135deg, #38bdf8, #2563eb); }
-  .entry-ico.lib { background: linear-gradient(135deg, #34d399, #059669); }
-  .entry-ico.cmb { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-  .entry-ico.cal { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+  .entry-ico.sel { background: linear-gradient(135deg, #0e7490, #155e8a); }
+  .entry-ico.lib { background: linear-gradient(135deg, #0f766e, #115e59); }
+  .entry-ico.cmb { background: linear-gradient(135deg, #a16207, #78350f); }
+  .entry-ico.cal { background: linear-gradient(135deg, #5b21b6, #3b0764); }
   .entry h2 { margin: 0; font-size: 18px; }
   .entry .go { margin-left: auto; color: var(--accent); font-size: 13.5px; white-space: nowrap; }
   .entry p.desc { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.75; flex: 1 1 auto; }
@@ -88,7 +93,7 @@
 
   /* 数据速览：一行数字，不铺卡片墙 */
   .stats {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 6px 30px;
   }
   .stat { display: flex; align-items: baseline; gap: 8px; }
@@ -96,7 +101,7 @@
   .stat span { font-size: 13px; color: var(--muted); }
   .stat.total b { color: var(--accent); }
   .brand-row {
-    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     /* 品牌数量会变（四家 → 五家 → …）：用 auto-fit 均分，避免最后一家被挤到单独一行 */
     padding: 14px 22px;
     display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
@@ -109,7 +114,7 @@
   /* 使用步骤 */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .step {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px;
     font-size: 13.5px; color: #475569; line-height: 1.7;
   }
   .step b { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14.5px; margin-bottom: 6px; }
@@ -140,7 +145,7 @@
     display: flex; align-items: center; gap: 10px; min-width: 0;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px;
   }
-  .docs .doc-item:hover { border-color: #93c5fd; }
+  .docs .doc-item:hover { border-color: #7fb8d4; }
   .docs .doc-main {
     display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 auto;
     text-decoration: none; color: var(--ink); font-size: 13.5px;
@@ -153,18 +158,18 @@
     flex: 0 0 auto; font-size: 11.5px; color: var(--muted); text-decoration: none;
     border: 1px solid var(--line); border-radius: 8px; padding: 4px 7px;
   }
-  .docs .doc-local:hover { color: var(--accent); border-color: #93c5fd; }
+  .docs .doc-local:hover { color: var(--accent); border-color: #7fb8d4; }
   .doc-more {
     margin-top: 9px; background: transparent; border: 1px dashed var(--line); border-radius: 10px;
     padding: 7px 14px; font-size: 12.5px; color: var(--muted); cursor: pointer;
   }
-  .doc-more:hover { color: var(--accent); border-color: #93c5fd; }
+  .doc-more:hover { color: var(--accent); border-color: #7fb8d4; }
   .doc-empty { color: var(--muted); font-size: 13.5px; padding: 14px 0; }
 
   /* 关注二维码 */
   .qrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 440px; }
   .qr-card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 16px 14px 14px; text-align: center;
   }
   .qr-card img { display: block; width: 100%; max-width: 170px; margin: 0 auto 10px; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px; }
@@ -201,6 +206,25 @@
     .qr-card img { max-width: 150px; }
     .brand-row { padding: 14px 16px; gap: 8px 20px; }
   }
+
+  /* ---------- 品牌标识（工业精密：取景角 + 准星环 + 光轴点 + 青色锁定角） ---------- */
+  .tb-mark { width: 28px; height: 28px; flex: 0 0 auto; }
+  .tb-title { display: inline-flex; align-items: center; gap: 10px; }
+  .tb-txt { min-width: 0; }
+  .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+  .brand-txt { min-width: 0; }
+
+  /* ---------- 模块图标 ---------- */
+  .entry-ico svg { width: 22px; height: 22px; }
+
+  /* ---------- 移动端：标识与导航收紧，5 个页签一屏放下 ---------- */
+  @media (max-width: 860px) {
+    .tb-mark { width: 24px; height: 24px; }
+    .tb-title { gap: 8px; }
+    .brand { gap: 9px; }
+    .pnav { gap: 4px; }
+    .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -208,7 +232,7 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="tb-brand">
-      <div class="tb-title">机器视觉选型工具集</div>
+      <div class="tb-title"><svg class="tb-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 11V5h6"/><path d="M5 21v6h6"/><path d="M21 27h6v-6"/></g><circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M21 5h6v6" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="square"/></svg><span class="tb-txt">机器视觉选型工具集</span></div>
       <div class="tb-sub">
         海康机器人 / 华睿 / Basler / 大恒图像 / 奥普特 / 康视达 六品牌型号数据，<b>纯前端、离线可用</b>，所有计算与查询都在本地完成。
       </div>
@@ -227,7 +251,7 @@
   <div class="entries">
     <a class="entry" href="index.html">
       <div class="entry-head">
-        <span class="entry-ico sel">🎯</span>
+        <span class="entry-ico sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.6A1.6 1.6 0 0 1 5.6 4H9"/><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6V9"/><path d="M4 15v3.4A1.6 1.6 0 0 0 5.6 20H9"/><path d="M20 15v3.4a1.6 1.6 0 0 1-1.6 1.6H15"/><circle cx="12" cy="12" r="2.3"/><path d="M12 7.2v1.3M12 15.5v1.3M7.2 12h1.3M15.5 12h1.3"/></svg></span>
         <h2>选型助手</h2>
         <span class="go">进入 →</span>
       </div>
@@ -239,7 +263,7 @@
     </a>
     <a class="entry" href="library.html">
       <div class="entry-head">
-        <span class="entry-ico lib">📚</span>
+        <span class="entry-ico lib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.4h16"/><path d="M10.6 9.4V20"/><path d="M4 14.7h6.6"/></svg></span>
         <h2>产品库</h2>
         <span class="go">进入 →</span>
       </div>
@@ -251,7 +275,7 @@
     </a>
     <a class="entry" href="combo.html">
       <div class="entry-head">
-        <span class="entry-ico cmb">🧩</span>
+        <span class="entry-ico cmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="3.8" width="6" height="6" rx="1.2"/><rect x="14.8" y="3.8" width="6" height="6" rx="1.2"/><rect x="9" y="14" width="6" height="6" rx="1.2"/><path d="M6.2 9.8v2.4c0 .9.7 1.6 1.6 1.6h1.2M17.8 9.8v2.4c0 .9-.7 1.6-1.6 1.6h-1.2"/></svg></span>
         <h2>自定义搭配</h2>
         <span class="go">进入 →</span>
       </div>
@@ -263,7 +287,7 @@
     </a>
     <a class="entry" href="calc.html">
       <div class="entry-head">
-        <span class="entry-ico cal">🧮</span>
+        <span class="entry-ico cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.2" width="16" height="17.6" rx="2"/><path d="M7.4 7.4h9.2"/><path d="M8 12.2h2.4M13.6 12.2H16M8 16.4h2.4M13.6 16.4H16"/></svg></span>
         <h2>工程计算器</h2>
         <span class="go">进入 →</span>
       </div>

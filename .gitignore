@@ -18,6 +18,9 @@ tools/_cache/
 # 项目数据（本地记忆/日志，不入库）
 .workbuddy/
 
+# 设计工具运行时产物（美图设计室 CLI 的会话记录）
+.designkit-history-delivery/
+
 # 微信小程序子项目（独立仓库，不随主仓库发布）
 小程序项目/
 
