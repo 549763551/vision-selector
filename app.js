@@ -1328,9 +1328,9 @@
         var b = $('detailBtn');
         if (b) b.textContent = detailWrap.open ? '收起详细 ▴' : '详细方案 ▾';
       };
-      // 大屏空间充足：详细方案 / 同系列 / 验算默认展开，只保留「工程细节」折叠
+      // 大屏：详细方案与同系列默认展开；验算过程与工程细节默认收起（要看再点）
       var mqWide = window.matchMedia('(min-width: 1021px)');
-      var wideFolds = ['sib', 'calc'];
+      var wideFolds = ['sib'];
       function applyWideFolds() {
         if (!mqWide.matches) return;
         detailWrap.open = true;

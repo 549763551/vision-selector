@@ -72,22 +72,32 @@
     background: linear-gradient(180deg, rgba(34, 211, 238, .26), rgba(14, 116, 144, .55));
     border-color: rgba(34, 211, 238, .62);
   }
-  .presets {
-    flex: 1 0 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding-top: 4px; border-top: 1px solid rgba(255, 255, 255, .08); margin-top: 2px;
-  }
-  .presets > span { font-size: 12.5px; color: #7d8ca5; white-space: nowrap; }
-  .presets button {
-    font-family: inherit; font-size: 13px; cursor: pointer;
-    padding: 6px 13px; border-radius: 999px;
-    background: rgba(255, 255, 255, .07); color: #d7e3f4;
-    border: 1px solid rgba(255, 255, 255, .16);
-    transition: .15s;
-  }
-  .presets button:hover { background: rgba(34, 211, 238, .15); border-color: rgba(34, 211, 238, .45); color: #fff; }
+  /* 快速试用已搬进左侧需求面板，见 .px-set */
 
-  /* ---------- 主容器：单列 ---------- */
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
+  /* ---------- 主容器：左需求（悬浮）/ 右结论 ---------- */
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 28px 60px; }
+  .layout {
+    display: grid; grid-template-columns: 338px minmax(0, 1fr);
+    gap: 18px; align-items: start;
+  }
+  /* 需求面板常驻左侧：滚动右栏时不动，改完任意一项右侧立刻重算 */
+  .req-col {
+    position: sticky; top: 16px;
+    max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; padding-bottom: 2px;
+  }
+  .req-col::-webkit-scrollbar { width: 6px; }
+  .req-col::-webkit-scrollbar-thumb { background: #cfdae7; border-radius: 3px; }
+  /* 面板窄：chip 只留 logo（logo 本身就是字标），短名去掉省两行高度 */
+  .req-col .bf-txt { display: none; }
+  /* 一行式字段：标签在左、控件在右，面板高度压掉两成 */
+  .req-col .f-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 9px; }
+  .req-col .f-row > label { margin: 0; font-size: 12px; line-height: 1.35; }
+  .req-col .f-row > label em { display: none; }
+  .req-col .f-row input, .req-col .f-row select { height: 36px; padding: 0 9px; font-size: 13.5px; }
+  .req-col .req-more .f-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .res-col { min-width: 0; }
+  .res-col > * + * { margin-top: 16px; }
   .card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -113,6 +123,34 @@
     gap: 18px 20px; align-items: end;
   }
   .req-grid .fov-cell { grid-column: span 2; }
+  /* 左侧面板里改单列：字段窄，两列会把标签挤断行 */
+  .req-col .req-card { padding: 16px 16px 15px; margin-top: 0; }
+  .req-col .req-card h2.sec { font-size: 15px; margin-bottom: 13px; gap: 8px; }
+  .req-col .req-card h2.sec::before { height: 15px; }
+  .req-col .req-card h2.sec > .btn { height: 28px; padding: 0 10px; font-size: 12px; }
+  .req-col .req-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .req-col .req-grid .fov-cell { grid-column: auto; }
+  .req-col .req-more { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .req-col .req-more .span2 { grid-column: auto; }
+  .req-col .field > label { font-size: 12.5px; margin-bottom: 6px; }
+  .req-col .field > label em { font-size: 11.5px; }
+  .req-col input[type="text"], .req-col input[type="number"], .req-col select { height: 40px; font-size: 14px; }
+  .req-col .more-btn { height: 40px; font-size: 13px; }
+  .req-col .check { font-size: 13px; padding: 9px 11px; }
+  .req-col .brands-fold { margin-top: 14px; padding-top: 12px; }
+  .req-col .brands-body { gap: 10px; flex-direction: column; align-items: stretch; }
+  .req-col .brand-filter { gap: 6px; }
+  .req-col .bf-chip { font-size: 12px; padding: 5px 10px; gap: 6px; }
+  .req-col .bf-chip .bf-logo { height: 13px; }
+  /* 预设挪进面板：改需求时顺手切换，不必回顶栏 */
+  .px-set { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .px-set .px-lbl { width: 100%; font-size: 11.5px; color: #5b6b82; letter-spacing: .04em; }
+  .px-set button {
+    font-family: inherit; font-size: 12px; cursor: pointer; padding: 5px 10px;
+    border-radius: 999px; border: 1px solid #d6e0ea; background: #f8fafc; color: #475569;
+    transition: .15s; white-space: nowrap;
+  }
+  .px-set button:hover { border-color: #7fb8d4; color: var(--accent); background: #f0f7ff; }
   .req-grid .btn-cell { display: flex; }
   .req-grid .btn-cell .btn { width: 100%; }
   .field { min-width: 0; }
@@ -225,7 +263,7 @@
   .si-chip.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; cursor: default; }
 
   /* ---------- 三张方案卡 ---------- */
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 16px; margin-top: 16px; }
   .cards .card { margin-top: 0; display: flex; flex-direction: column; min-width: 0; }
   .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; min-width: 0; }
   .card-head h3 { margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
@@ -609,6 +647,20 @@
   /* ---------- 断点 ---------- */
   @media (max-width: 1020px) {
     .wrap { padding: 16px; }
+    /* 窄屏没有横向空间做悬浮栏，回到单列堆叠 */
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .req-col { position: static; }
+    .req-col .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .req-col .f-row { display: block; }
+    /* 单列时面板够宽，chip 把品牌短名显回来 */
+    .req-col .bf-txt { display: inline; }
+    .req-col .bf-chip .bf-logo { height: 14px; }
+    .req-col .f-row > label { font-size: 13px; margin-bottom: 6px; }
+    .req-col .f-row > label em { display: inline; }
+    .req-col .f-row input, .req-col .f-row select { height: 42px; font-size: 14.5px; padding: 0 12px; }
+    .req-col .req-grid .fov-cell { grid-column: span 2; }
+    .req-col .req-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .req-col .req-more .span2 { grid-column: span 2; }
     .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-grid .fov-cell { grid-column: span 2; }
@@ -629,11 +681,6 @@
   }
   @media (max-width: 760px) {
     body { font-size: 15px; }
-    .presets { gap: 6px; overflow-x: auto; flex-wrap: nowrap; padding-top: 8px; width: 100%;
-      -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent 100%);
-      mask-image: linear-gradient(90deg, #000 90%, transparent 100%); }
-    .presets button { padding: 6px 11px; font-size: 12px; white-space: nowrap; }
-    .presets > span { flex: 0 0 auto; }
     .wrap { padding: 12px 12px 48px; }
     .card { padding: 15px 15px 14px; border-radius: 11px; }
     h2.sec { font-size: 16px; margin-bottom: 13px; }
@@ -704,6 +751,7 @@
     .req-card .form-summary { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); border: 1px solid #b6dcec; border-radius: 12px; padding: 11px 13px; }
     .req-card.form-open .form-summary { display: none; }
     .req-card:not(.form-open) .req-grid,
+    .req-card:not(.form-open) .px-set,
     .req-card:not(.form-open) .more-btn,
     .req-card:not(.form-open) .req-more,
     .req-card:not(.form-open) .brands-fold { display: none; }
@@ -759,15 +807,6 @@
       <a href="combo.html" id="comboLink" title="从型号库自选相机 / 镜头 / 光源，系统逐项评定">自定义搭配</a>
       <a href="calc.html">工程计算器</a>
     </nav>
-    <div class="presets">
-      <span>快速试用</span>
-      <button data-preset="copper">铜线检测</button>
-      <button data-preset="precision">精密测量</button>
-      <button data-preset="qr">二维码读取</button>
-      <button data-preset="scratch">表面划痕</button>
-      <button data-preset="inline">高速在线</button>
-      <button data-preset="glass">玻璃件</button>
-    </div>
   </div>
 </header>
 
@@ -779,12 +818,23 @@
 </nav>
 
 <div class="wrap">
+ <div class="layout">
 
-  <!-- ==================== 1. 检测需求 ==================== -->
+  <!-- ==================== 左栏：检测需求（悬浮，随时可改） ==================== -->
+  <aside class="req-col">
   <section class="card req-card" id="sec-form">
     <h2 class="sec">检测需求
       <button class="btn" id="resetBtn">恢复默认</button>
     </h2>
+    <div class="px-set">
+      <span class="px-lbl">快速试用</span>
+      <button data-preset="copper">铜线检测</button>
+      <button data-preset="precision">精密测量</button>
+      <button data-preset="qr">二维码读取</button>
+      <button data-preset="scratch">表面划痕</button>
+      <button data-preset="inline">高速在线</button>
+      <button data-preset="glass">玻璃件</button>
+    </div>
     <!-- 移动端：计算后自动收起为一行摘要 -->
     <div class="form-summary" id="formSummary">
       <span class="fs-txt" id="fsTxt">—</span>
@@ -800,7 +850,7 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field f-row">
         <label>最小特征 δ <em>公差 / 缺陷</em></label>
         <input type="number" id="precision" min="0.001" step="0.001" value="0.1" />
       </div>
@@ -810,7 +860,7 @@
         <select id="task"></select>
       </div>
 
-      <div class="field">
+      <div class="field f-row">
         <label>工作距离 WD <em>镜头到工件</em></label>
         <input type="number" id="wd" min="10" step="10" value="300" />
       </div>
@@ -831,22 +881,22 @@
 
       <!-- 更多参数：默认收起 -->
       <div class="req-more" id="reqMore">
-        <div class="field">
+        <div class="field f-row">
           <label>高度变化 <em>决定景深</em></label>
           <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
         </div>
 
-        <div class="field">
+        <div class="field f-row">
           <label>运动速度 <span class="unit">mm/s</span></label>
           <input type="number" id="speed" min="0" step="10" value="0" />
         </div>
 
-        <div class="field">
+        <div class="field f-row">
           <label>生产节拍 <span class="unit">件/分</span></label>
           <input type="number" id="cpm" min="0" step="1" value="0" />
         </div>
 
-        <div class="field">
+        <div class="field f-row">
           <label>可用安装空间 <em>0 = 不校验</em></label>
           <input type="number" id="space" min="0" step="10" value="0" title="工件表面到相机尾部的最大可用长度 mm" />
         </div>
@@ -878,8 +928,11 @@
       </div>
     </div>
   </section>
+  </aside>
 
-  <!-- ==================== 2. 一眼结论：买什么 ==================== -->
+  <main class="res-col">
+
+  <!-- ==================== 右栏 1. 工程核查 ==================== -->
   <section class="card score-card" id="scoreCard" data-anchor="sol">
     <div class="score-top">
       <div class="score-num" id="scoreNum">--</div>
@@ -896,7 +949,7 @@
     <div class="quick" id="quick"></div>
 
     <div class="hero-actions">
-      <button type="button" class="btn primary" id="detailBtn">详细方案 ▾</button>
+      <button type="button" class="btn" id="detailBtn">详细方案 ▾</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
       <a class="btn" href="combo.html" data-combo-link>自定义搭配</a>
     </div>
@@ -978,6 +1031,8 @@
     </div>
   </details>
 
+  </main>
+ </div>
 </div>
 
 <!-- 移动端方案文本抽屉 -->
