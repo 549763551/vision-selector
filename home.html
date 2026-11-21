@@ -125,7 +125,12 @@
     gap: 22px 26px; align-items: start;
   }
   .brand-item { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
-  .brand-item > img, .brand-item > b { height: 18px; max-width: 100%; object-fit: contain; object-position: left center; }
+  /* logo 槽固定高度 + 底部对齐：各家字稿高矮不同，靠槽位让下方「N 个型号」落在同一行 */
+  .b-logo { display: flex; align-items: flex-end; height: 34px; width: 100%; }
+  .brand-item > img, .b-logo > img, .brand-item > b {
+    height: calc(18px * var(--logo-scale, 1)); max-width: 100%;
+    object-fit: contain; object-position: left bottom;
+  }
   .brand-item > b { display: flex; align-items: center; font-size: 13.5px; color: var(--ink); }
   .b-meta { font-size: 12px; color: var(--muted); line-height: 1.5; white-space: nowrap; }
   .b-meta b { color: var(--ink); font-weight: 600; }
@@ -476,6 +481,7 @@
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
   function logo(k) { return (window.BRANDS[k] && window.BRANDS[k].logo) || null; }
+  function logoS(k) { return (window.BRANDS[k] && window.BRANDS[k].logoScale) || 1; }
 
   document.getElementById('statsGrid').innerHTML = [
     ['面阵相机', n.cam], ['线阵相机', n.line], ['工业镜头', n.lens],
@@ -496,7 +502,9 @@
     var gen = allMetas.filter(function (x) { return x.brand === bk && x.meta.generated; })
       .map(function (x) { return x.meta.generated; }).sort().pop();
     return '<div class="brand-item">' +
-      (logo(bk) ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" />' : '<b>' + esc(short(bk)) + '</b>') +
+      '<div class="b-logo">' + (logo(bk)
+        ? '<img src="' + esc(logo(bk)) + '" alt="' + esc(short(bk)) + '" style="--logo-scale:' + logoS(bk) + '" />'
+        : '<b>' + esc(short(bk)) + '</b>') + '</div>' +
       '<span class="b-meta"><b>' + cnt + '</b> 个型号' +
       (gen ? '<time>' + esc(gen) + '</time>' : '') + '</span></div>';
   }).join('');
