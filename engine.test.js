@@ -1647,6 +1647,8 @@ test('幅面超单台时给多机方案：覆盖 / 精度 / 像素 / 行频自�
     assert.ok(p.pitch > 0 && p.overlapW > 0, '间距与重叠都必须为正');
     near(p.overlapPx, Math.round(p.overlapW / p.pxAcc), 0.6, '重叠像素');
     near(p.bandwidthTotal, p.bandwidth * p.n, 1e-6, '总带宽');
+    // 接口上限必须按接口查表，传错参数会静默退化成默认 350 MB/s，把好链路判成不够
+    assert.ok(p.ifaceCap > 350, '接口带宽上限应按接口取值，实际 ' + p.ifaceCap);
     assert.ok(p.camera.w >= p.wNeed, '像素数应不少于需求');
     assert.ok(p.rateOk, '行频应满足');
     // 精度：达标的档必须真的达标；不达标的档要如实标出来，不能悄悄当达标

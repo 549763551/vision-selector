@@ -1188,7 +1188,7 @@
     var bitDepth = bitDepthOf(cam);
     var rate = needRate || Math.min(cam.lineRate, 20);
     var bandwidth = (w * bitDepth * rate * 1000) / 8 / 1e6;
-    var cap = ifaceCapOf(cam);
+    var cap = ifaceCapOf(cam.iface);
     var light = lineLightForStitch(inp.fovW);
 
     return {
