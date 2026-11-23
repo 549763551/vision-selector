@@ -51,7 +51,7 @@
   .tb-stats b { color: #fff; font-weight: 600; }
   .tb-search { margin-top: 14px; position: relative; max-width: 620px; }
   .tb-search input {
-    width: 100%; padding: 13px 42px 13px 42px; border-radius: 3px; border: 1px solid rgba(255,255,255,.2);
+    width: 100%; padding: 13px 42px 13px 42px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2);
     background: rgba(255,255,255,.10); color: #fff; font-size: 14px; font-family: inherit; outline: none;
   }
   .tb-search input::placeholder { color: #8fa2bd; }
@@ -93,7 +93,7 @@
 
   /* ---------- 筛选区 ---------- */
   .filters {
-    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end;
   }
   /* 传感器系列名很长（如「通用型光电传感器-EZ-A1/EZ-D/T/R/EZL-D/T/R/E系列」），
@@ -103,20 +103,20 @@
   .f-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     border: 1px solid var(--line); background: #fbfdff; color: var(--ink); font-family: inherit;
-    font-size: 13px; border-radius: 3px; padding: 6px 13px; cursor: pointer; transition: all .12s;
+    font-size: 13px; border-radius: 999px; padding: 6px 13px; cursor: pointer; transition: all .12s;
   }
   .chip:hover { border-color: #7fb8d4; }
   .chip.on { background: var(--accent-soft); border-color: #0e7490; color: var(--accent); font-weight: 600; }
   .filters select, .filters input[type="number"], .filters input[type="text"] {
     font-family: inherit; font-size: 13.5px; color: var(--ink); background: #fbfdff;
-    border: 1px solid #d6e0ea; border-radius: 3px; padding: 8px 10px; outline: none;
+    border: 1px solid #d6e0ea; border-radius: 8px; padding: 8px 10px; outline: none;
     min-width: 0; max-width: 100%; text-overflow: ellipsis;
   }
   .filters select:focus, .filters input:focus { border-color: #0e7490; }
   .f-num { width: 104px; }
   .f-reset {
     margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--muted);
-    font-family: inherit; font-size: 13px; border-radius: 3px; padding: 8px 14px; cursor: pointer;
+    font-family: inherit; font-size: 13px; border-radius: 8px; padding: 8px 14px; cursor: pointer;
   }
   .f-reset:hover { color: var(--danger, #dc2626); border-color: #fecaca; }
   .f-result { font-size: 13.5px; color: var(--muted); padding: 12px 2px 0; }
@@ -125,7 +125,7 @@
 
   /* ---------- 退市型号：标签 / 顶部提示 / 详情说明 ---------- */
   .eol-tag {
-    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 3px;
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
     font-size: 11.5px; font-weight: 600; line-height: 1.6; white-space: nowrap;
     color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; vertical-align: 1px;
   }
@@ -133,7 +133,7 @@
     color: #92400e; background: #fef3c7; border-color: #fde68a;
   }
   .eol-banner {
-    margin-top: 10px; padding: 11px 14px; border-radius: 3px;
+    margin-top: 10px; padding: 11px 14px; border-radius: 12px;
     background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
     font-size: 13.5px; line-height: 1.75;
   }
@@ -142,18 +142,18 @@
   .eol-banner.soft b { color: #78350f; }
   .eol-tip { display: block; margin-top: 3px; color: #5b6b82; font-size: 12.5px; }
   .repl-chip {
-    display: inline-block; margin: 0 4px; padding: 2px 10px; border-radius: 3px;
+    display: inline-block; margin: 0 4px; padding: 2px 10px; border-radius: 999px;
     font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
     color: #0b4a6b; background: #eaf4fb; border: 1px solid #b6dcec;
   }
   .repl-chip:hover { background: #dbeafe; border-color: #7fb8d4; }
   .sheet-eol {
-    color: #b91c1c; font-weight: 600; padding: 1px 8px; border-radius: 3px;
+    color: #b91c1c; font-weight: 600; padding: 1px 8px; border-radius: 999px;
     background: #fee2e2; border: 1px solid #fecaca;
   }
   .sheet-eol.soft { color: #92400e; background: #fef3c7; border-color: #fde68a; }
   .eol-block {
-    margin: 12px 0 4px; padding: 13px 15px; border-radius: 3px;
+    margin: 12px 0 4px; padding: 13px 15px; border-radius: 12px;
     background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
     font-size: 13.5px; line-height: 1.75;
   }
@@ -168,18 +168,18 @@
 
   /* ---------- 未收录型号：说明 + 型号解读 + 现售替代 ---------- */
   .miss {
-    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 18px 20px 16px;
   }
   .miss[hidden] { display: none; }
   .miss-h { font-size: 16px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .miss-h .m-tag {
     font-size: 11.5px; font-weight: 600; color: #b45309; background: #fffbeb;
-    border: 1px solid #fde68a; border-radius: 3px; padding: 3px 9px;
+    border: 1px solid #fde68a; border-radius: 999px; padding: 3px 9px;
   }
   .miss-h code {
     font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    font-size: 15px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 3px; padding: 1px 7px;
+    font-size: 15px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1px 7px;
   }
   .miss-p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.7; color: #475569; }
   .miss-decode {
@@ -187,19 +187,19 @@
     font-size: 12.5px; color: #475569;
   }
   .miss-decode .dc {
-    background: #f8fafc; border: 1px solid var(--line); border-radius: 3px; padding: 4px 9px;
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px;
   }
   .miss-decode .dc b { color: var(--ink); font-weight: 600; }
   .miss-note {
     margin-top: 10px; font-size: 12.5px; line-height: 1.7; color: #92400e;
-    background: #fffbeb; border: 1px solid #fde68a; border-radius: 3px; padding: 9px 12px;
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 9px 12px;
   }
   .miss-sub {
     margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--ink);
     display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
   }
   .miss-sub span { font-weight: 400; font-size: 12.5px; color: var(--muted); }
-  .miss-cands { margin-top: 8px; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .miss-cands { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .miss-cand {
     display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
     font-family: inherit; background: #fff; border: 0; border-bottom: 1px solid #eef2f7;
@@ -213,7 +213,7 @@
   .miss-cand .mc-go { margin-left: auto; color: var(--accent); font-size: 12.5px; white-space: nowrap; }
   .miss-acts { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
   .miss-acts button {
-    font-family: inherit; font-size: 13px; border-radius: 3px; padding: 9px 14px; cursor: pointer;
+    font-family: inherit; font-size: 13px; border-radius: 9px; padding: 9px 14px; cursor: pointer;
     border: 1px solid var(--line); background: #fff; color: var(--ink);
   }
   .miss-acts button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
@@ -222,7 +222,7 @@
   /* ---------- 表格（桌面） ---------- */
   /* 桌面：不做内嵌滚动，表格随页面一起滚到底（表头吸顶） */
   .tbl-wrap {
-    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     overflow: visible; min-height: 0;
   }
   /* 中等宽度：列挤不下时才允许横向滚动，避免撑破页面 */
@@ -249,12 +249,12 @@
   td.model { font-weight: 600; font-family: Consolas, "Courier New", monospace; font-size: 13.5px; }
   .brand-tag {
     display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #3d4f63;
-    border: 1px solid #dbe3ec; border-radius: 3px; padding: 1px 6px; background: #f7f9fc; white-space: nowrap;
+    border: 1px solid #dbe3ec; border-radius: 5px; padding: 1px 6px; background: #f7f9fc; white-space: nowrap;
   }
   .brand-tag .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
   .cat-tag {
     display: inline-block; font-size: 12px; color: var(--accent); background: var(--accent-soft);
-    border-radius: 3px; padding: 2px 7px; white-space: nowrap;
+    border-radius: 5px; padding: 2px 7px; white-space: nowrap;
   }
   .dim { color: var(--muted); }
   .muted-cell { color: #5b6b82; }
@@ -269,7 +269,7 @@
   .cmp-chip input { width: 13px; height: 13px; accent-color: var(--accent); }
   .cmp-tray {
     display: none; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-    background: #0f172a; color: #fff; border-radius: 3px; padding: 9px 10px 9px 18px;
+    background: #0f172a; color: #fff; border-radius: 999px; padding: 9px 10px 9px 18px;
     font-size: 12.5px; z-index: 40; box-shadow: 0 12px 30px -12px rgba(15, 23, 42, .6);
     align-items: center; gap: 10px; max-width: min(92vw, 680px);
   }
@@ -287,29 +287,29 @@
   .combo-tray .t-clear { background: rgba(255, 255, 255, .14); }
   .cmp-tray .t-models { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; }
   .cmp-tray button {
-    font-family: inherit; font-size: 12px; border: 0; border-radius: 3px; padding: 6px 13px; cursor: pointer;
+    font-family: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
   }
   .cmp-tray .t-go { background: linear-gradient(180deg, #0e7490, #0e7490); color: #fff; }
   .cmp-tray .t-clear { background: rgba(255, 255, 255, .14); color: #e2e8f0; }
   .fit-tag {
-    display: inline-block; font-size: 11px; border-radius: 3px; padding: 1px 6px; white-space: nowrap;
+    display: inline-block; font-size: 11px; border-radius: 5px; padding: 1px 6px; white-space: nowrap;
   }
   .fit-tag.direct { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
   .fit-tag.adapter { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
   .lf-banner {
     flex: 1 1 100%; background: var(--accent-soft); border: 1px solid #b6dcec; color: #0b4a6b;
-    border-radius: 3px; padding: 8px 12px; font-size: 12.5px; display: flex; align-items: center;
+    border-radius: 10px; padding: 8px 12px; font-size: 12.5px; display: flex; align-items: center;
     gap: 6px; flex-wrap: wrap;
   }
   .lf-banner b { font-weight: 700; }
   .lf-banner .lf-close {
     margin-left: auto; font-family: inherit; font-size: 11.5px; border: 1px solid #7fb8d4;
-    background: #fff; color: var(--accent); border-radius: 3px; padding: 4px 10px; cursor: pointer;
+    background: #fff; color: var(--accent); border-radius: 8px; padding: 4px 10px; cursor: pointer;
   }
   .x-block { padding: 4px 18px 12px; }
   .x-btn {
     width: 100%; font-family: inherit; font-size: 13px; color: var(--accent); background: var(--accent-soft);
-    border: 1px solid #b6dcec; border-radius: 3px; padding: 10px 12px; cursor: pointer;
+    border: 1px solid #b6dcec; border-radius: 10px; padding: 10px 12px; cursor: pointer;
   }
   .x-btn:hover { background: #dbeafe; }
   a.x-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
@@ -338,14 +338,14 @@
   .x-list { display: flex; flex-wrap: wrap; gap: 8px; }
   .x-item {
     display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
-    border: 1px solid var(--line); background: #fbfdff; border-radius: 3px; padding: 5px 9px 5px 5px;
+    border: 1px solid var(--line); background: #fbfdff; border-radius: 10px; padding: 5px 9px 5px 5px;
   }
   .x-item:hover { border-color: #7fb8d4; background: var(--accent-soft); }
-  .x-item svg { width: 30px; height: 30px; border-radius: 3px; }
+  .x-item svg { width: 30px; height: 30px; border-radius: 6px; }
   .x-item .x-model { font-size: 12px; font-weight: 600; font-family: Consolas, "Courier New", monospace; }
   .inq-add {
     margin-left: auto; font-family: inherit; font-size: 11.5px; cursor: pointer;
-    color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 3px; padding: 4px 12px;
+    color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 999px; padding: 4px 12px;
     white-space: nowrap;
   }
   .inq-add.on { background: #dcfce7; border-color: #86efac; font-weight: 600; }
@@ -356,7 +356,7 @@
   td.fav-col, th.fav-col { text-align: center; width: 30px; padding-left: 4px; padding-right: 0; }
   .fav-btn {
     font-family: inherit; font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle;
-    border: 0; background: transparent; color: #cbd5e1; padding: 3px 2px; border-radius: 3px;
+    border: 0; background: transparent; color: #cbd5e1; padding: 3px 2px; border-radius: 6px;
   }
   .fav-btn:hover { color: #f59e0b; background: #fffbeb; }
   .fav-btn.on { color: #f59e0b; }
@@ -366,7 +366,7 @@
   .fav-add.on { background: #fef3c7; border-color: #fcd34d; font-weight: 600; }
   .x-mini {
     font-family: inherit; font-size: 11px; border: 1px solid var(--line); background: #fff;
-    color: var(--accent); border-radius: 3px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
+    color: var(--accent); border-radius: 7px; padding: 3px 9px; cursor: pointer; margin-left: 6px;
   }
   .x-mini:hover { border-color: #7fb8d4; }
   .x-mini.danger { color: #dc2626; border-color: #fecaca; }
@@ -380,7 +380,7 @@
   .cmp-table td.k { color: var(--muted); white-space: nowrap; width: 34%; }
   .cmp-table td.diff { background: #fefce8; }
   td.art-cell { padding: 4px 6px 4px 8px; width: 52px; }
-  td.art-cell svg, .card-art svg { display: block; border-radius: 3px; }
+  td.art-cell svg, .card-art svg { display: block; border-radius: 8px; }
   td.art-cell svg { width: 44px; height: 44px; }
   .card-art svg { width: 72px; height: 72px; }
   .sheet-art svg { width: 180px; height: 180px; display: block; margin: 12px auto 2px; }
@@ -389,7 +389,7 @@
   /* ---------- 卡片（移动端） ---------- */
   .cards { display: none; margin-top: 10px; flex-direction: column; gap: 10px; }
   .card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 12px 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px;
     cursor: pointer;
   }
   .card:active { background: var(--accent-soft); }
@@ -403,7 +403,7 @@
   }
   .card-specs .spec {
     display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%;
-    background: #f8fafc; border: 1px solid #eef2f7; border-radius: 3px;
+    background: #f8fafc; border: 1px solid #eef2f7; border-radius: 7px;
     padding: 4px 10px; font-size: 12.5px; line-height: 1.5;
   }
   .card-specs .k { color: var(--muted); flex: 0 0 auto; }
@@ -419,7 +419,7 @@
   .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
   .pager button {
     font-family: inherit; font-size: 13.5px; border: 1px solid var(--line); background: var(--panel);
-    color: var(--ink); border-radius: 3px; padding: 9px 18px; cursor: pointer;
+    color: var(--ink); border-radius: 10px; padding: 9px 18px; cursor: pointer;
   }
   .pager button:disabled { opacity: .4; cursor: default; }
   .pager button:not(:disabled):hover { border-color: #0e7490; color: var(--accent); }
@@ -442,13 +442,13 @@
   }
   .sheet {
     background: var(--panel); width: 100%; max-width: 640px; min-width: 0; max-height: 86vh; overflow-y: auto;
-    border-radius: 3px 3px 0 0; padding: 0 0 16px;
+    border-radius: 18px 18px 0 0; padding: 0 0 16px;
   }
   /* 窄屏兜底：flex 子项默认 min-width:auto 会被长内容顶宽，弹出层曾经因此比屏幕宽 */
   .sheet * { min-width: 0; }
   @media (min-width: 640px) {
     .mask { align-items: center; padding: 20px; }
-    .sheet { border-radius: 3px; }
+    .sheet { border-radius: 13px; }
   }
   .sheet-head {
     position: sticky; top: 0; background: var(--panel); padding: 16px 18px 10px;

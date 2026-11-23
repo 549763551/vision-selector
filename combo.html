@@ -79,7 +79,7 @@
   .req-col .req-grid .row2 { gap: 7px; }
   .req-col .check { font-size: 13px; height: auto; padding: 9px 11px; }
   .card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 20px 22px 18px;
     box-shadow: none;
   }
@@ -105,7 +105,7 @@
   input[type="text"], input[type="number"], input[type="search"], select {
     width: 100%; height: 40px; padding: 0 11px;
     font-family: inherit; font-size: 13.5px; color: var(--ink);
-    background: #fbfdff; border: 1px solid #d6e0ea; border-radius: 3px;
+    background: #fbfdff; border: 1px solid #d6e0ea; border-radius: 9px;
     outline: none; transition: .15s;
   }
   select { cursor: pointer; }
@@ -114,7 +114,7 @@
   .check {
     display: flex; align-items: center; gap: 9px; cursor: pointer;
     font-size: 14px; color: #475569; padding: 11px 13px;
-    background: #f8fafc; border: 1px solid var(--line); border-radius: 3px;
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
     user-select: none; height: 44px;
   }
   .check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
@@ -123,7 +123,7 @@
 
   /* ---------- 搭配台 ---------- */
   .btn {
-    height: 40px; border-radius: 3px; cursor: pointer; padding: 0 16px;
+    height: 40px; border-radius: 10px; cursor: pointer; padding: 0 16px;
     font-family: inherit; font-size: 14px; font-weight: 600;
     border: 1px solid #d6e0ea; background: #fff; color: #334155; transition: .15s;
     white-space: nowrap;
@@ -153,13 +153,13 @@
   .picked .p-clear:hover { color: var(--danger); }
   .cmpick-list {
     display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 60;
-    max-height: 264px; overflow-y: auto; background: #fff; border: 1px solid #d6e0ea; border-radius: 3px;
+    max-height: 264px; overflow-y: auto; background: #fff; border: 1px solid #d6e0ea; border-radius: 10px;
     box-shadow: 0 16px 36px -18px rgba(15, 23, 42, .45); padding: 5px;
   }
   .cmpick-list.open { display: block; }
   .cmpick-item {
     display: block; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
-    border: 0; background: transparent; border-radius: 3px; padding: 8px 9px; font-size: 13.5px; color: #1e293b;
+    border: 0; background: transparent; border-radius: 7px; padding: 8px 9px; font-size: 13.5px; color: #1e293b;
   }
   .cmpick-item:hover, .cmpick-item.on { background: var(--accent-soft); }
   .cmpick-item .ck-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -176,12 +176,12 @@
 
   /* ---------- 评定 ---------- */
   .combo-empty {
-    margin-top: 16px; padding: 14px; border: 1px dashed #cfdae7; border-radius: 3px;
+    margin-top: 16px; padding: 14px; border: 1px dashed #cfdae7; border-radius: 10px;
     background: #f8fafc; font-size: 13.5px; color: #64748b;
   }
   .combo-head {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 3px; background: #f8fafc;
+    margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc;
   }
   .combo-num {
     font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1.2px; font-variant-numeric: tabular-nums;
@@ -194,7 +194,7 @@
   .combo-head .btn { margin-left: 0; }
   .combo-head .btn.primary { margin-left: auto; }
   /* 分数条：贴在评定卡片下沿，宽度只在分数变化时从 0 长到目标 */
-  .combo-meter { height: 3px; margin: -1px 0 0; background: #eef2f7; border-radius: 0 0 3px 3px; overflow: hidden; }
+  .combo-meter { height: 3px; margin: -1px 0 0; background: #eef2f7; border-radius: 0 0 12px 12px; overflow: hidden; }
   .combo-meter i {
     display: block; height: 100%; width: 0; border-radius: 2px; background: var(--accent);
     transition: width .5s cubic-bezier(.22, .61, .36, 1);
@@ -210,7 +210,7 @@
   }
   .tag.pop { animation: tagPop .32s cubic-bezier(.34, 1.4, .64, 1) both; }
   .tag {
-    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 3px;
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
     background: #f1f5f9; color: #475569; white-space: nowrap;
   }
   .tag.ok { background: #dcfce7; color: #15803d; }
@@ -244,29 +244,29 @@
   .combo-sugs { margin: 0; padding: 0; list-style: none; }
   .combo-sugs li {
     display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; line-height: 1.7; color: #334155;
-    padding: 9px 12px; border: 1px solid #eef2f7; border-radius: 3px; margin-bottom: 7px; background: #fbfdff;
+    padding: 9px 12px; border: 1px solid #eef2f7; border-radius: 9px; margin-bottom: 7px; background: #fbfdff;
   }
   .combo-sugs li.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
   .x-mini {
     font-family: inherit; font-size: 12px; border: 1px solid var(--line); background: #fff;
-    color: var(--accent); border-radius: 3px; padding: 4px 10px; cursor: pointer; margin-left: auto; flex: 0 0 auto;
+    color: var(--accent); border-radius: 7px; padding: 4px 10px; cursor: pointer; margin-left: auto; flex: 0 0 auto;
   }
   .x-mini:hover { border-color: #7fb8d4; }
   .combo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .si-chip {
-    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 3px;
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
     background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 12.5px; font-weight: 600; cursor: help;
   }
   .si-chip.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; cursor: default; }
   .req-line {
-    margin-top: 12px; padding: 9px 12px; border-radius: 3px; background: #f8fafc; border: 1px solid #eef2f7;
+    margin-top: 12px; padding: 9px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #eef2f7;
     font-size: 13.5px; color: #475569; line-height: 1.75;
   }
   .req-line b { color: #0f172a; }
   .combo-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .pick-chip {
     display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%;
-    padding: 8px 12px; border: 1px solid var(--line); border-radius: 3px; background: #fff;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
     font-size: 13px; color: #334155;
   }
   .pick-chip.empty { color: #5b6b82; background: #f8fafc; border-style: dashed; }
@@ -333,7 +333,7 @@
     .combo-table, .combo-table tbody, .combo-table tr, .combo-table td { display: block; }
     .combo-table tr:not(.grp) { padding: 7px 0 8px; border-bottom: 1px solid #f4f7fb; }
     .combo-table tr.grp { margin-top: 6px; }
-    .combo-table tr.grp td { border: 0; border-radius: 3px; }
+    .combo-table tr.grp td { border: 0; border-radius: 6px; }
     .combo-table td { border: 0; padding: 1px 0; }
     .combo-table td:first-child { font-weight: 700; color: #334155; font-size: 12.5px; }
     .combo-table td.mono { display: inline-block; font-size: 11.5px; margin-right: 14px; }

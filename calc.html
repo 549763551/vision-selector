@@ -52,7 +52,7 @@
   .pnav > .on { color: #fff; font-weight: 500; border-bottom-color: #22d3ee; }
   .wrap { max-width: 1320px; margin: 0 auto; padding: 14px 28px 40px; }
   .intro {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 11px 15px; margin-bottom: 2px; box-shadow: none;
   }
   .intro h1 { font-size: 16px; margin: 0 0 4px; }
@@ -66,7 +66,7 @@
   .toolbar .anchor, .toolbar button, .btn {
     display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
     font-size: 12px; font-weight: 600; line-height: 1; padding: 6px 11px;
-    border-radius: 3px; border: 1px solid var(--line); background: var(--panel);
+    border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
     color: var(--ink); text-decoration: none; cursor: pointer; transition: .15s;
   }
   .toolbar .anchor:hover, .toolbar button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -79,7 +79,7 @@
 
   /* ---------- 组合卡片 ---------- */
   .combo {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
     padding: 11px 13px 12px; box-shadow: none; margin-top: 10px;
   }
   .chead { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
@@ -87,21 +87,21 @@
   .chead h2 small { font-size: 12px; font-weight: 400; color: var(--muted); }
   .cstat {
     font-size: 12px; color: var(--muted); background: #f1f5f9;
-    border: 1px solid var(--line); border-radius: 3px; padding: 2px 8px; line-height: 1.45; font-size: 11.5px;
+    border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; line-height: 1.45; font-size: 11.5px;
   }
   .cbtns { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
   .cbtns .btn { font-size: 11px; padding: 5px 9px; }
   .cdesc { margin: 4px 0 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
   /* 组内进度：已算出的公式占比。宽度用过渡，跟输入走但不抖；
      0 个结果时整条淡出，免得像一条无意义的分隔线 */
-  .cprog { height: 3px; margin: 0 0 8px; background: #eef2f7; border-radius: 2px; overflow: hidden; opacity: 0; transition: opacity .2s ease; }
+  .cprog { height: 3px; margin: 0 0 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; opacity: 0; transition: opacity .2s ease; }
   .cprog.on { opacity: 1; }
   .cprog i {
-    display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px;
+    display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px;
     transition: width .4s cubic-bezier(.22, .61, .36, 1);
   }
   .cprog.done i { background: var(--ok); }
-  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px 9px; }
+  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px 9px; }
   .fsec + .fsec { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
   .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 4px; }
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
@@ -111,10 +111,10 @@
   .field.wide { grid-column: 1 / -1; }
   .field label { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
   .field label .u { color: #5b6b82; font-size: 11.5px; }
-  .opt { font-size: 10px; color: #5b6b82; border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; margin-left: 2px; }
+  .opt { font-size: 10px; color: #5b6b82; border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; margin-left: 2px; }
   .field input[type="number"], .field select {
     width: 100%; min-width: 0; font: inherit; font-size: 13.5px; color: var(--ink);
-    background: #f8fafc; border: 1px solid var(--line); border-radius: 3px;
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
     padding: 6px 9px; outline: none; transition: .15s;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(14, 116, 144, .14); }
@@ -133,13 +133,13 @@
   /* ---------- 结果 ---------- */
   .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; align-items: start; }
   .cres.one { grid-template-columns: 1fr; }
-  .rcard { border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px; background: #fff; min-width: 0; }
+  .rcard { border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: #fff; min-width: 0; }
   .rcard.wait { border-style: dashed; background: #fbfdff; }
   .rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .rhead h4 { margin: 0; font-size: 13px; }
   .rtag {
     font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
-    border-radius: 3px; padding: 1px 8px; white-space: nowrap;
+    border-radius: 999px; padding: 1px 8px; white-space: nowrap;
   }
   .rcard.ok .rtag { color: var(--ok); background: var(--ok-bg); }
   .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
@@ -153,7 +153,7 @@
   .rtag.flash { animation: rtFlash .5s cubic-bezier(.22, .61, .36, 1) both; }
   .rsym { font-size: 11.5px; color: var(--muted); margin: 2px 0 5px; word-break: break-word; }
   .verdict {
-    border-radius: 3px; padding: 5px 9px; font-size: 12px; font-weight: 600;
+    border-radius: 9px; padding: 5px 9px; font-size: 12px; font-weight: 600;
     background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 6px;
     line-height: 1.55; word-break: break-word;
   }
@@ -163,7 +163,7 @@
   .steps { display: flex; flex-direction: column; gap: 5px; }
   .step {
     display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.9fr) minmax(96px, .8fr);
-    gap: 8px; align-items: start; padding: 4px 8px; border-radius: 3px;
+    gap: 8px; align-items: start; padding: 4px 8px; border-radius: 8px;
     background: #f8fafc; border: 1px solid var(--line); font-size: 12px;
   }
   .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 12px; }
@@ -183,24 +183,24 @@
   .notes .risk::before { content: '⚠'; color: var(--bad); }
   .rmiss {
     font-size: 12px; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa;
-    border-radius: 3px; padding: 6px 9px; line-height: 1.6;
+    border-radius: 8px; padding: 6px 9px; line-height: 1.6;
   }
   .rmiss b { color: #b45309; }
   .rmiss .locate {
     font: inherit; font-size: 11.5px; margin-left: 5px; border: 1px solid #fdba74;
-    background: #fff; color: #b45309; border-radius: 3px; padding: 3px 10px; cursor: pointer;
+    background: #fff; color: #b45309; border-radius: 999px; padding: 3px 10px; cursor: pointer;
   }
   .rmiss .locate:hover { background: #ffedd5; }
   .rauto {
     margin-top: 6px; font-size: 11px; color: #0b4a6b; background: #eef6fb;
-    border: 1px dashed #b6dcec; border-radius: 3px; padding: 5px 8px; line-height: 1.5;
+    border: 1px dashed #b6dcec; border-radius: 8px; padding: 5px 8px; line-height: 1.5;
   }
   .rfoot { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
   .rfoot .btn { font-size: 11px; padding: 4px 8px; }
   footer.foot { margin-top: 16px; color: var(--muted); font-size: 11.5px; line-height: 1.65; border-top: 1px solid var(--line); padding-top: 9px; }
   .toast {
     position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 16px);
-    background: #0f172a; color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 3px;
+    background: #0f172a; color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 999px;
     opacity: 0; pointer-events: none; transition: .22s; z-index: 40; box-shadow: 0 8px 24px rgba(15, 23, 42, .25);
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
