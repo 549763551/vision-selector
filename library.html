@@ -69,25 +69,26 @@
 
   /* ---------- 类别标签 ---------- */
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
-  /* 类别页签与主页导航同构：无底框，文字 + 一条会滑到新位置的青线 */
+  /* 类别页签：圆润胶囊，选中项由一块会滑动的青底托住 */
   .tabs-host { position: relative; }
   .tabs {
-    display: flex; flex-wrap: wrap; gap: 2px 20px; overflow-x: auto; padding: 0 0 7px;
+    display: flex; flex-wrap: wrap; gap: 6px; overflow-x: auto; padding: 0 0 7px;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 0 0 auto; border: 0; background: none; color: var(--muted);
-    border-radius: 0; padding: 6px 0 4px; font-size: 13.5px; font-family: inherit; cursor: pointer;
+    position: relative; z-index: 1; flex: 0 0 auto;
+    border: 0; background: none; color: var(--muted);
+    border-radius: 999px; padding: 8px 13px; font-size: 13.5px; font-family: inherit; cursor: pointer;
     white-space: nowrap; line-height: 1.5; transition: color .15s;
   }
-  .tab small { color: var(--muted); font-size: 12px; margin-left: 5px; font-variant-numeric: tabular-nums; }
+  .tab small { color: var(--muted); font-size: 12.5px; margin-left: 5px; font-variant-numeric: tabular-nums; }
   .tab:hover { color: var(--ink); }
-  .tab.on { color: var(--accent); font-weight: 600; }
-  .tab.on small { color: var(--accent); opacity: .72; }
+  .tab.on { color: #fff; font-weight: 500; }
+  .tab.on small { color: rgba(255, 255, 255, .85); }
   .tab-ind {
-    position: absolute; left: 0; top: 0; width: 0; height: 2px; border-radius: 1px;
-    background: var(--accent); opacity: 0; pointer-events: none;
+    position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0;
+    background: var(--accent); border-radius: 999px; opacity: 0; pointer-events: none;
   }
 
   /* ---------- 筛选区 ---------- */
@@ -2090,7 +2091,7 @@
     positionTabInd(true);
   }
 
-  /* 指示线：同一行内滑到新页签，换行时瞬移（跨行滑过去会横穿别的页签，反而更乱）。
+  /* 青底块：同一行内滑到新页签，换行时瞬移（跨行滑过去会横穿别的页签，反而更乱）。
      它是 tabs 的兄弟节点，不会被 renderTabs 的 innerHTML 重建，所以能保留上一帧位置做过渡。 */
   var tabIndTop = -1;
   function positionTabInd(animate) {
@@ -2099,14 +2100,15 @@
     if (!on) { $tabInd.style.opacity = '0'; return; }
     var hb = $tabInd.parentNode.getBoundingClientRect();
     var rb = on.getBoundingClientRect();
-    var top = Math.round(rb.top - hb.top + rb.height - 1);
+    var top = Math.round(rb.top - hb.top);
     var sameRow = top === tabIndTop;
     $tabInd.style.transition = (animate && sameRow)
-      ? 'left .24s cubic-bezier(.22, .61, .36, 1), width .24s cubic-bezier(.22, .61, .36, 1)'
+      ? 'left .24s cubic-bezier(.22, .61, .36, 1), width .24s cubic-bezier(.22, .61, .36, 1), height .2s ease'
       : 'none';
     $tabInd.style.left = (rb.left - hb.left) + 'px';
     $tabInd.style.width = rb.width + 'px';
     $tabInd.style.top = top + 'px';
+    $tabInd.style.height = rb.height + 'px';
     $tabInd.style.opacity = '1';
     tabIndTop = top;
   }
