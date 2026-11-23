@@ -1154,6 +1154,19 @@
   }
 
   /* ---------------- 渲染 ---------------- */
+  // 评分数字变了才闪一下：改完需求能立刻注意到「结果更新了」，值没变就不打扰
+  var lastScoreTxt = '';
+  function flashScore() {
+    var el = $('scoreNum');
+    if (!el) return;
+    var t = el.textContent;
+    if (t === lastScoreTxt) return;
+    lastScoreTxt = t;
+    el.classList.remove('flash');
+    void el.offsetWidth;   // 强制重排，让同一个 class 能重新触发动画
+    el.classList.add('flash');
+  }
+
   function render() {
     if (!E || !CAT) {
       $('stateChip').className = 'tag bad';
@@ -1169,6 +1182,7 @@
 
     if (!r.ok) {
       $('scoreNum').innerHTML = '--';
+      flashScore();
       $('scoreBar').style.width = '0%';
       $('scoreNote').textContent = '';
       $('verdicts').innerHTML = '';
@@ -1198,6 +1212,7 @@
     for (var ci = 0; ci < chk.length; ci++) if (chk[ci].ok) passN++;
     if (chk.length) {
       $('scoreNum').innerHTML = passN + '<small>/' + chk.length + '</small>';
+      flashScore();
       $('scoreBar').style.width = Math.round(passN / chk.length * 100) + '%';
       $('scoreNote').textContent =
         (passN === chk.length ? '共 ' + chk.length + ' 项工程核查全部通过'
@@ -1205,6 +1220,7 @@
         ' · 匹配度 ' + r.score + ' 分（仅用于备选方案间比较）';
     } else {
       $('scoreNum').innerHTML = r.score + '<small>/100</small>';
+      flashScore();
       $('scoreBar').style.width = r.score + '%';
       $('scoreNote').textContent = '';
     }

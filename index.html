@@ -170,7 +170,7 @@
     outline: none; transition: .15s;
   }
   select { cursor: pointer; }
-  input:focus, select:focus { background: #fff; border-color: #4aa3c4; box-shadow: 0 0 0 3px rgba(21, 94, 138, .16); }
+  input:focus, select:focus { background: #fff; border-color: #4aa3c4; box-shadow: 0 0 0 3px rgba(14, 116, 144, .18); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .check {
     display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -870,6 +870,20 @@
     .brand { gap: 9px; }
     .pnav { gap: 4px; }
     .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 0; }
+  }
+
+  /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
+  tbody tr { transition: background-color .12s ease; }
+  :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
+
+  /* 评分变化闪一下：改需求后能确认「结果已重算」，值不变就不闪 */
+  @keyframes numFlash { from { background: rgba(14, 116, 144, .18); } to { background: transparent; } }
+  #scoreNum.flash { animation: numFlash .55s ease; }
+  tbody tr:hover { background: #f4f7f9; }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr { transition: none; }
+    #scoreNum.flash { animation: none; }
   }
 </style>
 </head>

@@ -104,7 +104,7 @@
     background: #f8fafc; border: 1px solid var(--line); border-radius: 3px;
     padding: 6px 9px; outline: none; transition: .15s;
   }
-  .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(21, 94, 138, .10); }
+  .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(14, 116, 144, .14); }
   .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 11px; }
   .field.check label { font-size: 13px; color: var(--ink); }
   .field.check input { width: 16px; height: 16px; accent-color: var(--accent); }
@@ -251,6 +251,16 @@
     .brand { gap: 9px; }
     .pnav { gap: 4px; }
     .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 0; }
+  }
+
+  /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
+  tbody tr { transition: background-color .12s ease; }
+  :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
+  tbody tr:hover { background: #f4f7f9; }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr { transition: none; }
+    
   }
 </style>
 </head>

@@ -505,6 +505,15 @@
     .pnav { gap: 4px; }
     .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 0; }
   }
+
+  /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
+  tbody tr { transition: background-color .12s ease; }
+  :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr { transition: none; }
+    
+  }
 </style>
 </head>
 <body>

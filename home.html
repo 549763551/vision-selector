@@ -230,6 +230,54 @@
     .foot-nav { margin-left: 0; width: 100%; gap: 16px 20px; }
     .qr-card img { width: 132px; height: 132px; }
   }
+
+  /* ---------- 动效：克制的入场、描边与计数 ----------
+     原则：只做「一次性入场」和「hover 反馈」，不做随滚动持续变化的动画；
+     全部可被 prefers-reduced-motion 关闭，关掉后与静态页完全一致。 */
+  @keyframes haUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes haFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes haDraw { to { stroke-dashoffset: 0; } }
+  @keyframes haPop { 0% { opacity: 0; transform: scale(.3); } 65% { opacity: 1; transform: scale(1.32); } 100% { opacity: 1; transform: scale(1); } }
+
+  /* 首屏文字：标题 → 说明 → 按钮 → 事实行，逐级上浮 */
+  .hero .eyebrow { animation: haUp .55s cubic-bezier(.22,.61,.36,1) both; }
+  .hero h1 { animation: haUp .6s cubic-bezier(.22,.61,.36,1) .07s both; }
+  .hero .lead { animation: haUp .6s cubic-bezier(.22,.61,.36,1) .15s both; }
+  .hero-cta { animation: haUp .6s cubic-bezier(.22,.61,.36,1) .23s both; }
+  .hero-facts { animation: haUp .6s cubic-bezier(.22,.61,.36,1) .31s both; }
+
+  /* 首屏插图：按标好的顺序描线，最后落标注、亮测点 */
+  .hero-art .ha-d {
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+    animation: haDraw var(--dur, .8s) cubic-bezier(.4,0,.2,1) var(--d, 0s) forwards;
+  }
+  .hero-art .ha-note { opacity: 0; animation: haFade .45s ease var(--d, 1.3s) forwards; }
+  .hero-art .ha-dot { transform-box: fill-box; transform-origin: center; opacity: 0; animation: haPop .5s cubic-bezier(.3,1.4,.5,1) 1.28s forwards; }
+
+  /* 滚动进入：栏位 / 数据速览 / 品牌行，子项依次落位 */
+  .reveal > * { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .55s cubic-bezier(.22,.61,.36,1); }
+  .reveal.in > * { opacity: 1; transform: none; }
+  .reveal.in > *:nth-child(2) { transition-delay: .05s; }
+  .reveal.in > *:nth-child(3) { transition-delay: .1s; }
+  .reveal.in > *:nth-child(4) { transition-delay: .15s; }
+  .reveal.in > *:nth-child(5) { transition-delay: .2s; }
+  .reveal.in > *:nth-child(6) { transition-delay: .25s; }
+  .reveal.in > *:nth-child(n+7) { transition-delay: .3s; }
+
+  /* 交互反馈：箭头跟着走、按钮按下有回应（都不改布局） */
+  .col .go { transition: transform .2s ease; }
+  .col:hover .go { transform: translateX(2px); }
+  .btn-solid:active, .btn-ghost:active, .nav-cta:active { transform: translateY(1px); }
+  .doc-more:active { transform: translateY(1px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero .eyebrow, .hero h1, .hero .lead, .hero-cta, .hero-facts,
+    .hero-art .ha-d, .hero-art .ha-note, .hero-art .ha-dot {
+      animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; transform: none !important;
+    }
+    .reveal > * { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .col .go, .btn-solid, .btn-ghost, .nav-cta { transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -266,19 +314,20 @@
       </div>
     </div>
     <div class="hero-art" aria-hidden="true">
+      <!-- 线条按「先机身、再镜头、再视野锥、最后标尺」的顺序描出来；pathLength=1 让各段用同一套 dash 参数 -->
       <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
         <g stroke="rgba(255,255,255,.55)" fill="none" stroke-width="1.2">
-          <rect x="150" y="38" width="100" height="56"/>
-          <path d="M172 94v22h56V94"/>
+          <rect class="ha-d" style="--d:.05s;--dur:.8s" pathLength="1" x="150" y="38" width="100" height="56"/>
+          <path class="ha-d" style="--d:.46s;--dur:.45s" pathLength="1" d="M172 94v22h56V94"/>
         </g>
-        <line x1="162" y1="62" x2="238" y2="62" stroke="rgba(34,211,238,.75)" stroke-width="1.2"/>
+        <line class="ha-d" style="--d:.68s;--dur:.36s" pathLength="1" x1="162" y1="62" x2="238" y2="62" stroke="rgba(34,211,238,.75)" stroke-width="1.2"/>
         <g stroke="rgba(34,211,238,.5)" stroke-width="1.2" fill="none">
-          <line x1="176" y1="116" x2="62" y2="322"/>
-          <line x1="224" y1="116" x2="338" y2="322"/>
+          <line class="ha-d" style="--d:.82s;--dur:.55s" pathLength="1" x1="176" y1="116" x2="62" y2="322"/>
+          <line class="ha-d" style="--d:.82s;--dur:.55s" pathLength="1" x1="224" y1="116" x2="338" y2="322"/>
         </g>
-        <line x1="40" y1="322" x2="360" y2="322" stroke="rgba(255,255,255,.62)" stroke-width="2"/>
-        <circle cx="252" cy="322" r="3.4" fill="#22d3ee"/>
-        <g stroke="rgba(255,255,255,.45)" stroke-width="1">
+        <line class="ha-d" style="--d:1.22s;--dur:.42s" pathLength="1" x1="40" y1="322" x2="360" y2="322" stroke="rgba(255,255,255,.62)" stroke-width="2"/>
+        <circle class="ha-dot" cx="252" cy="322" r="3.4" fill="#22d3ee"/>
+        <g class="ha-note" style="--d:1.34s" stroke="rgba(255,255,255,.45)" stroke-width="1" fill="none">
           <line x1="40" y1="352" x2="360" y2="352"/>
           <line x1="62" y1="346" x2="62" y2="358"/>
           <line x1="338" y1="346" x2="338" y2="358"/>
@@ -288,10 +337,12 @@
           <line x1="30" y1="116" x2="42" y2="116"/>
           <line x1="30" y1="322" x2="42" y2="322"/>
         </g>
-        <text x="200" y="378" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">视野 50 × 40 mm</text>
-        <text x="200" y="24" text-anchor="middle" fill="rgba(255,255,255,.42)" font-size="11" letter-spacing="2.4" font-family="ui-sans-serif, system-ui, sans-serif">CAMERA + LENS + LIGHT</text>
-        <text x="52" y="216" fill="rgba(255,255,255,.55)" font-size="11.5" font-family="ui-sans-serif, system-ui, sans-serif">WD</text>
-        <text x="52" y="232" fill="rgba(255,255,255,.38)" font-size="10.5" font-family="ui-sans-serif, system-ui, sans-serif">300 mm</text>
+        <g class="ha-note" style="--d:1.46s">
+          <text x="200" y="378" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">视野 50 × 40 mm</text>
+          <text x="200" y="24" text-anchor="middle" fill="rgba(255,255,255,.42)" font-size="11" letter-spacing="2.4" font-family="ui-sans-serif, system-ui, sans-serif">CAMERA + LENS + LIGHT</text>
+          <text x="52" y="216" fill="rgba(255,255,255,.55)" font-size="11.5" font-family="ui-sans-serif, system-ui, sans-serif">WD</text>
+          <text x="52" y="232" fill="rgba(255,255,255,.38)" font-size="10.5" font-family="ui-sans-serif, system-ui, sans-serif">300 mm</text>
+        </g>
       </svg>
     </div>
   </div>
@@ -472,11 +523,40 @@
   });
   total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir;
 
+  /* ---- 动效工具：一次性数字滚动 + 进入视口才落位；两者都尊重 reduced-motion ---- */
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function countUp(el, to, dur) {
+    if (!el) return;
+    if (reduceMotion || !window.requestAnimationFrame) { el.textContent = String(to); return; }
+    var t0 = null;
+    function step(t) {
+      if (t0 === null) t0 = t;
+      var p = Math.min(1, (t - t0) / (dur || 650));
+      el.textContent = String(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function revealOnScroll(nodes) {
+    var list = [].slice.call(nodes || []).filter(Boolean);
+    if (!list.length) return;
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+      list.forEach(function (x) { x.classList.add('reveal', 'in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: .12 });
+    list.forEach(function (x) { x.classList.add('reveal'); io.observe(x); });
+    // 兜底：万一回调没来（极窄视口 / 浏览器异常），4 秒后直接显示，绝不把内容留在透明态
+    setTimeout(function () { list.forEach(function (x) { x.classList.add('in'); }); }, 4000);
+  }
+
   // 首屏事实行：数字跟着型号库走，避免写死后和产品库对不上
-  var heroTotal = document.getElementById('heroTotal');
-  if (heroTotal) heroTotal.textContent = total;
-  var heroBrands = document.getElementById('heroBrands');
-  if (heroBrands) heroBrands.textContent = Object.keys(metas).length;
+  countUp(document.getElementById('heroTotal'), total, 720);
+  countUp(document.getElementById('heroBrands'), Object.keys(metas).length, 720);
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function short(k) { return (window.BRANDS[k] && window.BRANDS[k].short) || k; }
@@ -490,6 +570,31 @@
   ].map(function (p) {
     return '<div class="stat"><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
   }).join('') + '<div class="stat total"><b>' + total + '</b><span>型号总数</span></div>';
+
+  // 数据速览：滚到这块时整排淡入，数字从 0 滚上去（只跑一次）
+  (function () {
+    var grid = document.getElementById('statsGrid');
+    if (!grid) return;
+    var nums = [].slice.call(grid.querySelectorAll('.stat b')).map(function (b) {
+      return { el: b, to: Number(b.textContent) || 0 };
+    });
+    revealOnScroll([grid]);
+    if (!reduceMotion) nums.forEach(function (x) { x.el.textContent = '0'; });
+    var started = false;
+    function run() {
+      if (started) return;
+      started = true;
+      nums.forEach(function (x, i) {
+        setTimeout(function () { countUp(x.el, x.to, 600); }, 45 * Math.min(i, 6));
+      });
+    }
+    if (reduceMotion) { run(); return; }
+    if (!('IntersectionObserver' in window)) { run(); return; }
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) run(); });
+    }, { threshold: .25 }).observe(grid);
+    setTimeout(run, 4000);
+  })();
 
   document.getElementById('brandRow').innerHTML = Object.keys(metas).map(function (bk) {
     var cnt = allMetas.filter(function (x) { return x.brand === bk; })
@@ -508,6 +613,8 @@
       '<span class="b-meta"><b>' + cnt + '</b> 个型号' +
       (gen ? '<time>' + esc(gen) + '</time>' : '') + '</span></div>';
   }).join('');
+
+  revealOnScroll([document.getElementById('brandRow')].concat([].slice.call(document.querySelectorAll('.cols'))));
 
   var latest = Object.keys(metas).map(function (k) { return metas[k].generated || ''; }).sort().pop();
   if (latest) document.getElementById('genNote').textContent = '数据更新于 ' + latest;
