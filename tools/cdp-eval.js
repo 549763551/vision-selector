@@ -14,6 +14,7 @@ const URL_ARG = process.argv[2];
 const JS_FILE = process.argv[3];
 const WAIT = Number(process.argv[4] || 9000);
 const WIDTH = Number(process.argv[5] || 1440);
+const HEIGHT = Number(process.argv[6] || 0);   // 可选：显式指定视口高度，用来测「矮窗口下左栏是否滚得全」
 
 function jget(p) {
   return new Promise((res, rej) => {
@@ -26,7 +27,7 @@ function jget(p) {
 }
 
 (async () => {
-  if (!URL_ARG || !JS_FILE) { console.log('用法: node tools/cdp-eval.js <url> <jsFile> [waitMs]'); return; }
+  if (!URL_ARG || !JS_FILE) { console.log('用法: node tools/cdp-eval.js <url> <jsFile> [waitMs] [width] [height]'); return; }
   const body = fs.readFileSync(JS_FILE, 'utf8');
   const prof = path.join(os.tmpdir(), 'cdp-eval-' + Date.now());
   const proc = spawn(CHROME, [
@@ -59,9 +60,11 @@ function jget(p) {
   const sid = att.sessionId;
   await send('Page.enable', {}, sid);
   // Chrome 的 --window-size 最小只能到 512，移动端要真量到 390 必须走设备度量覆盖
-  if (WIDTH < 500) {
+  // 指定了 HEIGHT 时也走覆盖，这样 innerHeight 是准的
+  if (WIDTH < 500 || HEIGHT > 0) {
     await send('Emulation.setDeviceMetricsOverride', {
-      width: WIDTH, height: 900, deviceScaleFactor: 2, mobile: true
+      width: WIDTH, height: HEIGHT || 900,
+      deviceScaleFactor: WIDTH < 500 ? 2 : 1, mobile: WIDTH < 500
     }, sid);
   }
   await send('Emulation.setUserAgentOverride', {

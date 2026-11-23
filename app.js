@@ -1646,6 +1646,31 @@
       });
     }
 
+    // 左栏 sticky 面板的高度按「视口内实际顶部」算。
+    // 写死 100vh-32 只在吸顶之后成立：页面停在顶部时面板是从页头下方（≈119px）才开始的，
+    // 底边会超出视口 100 px 上下，于是内容没超限时滚不动、超限时内部滚到底也差这一截。
+    var reqCol = document.querySelector('.req-col');
+    if (reqCol) {
+      var reqColRaf = 0;
+      var fitReqCol = function () {
+        reqColRaf = 0;
+        // 窄屏（≤1020）是单列堆叠，面板跟着整页滚，不该自带内滚动框：把内联高度让开
+        if (window.matchMedia('(max-width: 1020px)').matches) {
+          if (reqCol.style.maxHeight) reqCol.style.maxHeight = '';
+          return;
+        }
+        var top = Math.max(16, reqCol.getBoundingClientRect().top);
+        var h = Math.max(320, Math.round(window.innerHeight - top - 16));
+        var v = h + 'px';
+        if (reqCol.style.maxHeight !== v) reqCol.style.maxHeight = v;
+      };
+      var queueFitReqCol = function () { if (!reqColRaf) reqColRaf = requestAnimationFrame(fitReqCol); };
+      window.addEventListener('scroll', queueFitReqCol, { passive: true });
+      window.addEventListener('resize', queueFitReqCol);
+      window.addEventListener('load', queueFitReqCol);
+      fitReqCol();
+    }
+
     // 品牌范围常驻显示，不再折叠（见 index.html .brands-fold）
     /* ---------------- 仿小程序移动端交互 ---------------- */
     var mqMobile = window.matchMedia('(max-width: 760px)');

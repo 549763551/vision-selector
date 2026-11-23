@@ -84,7 +84,7 @@
   .req-col {
     position: sticky; top: 16px;
     max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain;
-    scrollbar-width: thin; padding-bottom: 2px;
+    scrollbar-width: thin; padding-bottom: 10px;
   }
   .req-col::-webkit-scrollbar { width: 6px; }
   .req-col::-webkit-scrollbar-thumb { background: #cfdae7; border-radius: 3px; }
@@ -744,9 +744,9 @@
 /* ---------- 断点 ---------- */
   @media (max-width: 1020px) {
     .wrap { padding: 16px; }
-    /* 窄屏没有横向空间做悬浮栏，回到单列堆叠 */
     .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-    .req-col { position: static; }
+    /* 窄屏没有横向空间做悬浮栏，回到单列堆叠：此时不该再限高，否则面板会变成嵌在页面里的内滚动框 */
+    .req-col { position: static; max-height: none; overflow: visible; }
     .req-col .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-col .f-row { display: block; }
     /* 单列时面板够宽，chip 把品牌短名显回来 */
