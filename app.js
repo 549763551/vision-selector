@@ -704,10 +704,13 @@
           (b.fovLensDriven ? '，由镜头焦距档决定' : '') + '）') +
         kv('实际横向精度', esc(n4(b.pxAcc)) + ' mm/px（需求 ' + num(st.pxAccReq, 3) + '，' +
           (b.accMargin >= 0 ? '余 ' + pct(b.accMargin) : '超差 ' + pct(-b.accMargin)) + '）') +
-        kv('实际重叠', esc(num(b.overlapW, 1)) + ' mm / ' + b.overlapPx + ' px（' + Math.round(b.overlapPct * 100) + '%，设定 ' + Math.round(st.overlap * 100) + '%）') +
+        kv('实际重叠', esc(num(b.overlapW, 1)) + ' mm / ' + b.overlapPx + ' px（' + Math.round(b.overlapPct * 100) + '%，设定 ' +
+          Math.round(st.overlap * 100) + '%' + (b.overlapPct > st.overlap + 0.005 ? '，镜头视场比设计宽，重叠随之变大' : '') + '）') +
         kv('每台所需行频', esc(num(b.rate, 1)) + ' kHz（上限 ' + b.rateCap + ' kHz）') +
-        kv('单台带宽', esc(num(b.bandwidth, 0)) + ' MB/s（' + esc(b.camera.iface) + ' 上限 ' + b.ifaceCap + '）') +
-        kv('总像素 / 总功耗', esc(b.pixelTotal + ' px　' + (b.camPowerTotal == null ? '—' : num(b.camPowerTotal, 1) + ' W'))) +
+        kv('单台带宽', esc(num(b.bandwidth, 0)) + ' MB/s（' + esc(b.camera.iface) + ' 上限 ' + b.ifaceCap + '）' +
+          (b.bitAssumed ? '　位深型号未标，按 ' + b.bitDepth + ' bit 估' : '')) +
+        kv(b.camPowerTotal == null ? '总像素' : '总像素 / 总功耗',
+          esc(b.pixelTotal + ' px' + (b.camPowerTotal == null ? '' : '　合计 ' + num(b.camPowerTotal, 1) + ' W'))) +
       '</div>' +
       // 现场要点
       '<div class="st-notes"><div class="sub-h">现场四条硬要求</div><ul>' +

@@ -610,7 +610,7 @@
     margin: 14px 0 4px; padding: 12px 16px; border-radius: 11px;
     background: linear-gradient(135deg, #f4f9fd, #eef6fb); border: 1px solid #dbe9f3;
   }
-  .st-n { font-size: 34px; font-weight: 800; color: #0b4a6b; line-height: 1; letter-spacing: -.5px; }
+  .st-n { font-size: 34px; font-weight: 800; color: #0b4a6b; line-height: 1; letter-spacing: -.5px; white-space: nowrap; }
   .st-n small { font-size: 15px; font-weight: 600; color: #5b6b82; margin-left: 2px; letter-spacing: 0; }
   .st-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .st-txt b { font-size: 14px; color: #0f172a; }
@@ -726,8 +726,10 @@
     thead th, tbody td { padding: 4px 6px !important; }
     /* 拼接对比表 10 列，A4 宽度塞不下 12.5px，单独压到 8.5pt */
     .st-table { font-size: 8.5pt !important; }
-    .st-table thead th, .st-table tbody td { padding: 3px 5px !important; }
-    .st-table td .sub, .st-table thead th { font-size: 7.5pt !important; }
+    .st-table thead th, .st-table tbody td { padding: 3px 4px !important; }
+    .st-table thead th { font-size: 7.5pt !important; }
+    /* 纸面上 10 列太挤：括号里的设计值 / 重叠像素 / 百分比隐掉，明细区已有完整口径 */
+    .st-table td .sub { display: none !important; }
     .st-hero { background: none !important; border-color: #cfdae7 !important; }
     .st-n { font-size: 22pt !important; }
     .q-sub { font-size: 9pt; }

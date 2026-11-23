@@ -1185,7 +1185,10 @@
     var f = (inp.wd * m) / (1 + m);
     var accOk = pxAcc <= pxAccReq * (1 + 1e-9);
 
-    var bitDepth = bitDepthOf(cam);
+    // 线扫型录普遍没有位深字段（118 台全空）。按 8 bit 估会把带宽算低 25%，
+    // 链路容易按「够用」验收却在现场丢行，所以缺省按 10 bit（线扫最常见的输出位深）估并标出来。
+    var bitAssumed = cam.bitDepth == null;
+    var bitDepth = bitAssumed ? 10 : bitDepthOf(cam);
     var rate = needRate || Math.min(cam.lineRate, 20);
     var bandwidth = (w * bitDepth * rate * 1000) / 8 / 1e6;
     var cap = ifaceCapOf(cam.iface);
@@ -1224,6 +1227,8 @@
       rate: rate,
       rateCap: cam.lineRate,
       rateOk: !needRate || cam.lineRate >= needRate * 1.2,
+      bitDepth: bitDepth,
+      bitAssumed: bitAssumed,
       bandwidth: bandwidth,
       bandwidthTotal: bandwidth * n,
       ifaceCap: cap,
@@ -1240,7 +1245,8 @@
         { t: '光轴间距', f: '(W − 视场) / (N − 1) = (' + fmt(inp.fovW, 0) + ' − ' + fmt(fovPer, 1) + ') / ' + (n - 1), v: fmt(pitch, 1) + ' mm' },
         { t: '重叠宽度', f: '视场 − 间距', v: fmt(overlapW, 1) + ' mm / ' + overlapPx + ' px（' + fmt(overlapW / fovPer * 100, 1) + '%）' },
         { t: '每台行频', f: '速度 / 像素精度', v: fmt(rate, 1) + ' kHz（上限 ' + cam.lineRate + '）' },
-        { t: '每台带宽', f: w + ' × ' + bitDepth + ' bit × ' + fmt(rate, 1) + ' kHz', v: fmt(bandwidth, 0) + ' MB/s（合计 ' + fmt(bandwidth * n, 0) + '）' }
+        { t: '每台带宽', f: w + ' × ' + bitDepth + ' bit' + (bitAssumed ? '（型号未标，按 10 bit 估）' : '') + ' × ' + fmt(rate, 1) + ' kHz',
+          v: fmt(bandwidth, 0) + ' MB/s（合计 ' + fmt(bandwidth * n, 0) + '）' }
       ]
     };
   }

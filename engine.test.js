@@ -1649,6 +1649,9 @@ test('幅面超单台时给多机方案：覆盖 / 精度 / 像素 / 行频自�
     near(p.bandwidthTotal, p.bandwidth * p.n, 1e-6, '总带宽');
     // 接口上限必须按接口查表，传错参数会静默退化成默认 350 MB/s，把好链路判成不够
     assert.ok(p.ifaceCap > 350, '接口带宽上限应按接口取值，实际 ' + p.ifaceCap);
+    // 线扫型录没有位深字段，按 8 bit 估会把带宽算低 25%，必须按 10 bit 估并标 assumed
+    assert.ok(p.bitDepth >= 10, '缺位深时应按 ≥10 bit 估，实际 ' + p.bitDepth);
+    if (p.bitAssumed) near(p.bandwidth, (p.camera.w * 10 * p.rate * 1000) / 8 / 1e6, 1e-6, '按 10 bit 的带宽');
     assert.ok(p.camera.w >= p.wNeed, '像素数应不少于需求');
     assert.ok(p.rateOk, '行频应满足');
     // 精度：达标的档必须真的达标；不达标的档要如实标出来，不能悄悄当达标
