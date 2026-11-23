@@ -338,11 +338,13 @@
     persistDraft();
     if (!sel.camera || !sel.lens) {
       box.innerHTML = '<div class="combo-empty">先选一台相机和一支镜头，系统会按上面的需求立即逐项评定；光源可稍后补。</div>';
+      lastScore = null; lastGrade = null;
       return;
     }
     var ev = E.evaluateCombo(readReq(), sel);
     if (!ev.ok) {
       box.innerHTML = '<div class="combo-empty">' + esc(ev.error) + '</div>';
+      lastScore = null; lastGrade = null;
       return;
     }
     var fails = ev.checks.filter(function (x) { return x.level === 'fail'; }).length;
@@ -395,6 +397,7 @@
         '<button class="btn primary" id="applyBtn">应用到选型助手</button>' +
         '<button class="btn" id="copyBtn">复制评定</button>' +
       '</div>' +
+      '<div class="combo-meter ' + tagCls + '"><i></i></div>' +
       '<div class="req-line">' + reqLine + '</div>' +
       '<div class="combo-picks">' + pickChip('📷', 'camera') + pickChip('🔍', 'lens') + pickChip('💡', 'light') + '</div>' +
       '<div class="combo-body">' +
@@ -407,10 +410,32 @@
           '<div class="combo-chips">' + chips + '</div>' +
         '</div>' +
       '</div>';
+
+    // 分数条与等级徽章：只在数值/等级真的变了才播，连续调参不会一路闪
+    var bar = box.querySelector('.combo-meter i');
+    if (bar) {
+      var pct = Math.max(0, Math.min(100, ev.score)) + '%';
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      if (lastScore == null || ev.score !== lastScore) {
+        void bar.offsetWidth;          // 先把 0% 提交为当前值，再放开过渡（不依赖 rAF，后台标签页也生效）
+        bar.style.transition = '';
+        bar.style.width = pct;
+      } else {
+        bar.style.width = pct;         // 分数没变：直接到位，不重播
+      }
+    }
+    var tagEl = box.querySelector('.combo-grade .tag');
+    if (tagEl && (lastGrade == null || ev.grade !== lastGrade)) tagEl.classList.add('pop');
+    lastScore = ev.score;
+    lastGrade = ev.grade;
+
     lastEval = ev;
   }
 
   var lastEval = null;
+  var lastScore = null;
+  var lastGrade = null;
   var evalTimer = 0;
   function scheduleEval() {
     clearTimeout(evalTimer);

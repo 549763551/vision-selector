@@ -69,19 +69,26 @@
 
   /* ---------- 类别标签 ---------- */
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
+  /* 类别页签与主页导航同构：无底框，文字 + 一条会滑到新位置的青线 */
+  .tabs-host { position: relative; }
   .tabs {
-    display: flex; flex-wrap: wrap; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+    display: flex; flex-wrap: wrap; gap: 2px 20px; overflow-x: auto; padding: 0 0 7px;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 0 0 auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-    border-radius: 3px; padding: 8px 12px; font-size: 13.5px; font-family: inherit; cursor: pointer;
-    white-space: nowrap; transition: all .15s;
+    flex: 0 0 auto; border: 0; background: none; color: var(--muted);
+    border-radius: 0; padding: 6px 0 4px; font-size: 13.5px; font-family: inherit; cursor: pointer;
+    white-space: nowrap; line-height: 1.5; transition: color .15s;
   }
-  .tab small { color: var(--muted); font-size: 12.5px; margin-left: 5px; }
-  .tab.on { background: linear-gradient(180deg, #0e7490, #0e7490); border-color: transparent; color: #fff; }
-  .tab.on small { color: rgba(255,255,255,.85); }
+  .tab small { color: var(--muted); font-size: 12px; margin-left: 5px; font-variant-numeric: tabular-nums; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--accent); font-weight: 600; }
+  .tab.on small { color: var(--accent); opacity: .72; }
+  .tab-ind {
+    position: absolute; left: 0; top: 0; width: 0; height: 2px; border-radius: 1px;
+    background: var(--accent); opacity: 0; pointer-events: none;
+  }
 
   /* ---------- 筛选区 ---------- */
   .filters {
@@ -265,7 +272,12 @@
     font-size: 12.5px; z-index: 40; box-shadow: 0 12px 30px -12px rgba(15, 23, 42, .6);
     align-items: center; gap: 10px; max-width: min(92vw, 680px);
   }
-  .cmp-tray.show { display: flex; }
+  /* 底部托盘出现时上滑一下：transform 里必须带上 translateX(-50%)，否则居中会丢 */
+  @keyframes trayUp {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .cmp-tray.show { display: flex; animation: trayUp .22s cubic-bezier(.22, .61, .36, 1) both; }
   .inquiry-tray { bottom: 70px; background: #14532d; }
   .inquiry-tray .t-go { background: #0f766e; }
   .inquiry-tray .t-clear { background: rgba(255, 255, 255, .14); }
@@ -418,6 +430,15 @@
     align-items: flex-end; justify-content: center; padding: 0;
   }
   .mask.show { display: flex; }
+  /* 打开详情只做「面板滑进来」这一件事：每次 show 都是新 display，动画自然只播一次 */
+  @keyframes maskIn { from { background: rgba(15, 23, 42, 0); } }
+  @keyframes sheetRise { from { opacity: 0; transform: translateY(22px); } }
+  @keyframes sheetUp { from { transform: translateY(100%); } }
+  .mask.show { animation: maskIn .2s ease-out both; }
+  .mask.show .sheet { animation: sheetRise .24s cubic-bezier(.22, .61, .36, 1) both; }
+  @media (max-width: 639px) {
+    .mask.show .sheet { animation-name: sheetUp; animation-duration: .26s; }
+  }
   .sheet {
     background: var(--panel); width: 100%; max-width: 640px; min-width: 0; max-height: 86vh; overflow-y: auto;
     border-radius: 3px 3px 0 0; padding: 0 0 16px;
@@ -509,10 +530,15 @@
   /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
   tbody tr { transition: background-color .12s ease; }
   :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
+  /* 切页签才播一次；搜索 / 筛选 / 翻页不播，否则每敲一个字列表都在抖 */
+  @keyframes listIn { from { opacity: 0; transform: translateY(6px); } }
+  .list-in { animation: listIn .26s ease-out both; }
 
   @media (prefers-reduced-motion: reduce) {
     tbody tr { transition: none; }
-    
+    .list-in, .mask.show, .mask.show .sheet { animation: none; }
+    .cmp-tray.show { animation: none; }
+    .tab-ind { transition: none !important; }
   }
 </style>
 </head>
@@ -540,7 +566,10 @@
 </div>
 
 <div class="wrap">
-  <div class="tabs" id="tabs"></div>
+  <div class="tabs-host">
+    <div class="tabs" id="tabs"></div>
+    <span class="tab-ind" id="tabInd" aria-hidden="true"></span>
+  </div>
   <div class="filters" id="filters"></div>
   <div class="f-result" id="resultInfo"></div>
   <div class="eol-banner" id="eolBanner" hidden></div>
@@ -1685,6 +1714,7 @@
   function selKey(def) { return state.cat + '.' + def.k; }
 
   var $tabs = document.getElementById('tabs');
+  var $tabInd = document.getElementById('tabInd');
   var $filters = document.getElementById('filters');
   var $thead = document.getElementById('thead');
   var $tbody = document.getElementById('tbody');
@@ -2057,6 +2087,41 @@
       return '<button class="tab' + (state.cat === c.key ? ' on' : '') + '" data-cat="' + c.key + '">' +
         esc(c.name) + '<small>' + n + '</small></button>';
     }).join('');
+    positionTabInd(true);
+  }
+
+  /* 指示线：同一行内滑到新页签，换行时瞬移（跨行滑过去会横穿别的页签，反而更乱）。
+     它是 tabs 的兄弟节点，不会被 renderTabs 的 innerHTML 重建，所以能保留上一帧位置做过渡。 */
+  var tabIndTop = -1;
+  function positionTabInd(animate) {
+    if (!$tabInd) return;
+    var on = $tabs.querySelector('.tab.on');
+    if (!on) { $tabInd.style.opacity = '0'; return; }
+    var hb = $tabInd.parentNode.getBoundingClientRect();
+    var rb = on.getBoundingClientRect();
+    var top = Math.round(rb.top - hb.top + rb.height - 1);
+    var sameRow = top === tabIndTop;
+    $tabInd.style.transition = (animate && sameRow)
+      ? 'left .24s cubic-bezier(.22, .61, .36, 1), width .24s cubic-bezier(.22, .61, .36, 1)'
+      : 'none';
+    $tabInd.style.left = (rb.left - hb.left) + 'px';
+    $tabInd.style.width = rb.width + 'px';
+    $tabInd.style.top = top + 'px';
+    $tabInd.style.opacity = '1';
+    tabIndTop = top;
+  }
+  $tabs.addEventListener('scroll', function () { positionTabInd(false); }, { passive: true });
+  window.addEventListener('resize', function () { positionTabInd(false); });
+
+  // 切页签时整片淡入一次；搜索 / 筛选 / 翻页不播（每敲一个字都抖一下很难受）
+  var drawnCat = null;
+  function fadeInList() {
+    [document.querySelector('.tbl-wrap'), $cards].forEach(function (el) {
+      if (!el || getComputedStyle(el).display === 'none') return;
+      el.classList.remove('list-in');
+      void el.offsetWidth;
+      el.classList.add('list-in');
+    });
   }
 
   function renderFilters() {
@@ -2270,6 +2335,11 @@
 
     renderTable(filtered, slice);
     renderCards(slice, filtered);
+    if (drawnCat !== state.cat) {
+      var firstPaint = drawnCat === null;
+      drawnCat = state.cat;
+      if (!firstPaint) fadeInList();
+    }
 
     var nEol = filtered.filter(function (it) { return it.retired; }).length;
     $result.innerHTML = (state.cat === 'fav' && !favLoad().length)

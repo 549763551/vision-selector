@@ -100,6 +100,7 @@
           '</div>' +
         '</div>' +
         '<p class="cdesc">' + esc(combo.desc) + '</p>' +
+        '<div class="cprog" data-role="prog"><i></i></div>' +
         '<div class="cform">' + combo.sections.map(function (sec) {
           return '<div class="fsec"><div class="fsec-h">' + esc(sec.title) + '</div>' +
                  '<div class="fields">' +
@@ -172,7 +173,7 @@
     var autos = parts.length ? ['自动带入：' + parts.join('、') + '（来自「' + srcs.join('」「') + '」）'] : [];
     return '<div class="rcard ' + esc(item.tone) + '">' +
            '<div class="rhead"><h4>' + esc(item.title) + '</h4>' +
-           '<span class="rtag">' + esc(show(item.result.value)) +
+           '<span class="rtag" data-item="' + esc(item.id) + '">' + esc(show(item.result.value)) +
            (item.result.unit ? ' ' + esc(item.result.unit) : '') + '</span></div>' +
            '<div class="rsym">' + esc(item.sym) + '</div>' +
            '<div class="verdict ' + esc(item.tone) + '">' + esc(item.verdict) + '</div>' +
@@ -206,8 +207,24 @@
     if (stat) stat.textContent = statText(out);
     var res = root.querySelector('[data-role="res"]');
     if (res) {
+      // 结果标签重建前先记下旧值：只有数值真的变了才闪一下，输错退回不闪
+      var prevVals = {};
+      res.querySelectorAll('.rtag[data-item]').forEach(function (el) {
+        prevVals[el.getAttribute('data-item')] = el.textContent;
+      });
       res.innerHTML = out.items.map(function (it) { return resultHTML(combo, it); }).join('');
       res.className = 'cres' + (out.items.length === 1 ? ' one' : '');
+      res.querySelectorAll('.rtag[data-item]').forEach(function (el) {
+        if (prevVals[el.getAttribute('data-item')] !== el.textContent) el.classList.add('flash');
+      });
+    }
+    // 组内进度：已算出的公式占比，只有这个数字会连续变，所以用宽度过渡最不容易抖
+    var prog = root.querySelector('[data-role="prog"]');
+    if (prog) {
+      var p = out.total ? out.done / out.total : 0;
+      prog.className = 'cprog' + (p > 0 ? ' on' : '') + (p >= 1 ? ' done' : '');
+      var fill = prog.querySelector('i');
+      if (fill) fill.style.width = Math.round(p * 100) + '%';
     }
     combo.fields.forEach(function (fd) {
       var wrap = root.querySelector('.field[data-fk="' + fd.key + '"]');

@@ -72,6 +72,10 @@
   .toolbar .anchor:hover, .toolbar button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
   .toolbar .sep { flex: 1 1 auto; }
   section { scroll-margin-top: 64px; }
+  /* 顶栏锚点跳转：只在用户没要求减少动效时做平滑滚动 */
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
 
   /* ---------- 组合卡片 ---------- */
   .combo {
@@ -88,6 +92,15 @@
   .cbtns { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
   .cbtns .btn { font-size: 11px; padding: 5px 9px; }
   .cdesc { margin: 4px 0 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+  /* 组内进度：已算出的公式占比。宽度用过渡，跟输入走但不抖；
+     0 个结果时整条淡出，免得像一条无意义的分隔线 */
+  .cprog { height: 3px; margin: 0 0 8px; background: #eef2f7; border-radius: 2px; overflow: hidden; opacity: 0; transition: opacity .2s ease; }
+  .cprog.on { opacity: 1; }
+  .cprog i {
+    display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px;
+    transition: width .4s cubic-bezier(.22, .61, .36, 1);
+  }
+  .cprog.done i { background: var(--ok); }
   .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px 9px; }
   .fsec + .fsec { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
   .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 4px; }
@@ -132,6 +145,12 @@
   .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
   .rcard.bad .rtag { color: var(--bad); background: var(--bad-bg); }
   .rtag.wait { color: var(--muted); background: #f1f5f9; }
+  /* 数值变了才闪：温和外扩光晕，不改配色，长列表里也不会抢眼 */
+  @keyframes rtFlash {
+    0% { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(14, 116, 144, .18); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 116, 144, 0); }
+  }
+  .rtag.flash { animation: rtFlash .5s cubic-bezier(.22, .61, .36, 1) both; }
   .rsym { font-size: 11.5px; color: var(--muted); margin: 2px 0 5px; word-break: break-word; }
   .verdict {
     border-radius: 3px; padding: 5px 9px; font-size: 12px; font-weight: 600;
@@ -260,7 +279,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     tbody tr { transition: none; }
-    
+    .rtag.flash { animation: none; }
+    .cprog i { transition: none; }
   }
 </style>
 </head>

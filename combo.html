@@ -193,6 +193,22 @@
   .combo-sub { font-size: 12.5px; color: var(--muted); }
   .combo-head .btn { margin-left: 0; }
   .combo-head .btn.primary { margin-left: auto; }
+  /* 分数条：贴在评定卡片下沿，宽度只在分数变化时从 0 长到目标 */
+  .combo-meter { height: 3px; margin: -1px 0 0; background: #eef2f7; border-radius: 0 0 3px 3px; overflow: hidden; }
+  .combo-meter i {
+    display: block; height: 100%; width: 0; border-radius: 2px; background: var(--accent);
+    transition: width .5s cubic-bezier(.22, .61, .36, 1);
+  }
+  .combo-meter.ok i { background: #16a34a; }
+  .combo-meter.warn i { background: #d97706; }
+  .combo-meter.bad i { background: #dc2626; }
+  /* 等级徽章只在等级变了时弹一下，避免每敲一个数字都重播 */
+  @keyframes tagPop {
+    0% { opacity: 0; transform: scale(.86) translateY(3px); }
+    62% { opacity: 1; transform: scale(1.05) translateY(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .tag.pop { animation: tagPop .32s cubic-bezier(.34, 1.4, .64, 1) both; }
   .tag {
     font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 3px;
     background: #f1f5f9; color: #475569; white-space: nowrap;
@@ -352,7 +368,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     tbody tr { transition: none; }
-    
+    .tag.pop { animation: none; }
+    .combo-meter i { transition: none; }
   }
 </style>
 </head>
