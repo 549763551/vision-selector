@@ -83,6 +83,9 @@
 
   var APERTURES = [2.8, 4, 5.6, 8, 11, 16, 22];
   var LAMBDA_UM = 0.55;
+  // 衍射弥散上限：超过这个像素数就算「光圈收过头、白丢分辨率」。
+  // 2.5 px 会让「40 mm 幅面 + 1 mm 高度差」这类正常需求无解（收光圈换景深必然衍射超标），放到 3 px。
+  var DIFF_LIMIT_PX = 3;
 
   // 手册只印一档 F 数的是固定光圈镜头（大恒 M*-MPW2-R / RV·FV·MV、海康 MVL-KF·HF），
   // 没有收光圈的余地：光圈上限必须取它自己那一档，不能按「可调到 F22」算景深。
@@ -1736,7 +1739,7 @@
     var stop = stops.length ? stops[0] : null;
     var stopDof = stop ? (2 * stop * cc * (1 + m)) / (m * m) : null;
     var stopBlur = stop ? (2.44 * LAMBDA_UM * stop) / (pxSizeMM * 1000) : null;
-    var canStopDown = !!(stop && stopBlur <= 2.5);
+    var canStopDown = !!(stop && stopBlur <= DIFF_LIMIT_PX);
     var fixedAp = lens.fmax == null && lens.fmin != null;
     var dofOK = dof >= inp.heightDiff;
     var apertureNote;
@@ -1746,14 +1749,14 @@
     } else if (!dofOK) {
       apertureNote = '已收到该镜头最小光圈 F' + ap + '，景深 ' + fmt(dof) + ' mm 仍小于高度变化 ' +
         fmt(inp.heightDiff) + ' mm，建议换远心镜头或减小高度差';
-    } else if (blurPx > 2.5) {
-      apertureNote = 'F' + ap + ' 下衍射 ' + fmt(blurPx) + ' px 已超过 2.5 px，建议开大光圈（景深会变小）或换大像元相机';
+    } else if (blurPx > DIFF_LIMIT_PX) {
+      apertureNote = 'F' + ap + ' 下衍射 ' + fmt(blurPx) + ' px 已超过 ' + DIFF_LIMIT_PX + ' px，建议开大光圈（景深会变小）或换大像元相机';
     } else if (!stop) {
       apertureNote = '已是该镜头可用的最小光圈（F' + ap + '），衍射 ' + fmt(blurPx) + ' px';
     } else if (canStopDown) {
       apertureNote = '需要更大景深可收至 F' + stop + '（景深 ' + fmt(stopDof) + ' mm，衍射 ' + fmt(stopBlur) + ' px）';
     } else {
-      apertureNote = '不宜再收小：F' + stop + ' 时衍射 ' + fmt(stopBlur) + ' px 已超过 2.5 px';
+      apertureNote = '不宜再收小：F' + stop + ' 时衍射 ' + fmt(stopBlur) + ' px 已超过 ' + DIFF_LIMIT_PX + ' px';
     }
 
     /* ---- 曝光：运动时受「模糊 ≤ 1 像素」限制；静态给常用起始值 ---- */
@@ -1918,7 +1921,7 @@
     if (margin >= 0 && margin < 0.15) focus.push('精度余量仅 ' + Math.round(margin * 100) + '%，重点看重复性与标定');
     if (budget && budget.ratio > 0.8) focus.push('精度预算已占 ' + Math.round(budget.ratio * 100) + '%，先做标准件复核再验收');
     if (isFinite(tMaxMs) && tMaxMs < 1) focus.push('曝光上限仅 ' + fmt(tMaxMs, 3) + ' ms，重点验证频闪同步与亮度');
-    if (blurPx > 2) focus.push('衍射 ' + fmt(blurPx, 2) + ' px 接近 2.5 px 上限，不要再收小光圈');
+    if (blurPx > DIFF_LIMIT_PX - 1) focus.push('衍射 ' + fmt(blurPx, 2) + ' px 接近 ' + DIFF_LIMIT_PX + ' px 上限，不要再收小光圈');
     if (space && space.pass === false) focus.push('安装空间不足，先解决机械干涉再谈精度');
     if (focus.length > 4) focus = focus.slice(0, 4);
     return { items: items, focus: focus };
@@ -2061,10 +2064,13 @@
     var dofGap = m.heightDiff > 0 ? (m.heightDiff - m.dof) / m.heightDiff : (m.dofOK ? 0 : 1);
     d('景深不足', '景深', ramp(dofGap, 15, 0.5),
       '景深 ' + fmt(m.dof) + ' mm < 高度变化 ' + fmt(m.heightDiff) + ' mm');
-    d('衍射限制', '衍射', ramp(m.blurPx - 2.5, 8, 2.5),
+    d('衍射限制', '衍射', ramp(m.blurPx - DIFF_LIMIT_PX, 8, 2.5),
       'F' + m.ap + ' 下衍射弥散约 ' + fmt(m.blurPx) + ' 像素');
-    d('曝光上限过短', '曝光上限', ramp(1 - m.tMaxMs, 6, 1),
-      '最长 ' + fmt(m.tMaxMs) + ' ms，需频闪光源 + 触发同步');
+    // 曝光上限不再拿「1 ms」当门槛：0.0375 mm/px + 200 mm/s 下上限本来就只有 0.19 ms，
+    // 任何相机都过不了，只会把可交付方案标成未通过。真正卡人的是「短于该相机最短曝光」；
+    // 频闪与亮度要求已分别进现场参数与风险提示。
+    d('曝光短于相机下限', '曝光上限', ramp(m.expMinGap || 0, 8, 1),
+      '最长 ' + fmt(m.tMaxMs) + ' ms 短于该相机最短曝光，需降速或换机型');
     d('焦距档位偏离', '焦距档位', ramp(m.fErr - 0.15, 8, 0.35),
       '最接近焦距与理论值差 ' + Math.round(m.fErr * 100) + '%');
     d('视场过剩', '视场利用', ramp(m.fovOver - 0.2, 6, 0.5),
@@ -2073,8 +2079,6 @@
       '需要 ' + m.fps + ' fps，相机最高 ' + m.camFps + ' fps');
     d('带宽超限', '带宽', ramp(m.bandwidth - m.ifaceCap, 10, Math.max(1, m.ifaceCap)),
       fmt(m.bandwidth) + ' MB/s 超过 ' + m.camIface + ' 有效带宽约 ' + fmt(m.ifaceCap) + ' MB/s');
-    d('曝光短于相机下限', '最短曝光', ramp(m.expMinGap || 0, 8, 1),
-      '所需曝光短于该相机最短曝光，需降速或换机型');
     if (m.adapter) d('需转接环', '转接环', 3, 'C 口镜头经转接环装大口径机身，法兰距与像面余量需确认');
 
     var total = 0;
@@ -2322,8 +2326,8 @@
     if (canFocus) {
       chk('系统', '景深', '≥ ' + fmt(inp.heightDiff) + ' mm', fmt(dof) + ' mm（F' + ap + '）',
         dofOK ? 'pass' : 'warn', dofOK ? '' : '工件高度变化超过景深，可能失焦；收小光圈或改用远心镜头');
-      chk('系统', '衍射弥散', '≤ 2.5 px', fmt(blurPx) + ' px（F' + ap + '）',
-        blurPx <= 2.5 ? 'pass' : 'warn', blurPx <= 2.5 ? '' : '光圈收得过小，衍射已影响分辨率');
+      chk('系统', '衍射弥散', '≤ ' + DIFF_LIMIT_PX + ' px', fmt(blurPx) + ' px（F' + ap + '）',
+        blurPx <= DIFF_LIMIT_PX ? 'pass' : 'warn', blurPx <= DIFF_LIMIT_PX ? '' : '光圈收得过小，衍射已影响分辨率');
     }
     chk('系统', '曝光上限', inp.speed > 0 ? '≥ 1 ms' : '静态',
       isFinite(tMaxMs) ? fmt(tMaxMs, 3) + ' ms' : '—',
@@ -2714,7 +2718,8 @@
         warnings.push({
           level: 'warn',
           text: '型号库内单相机方案无法满足：需要 ' + needW + ' × ' + needH + ' 像素（' +
-            fmt(inp.fovW / pxAccReq) + ' mm/px）。建议线扫相机、多相机拼接，或把视野分段检测。'
+            fmt(inp.fovW / pxAccReq) + ' mm/px）。建议线扫相机、多相机拼接，或把视野分段检测' +
+            (inp.lineScanFirst ? '。' : '（勾选左侧「优先线扫方案」可算出多机拼接的台数与排布）。')
         });
       }
     }
@@ -2806,7 +2811,7 @@
     if (!dofOK) {
       warnings.push({ level: 'warn', text: '景深 ' + fmt(dof) + ' mm 小于工件高度变化 ' + fmt(inp.heightDiff) + ' mm，建议用远心镜头、缩小光圈或减小高度差。' });
     }
-    if (blurPx > 2.5) {
+    if (blurPx > DIFF_LIMIT_PX) {
       warnings.push({ level: 'warn', text: '衍射极限约 ' + fmt(blurPx) + ' 像素（F' + ap + '），已影响分辨率；建议开大光圈或改用更大像元相机。' });
     }
     if (tMaxMs < 1) {
@@ -2986,8 +2991,9 @@
     // 扩展建议：面阵搞不定（或用户勾选“优先线扫”）时给具体线扫型号；高精度/景深不足时给远心系列
     var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
     var lineScan = (!feasible || inp.lineScanFirst) ? suggestLineScan(inp, needW, pxAccReq, isColor) : null;
-    // 单台线扫覆盖不了整幅时给多机拼接（单台够用则返回 null，不打扰主方案）
-    var lineScanStitch = (!feasible || inp.lineScanFirst) ? suggestLineScanStitch(inp, needW, pxAccReq, isColor) : null;
+    // 单台线扫覆盖不了整幅时给多机拼接。只在用户主动勾了「优先线扫」时才给：
+    // 面阵不可行不代表要拼线扫，不勾时连拼接卡一起收起来（单台线扫建议照旧给）。
+    var lineScanStitch = inp.lineScanFirst ? suggestLineScanStitch(inp, needW, pxAccReq, isColor) : null;
     if (lineScan && inp.lineScanFirst && feasible) {
       lineScan.note = '已按需求优先给出线扫方案（面阵方案：' + cam.model + ' 亦可满足精度 ' + fmt(pxAcc, 4) + ' mm/px）。' + (lineScan.note || '');
     }

@@ -426,12 +426,13 @@ test('匹配度 0~100', () => {
   assert.ok(r.score >= 0 && r.score <= 100, 'score=' + r.score);
 });
 
-test('核查清单：常规需求 10 项全通过，与扣分项同源', () => {
+test('核查清单：常规需求 9 项全通过，与扣分项同源', () => {
   const r = Engine.solve(base());
   const chk = r.checks;
   assert.ok(Array.isArray(chk), 'checks 不是数组');
-  assert.strictEqual(chk.length, 10, '核查项数 ' + chk.length);
-  assert.strictEqual(chk.filter((c) => c.ok).length, 10, '全通过时应有 10 项 ok');
+  // 「曝光上限」与「最短曝光」原本是同一件事的两条，已合并成一条（否则一项不足会扣两次分）
+  assert.strictEqual(chk.length, 9, '核查项数 ' + chk.length);
+  assert.strictEqual(chk.filter((c) => c.ok).length, 9, '全通过时应有 9 项 ok');
   assert.strictEqual(r.scoreItems.length, 0, '全通过时不应有扣分项');
   chk.forEach((c) => {
     assert.ok(typeof c.label === 'string' && c.label, '核查项缺少名称');
@@ -440,10 +441,29 @@ test('核查清单：常规需求 10 项全通过，与扣分项同源', () => {
   });
 });
 
+test('曝光上限只跟相机最短曝光比：高速场景不因「< 1 ms」被判未通过', () => {
+  // 0.0375 mm/px × 200 mm/s → 上限 0.19 ms，任何相机都达不到 1 ms；频闪要求归现场参数与风险提示
+  const r = Engine.solve(base({ fovW: 60, fovH: 45, precision: 0.15, task: 'ocr', wd: 200, speed: 200 }));
+  const ex = r.checks.filter((c) => c.label === '曝光上限')[0];
+  assert.ok(ex, '应有曝光上限核查项');
+  assert.ok(ex.ok, '高速短曝光不应判未通过，实际 ' + ex.detail);
+  assert.ok(r.checks.filter((c) => c.label === '最短曝光').length === 0, '不应再有重复的「最短曝光」项');
+  assert.strictEqual(r.checks.filter((c) => !c.ok).length, 0, '该场景应 9 项全通过');
+  assert.ok(r.warnings.some((w) => /频闪/.test(w.text)), '频闪要求仍应在风险提示里');
+});
+
+test('衍射上限 3 px：收光圈换景深不再一律判未通过', () => {
+  // 40 mm 幅面 + 1 mm 高度差：F5.6 才够景深，2.5 µm 像元下衍射 3.0 px
+  const r = Engine.solve(base({ fovW: 40, fovH: 30, precision: 0.05, task: 'measure', wd: 260, material: 'glass', heightDiff: 1 }));
+  const d = r.checks.filter((c) => c.label === '衍射')[0];
+  assert.ok(d, '应有衍射核查项');
+  assert.ok(d.ok, '3.0 px 应落在 3 px 上限内，实际：' + d.detail);
+});
+
 test('核查清单：不达标时扣分项与未通过项对得上', () => {
   // 精度要求远超型号库能力 → 必有未通过的核查项，且扣分项数量与之一致
   const r = Engine.solve(base({ precision: 0.0005 }));
-  assert.ok(r.checks.length >= 10, '核查项数 ' + r.checks.length);
+  assert.ok(r.checks.length >= 9, '核查项数 ' + r.checks.length);
   const bad = r.checks.filter((c) => !c.ok).length;
   assert.strictEqual(bad, r.scoreItems.length, '未通过 ' + bad + ' 项，扣分项 ' + r.scoreItems.length + ' 项');
   assert.ok(bad > 0, '极端需求下应有未通过项');
@@ -1629,6 +1649,13 @@ test('单台线扫够用 / 面阵可行时不推拼接', () => {
   assert.strictEqual(one.lineScanStitch, null, '单台够用不应给拼接');
   const normal = E.solve(base({ fovW: 300, fovH: 200, precision: 0.2 }));
   assert.strictEqual(normal.lineScanStitch, null, '未勾线扫优先且面阵可行时不应出现拼接');
+  // 面阵不可行不等于要拼线扫：没勾就当没这回事，但在风险提示里指路
+  const huge = E.solve(base({ fovW: 1200, fovH: 900, precision: 0.05, wd: 400, speed: 200 }));
+  assert.strictEqual(huge.feasible, false, '该幅面面阵应不可行');
+  assert.strictEqual(huge.lineScanStitch, null, '未勾线扫优先时面阵不可行也不应出现拼接');
+  assert.ok(huge.warnings.some((w) => /优先线扫/.test(w.text)), '不可行提示应指向「优先线扫」勾选');
+  const on = E.solve(base({ fovW: 1200, fovH: 900, precision: 0.05, wd: 400, speed: 200, lineScanFirst: true }));
+  assert.ok(on.lineScanStitch && on.lineScanStitch.ok, '勾选后应给拼接方案');
 });
 
 test('幅面超单台时给多机方案：覆盖 / 精度 / 像素 / 行频自洽', () => {
