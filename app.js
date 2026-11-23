@@ -754,6 +754,19 @@
           ' mm　' + (ls.lineLight.power || '—') + ' W' : '—') +
         '<br><span style="color:#64748b">' + esc(ls.note) + '</span>'));
     }
+    if (r.lineScanStitch && r.lineScanStitch.ok) {
+      var sg = r.lineScanStitch, bp = sg.best;
+      // 三行：配置 / 几何与精度 / 链路 + 入口。四行会把「达标」挤到单独一行，读起来散
+      items.push(block('线扫多机拼接（单台覆盖不了 ' + num(sg.totalW, 0) + ' mm 幅面）',
+        '<b>' + bp.n + ' 台 ' + esc(bp.camera.model) + '</b>' +
+        (bp.lens ? '　+ ' + esc(bp.lens.model) + '（' + bp.lens.focal + ' mm）' : '　镜头需另配') +
+        '<br>单台视场 ' + num(bp.fovPer, 0) + ' mm　光轴间距 ' + num(bp.pitch, 0) + ' mm　重叠 ' +
+        num(bp.overlapW, 0) + ' mm（' + Math.round(bp.overlapPct * 100) + '%）　精度 ' +
+        n4(bp.pxAcc) + ' mm/px ' +
+        (bp.accOk ? '<span class="ok-mark">达标</span>' : '<span style="color:#b91c1c">超差</span>') +
+        '<br>合计带宽 ' + num(bp.bandwidthTotal, 0) + ' MB/s　' +
+        '<a class="lib-link" data-stitch-jump role="button" tabindex="0">台数对比与排布 ↗</a>'));
+    }
     if (r.telecentric) {
       var t = r.telecentric;
       items.push(block('远心镜头（高精度 / 景深不足时）',
@@ -1568,6 +1581,14 @@
           if (!seg) return;
           detailWrap.open = true;
           jumpTo(document.getElementById('card-' + seg.getAttribute('data-goto')));
+        });
+      }
+      // 扩展建议里的拼接结论：一句结论在首屏，细节在详细方案，点一下过去
+      if ($('suggest')) {
+        $('suggest').addEventListener('click', function (e) {
+          if (!e.target.closest('[data-stitch-jump]')) return;
+          detailWrap.open = true;
+          jumpTo($('stitchSec'));
         });
       }
     }

@@ -137,7 +137,8 @@ def parse_page(doc, pno, iface):
         m = re.search(r'\*?L\d{3,4}[A-Z0-9]{2,8}', model)
         if not m:
             continue
-        model = m.group(0)
+        # 前导 '*' 是手册表格里的新品脚注标记，不是型号的一部分（官方 datasheet 无星号）
+        model = m.group(0).lstrip('*')
 
         # 分辨率：2048 x 4 / 4096*2 → w, taps
         res = cells.get('res', '').replace(' ', '')

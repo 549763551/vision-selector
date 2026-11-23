@@ -291,7 +291,9 @@
   .kv b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; flex: 0 1 auto; min-width: 0; }
   .kv-block { padding: 9px 0; border-top: 1px dashed #eef2f7; font-size: 13.5px; }
   .kv-block:first-of-type { border-top: 1px solid #eef2f7; }
-  .kv-block span { display: block; color: var(--muted); margin-bottom: 4px; }
+  .kv-block > span { display: block; color: var(--muted); margin-bottom: 4px; }
+  /* 值里的行内标记（达标 / 超差 等）必须留在行内，别继承标签的 block */
+  .kv-block p span { display: inline; color: inherit; margin: 0; }
   .kv-block p { margin: 0; line-height: 1.65; color: #1e293b; word-break: break-word; }
   .why { margin: 14px 0 0; padding: 0; list-style: none; }
   .why li { position: relative; padding-left: 16px; margin-bottom: 7px; font-size: 13.5px; line-height: 1.7; color: #475569; }
