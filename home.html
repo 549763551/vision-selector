@@ -465,63 +465,19 @@
 <div class="foot"><div class="foot-in" id="foot"></div></div>
 
 <script src="brands.js"></script>
-<script src="hikrobot-catalog.js"></script>
-<script src="hikrobot-3d-catalog.js"></script>
-<script src="hikrobot-ipc-catalog.js"></script>
-<script src="hikrobot-ir-catalog.js"></script>
-<script src="huarui-catalog.js"></script>
-<script src="basler-catalog.js"></script>
-<script src="basler-lens-catalog.js"></script>
-<script src="basler-light-catalog.js"></script>
-<script src="daheng-catalog.js"></script>
-<script src="opt-catalog.js"></script>
-<script src="opt-lens-catalog.js"></script>
-<script src="opt-light-catalog.js"></script>
-<script src="opt-ctrl-catalog.js"></script>
-<script src="cst-catalog.js"></script>
+<script src="home-stats.js"></script>
 <script src="docs-data.js"></script>
 <!-- 康视达只挂主页/产品库：index.html 与 combo.html 不引，选型链不含该品牌 -->
 <!-- opt-misc-catalog.js（智能相机/传感器/测量运控 1228 款）数据已备份，产品线类型不扩张，暂不引入 -->
 <script>
 (function () {
   'use strict';
-  var SRC = { hikrobot: 'HikrobotCatalog', huarui: 'HuaruiCatalog', basler: 'BaslerCatalog', daheng: 'DahengCatalog', opt: 'OptCatalog', cst: 'CstCatalog' };
-  var metas = {};
-  var allMetas = [];
-  var n = { cam: 0, line: 0, lens: 0, tele: 0, light: 0, ctrl: 0, prof: 0, ipc: 0, ir: 0 };
-  var total = 0;
-  Object.keys(SRC).forEach(function (bk) {
-    var c = window[SRC[bk]];
-    if (!c) return;
-    metas[bk] = c.META || {};
-    if (c.META) allMetas.push({ brand: bk, meta: c.META });
-    n.cam += (c.CAMERAS || []).length;
-    n.line += (c.LINESCAN || []).length;
-    n.lens += (c.LENSES || []).length;
-    n.tele += (c.TELECENTRIC || []).length;
-    n.light += (c.LIGHTS || []).length;
-    n.ctrl += (c.CONTROLLERS || []).length;
-  });
-  // 附加库：数组 → 类别必须逐个写明。海康 3D 库的 SMART 是 3D 相机，不能算进"智能相机"，
-  // 因此按「库 × 数组」精确归属，而不是见到 SMART 就往 smart 上加。
-  [[window.Hikrobot3DCatalog, 'hikrobot', { prof: ['PROFILERS', 'SMART'] }],
-   [window.HikrobotIpcCatalog, 'hikrobot', { ipc: ['CHASSIS', 'BOARDS'] }],
-   [window.HikrobotIrCatalog, 'hikrobot', { ir: ['IR'] }],
-   [window.BaslerCatalog, 'basler', { prof: ['THREE_D'] }],
-   [window.BaslerLensCatalog, 'basler', { lens: ['LENSES'], tele: ['TELECENTRIC'] }],
-   [window.BaslerLightCatalog, 'basler', { light: ['LIGHTS'], ctrl: ['CONTROLLERS'] }],
-   [window.OptLensCatalog, 'opt', { lens: ['LENSES'], tele: ['TELECENTRIC'] }],
-   [window.OptLightCatalog, 'opt', { light: ['LIGHTS'] }],
-   [window.OptCtrlCatalog, 'opt', { ctrl: ['CONTROLLERS'], ipc: ['IPC'] }]
-  ].forEach(function (p) {
-    var c = p[0], bk = p[1], map = p[2];
-    if (!c) return;
-    if (c.META) allMetas.push({ brand: bk, meta: c.META });
-    Object.keys(map).forEach(function (cat) {
-      map[cat].forEach(function (arr) { n[cat] += (c[arr] || []).length; });
-    });
-  });
-  total = n.cam + n.line + n.lens + n.tele + n.light + n.ctrl + n.prof + n.ipc + n.ir;
+  // 分类计数与品牌 META 由 tools/build-home-stats.js 从型录预生成，主页无需加载型号明细
+  var S = window.HOME_STATS || { n: {}, metas: {}, allMetas: [], total: 0 };
+  var metas = S.metas;
+  var allMetas = S.allMetas;
+  var n = S.n;
+  var total = S.total;
 
   /* ---- 动效工具：一次性数字滚动 + 进入视口才落位；两者都尊重 reduced-motion ---- */
   var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);

@@ -568,25 +568,25 @@
     for (var i = 0; i < n; i++) {
       var bx = x0 + i * P * k;
       var bw = F * k;
-      s2.push('<rect x="' + num(bx, 1) + '" y="' + yb + '" width="' + num(bw, 1) + '" height="' + bh +
+      s2.push('<rect class="st-band" style="--i:' + i + '" x="' + num(bx, 1) + '" y="' + yb + '" width="' + num(bw, 1) + '" height="' + bh +
         '" fill="' + (i % 2 ? '#e0eafc' : '#eff6ff') + '" stroke="#93c5fd"/>');
       // 光轴
       var cx = bx + bw / 2;
-      s2.push('<line x1="' + num(cx, 1) + '" y1="' + (yb - 26) + '" x2="' + num(cx, 1) + '" y2="' + (yb + bh) +
+      s2.push('<line class="st-band" style="--i:' + i + '" x1="' + num(cx, 1) + '" y1="' + (yb - 26) + '" x2="' + num(cx, 1) + '" y2="' + (yb + bh) +
         '" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 3"/>');
       // 相机 + 镜头
-      s2.push('<rect x="' + num(cx - 13, 1) + '" y="' + (yb - 30) + '" width="26" height="13" rx="2.5" fill="#f1f5f9" stroke="#64748b"/>');
-      s2.push('<path d="M' + num(cx - 8, 1) + ' ' + (yb - 17) + ' L' + num(cx + 8, 1) + ' ' + (yb - 17) +
+      s2.push('<rect class="st-band" style="--i:' + i + '" x="' + num(cx - 13, 1) + '" y="' + (yb - 30) + '" width="26" height="13" rx="2.5" fill="#f1f5f9" stroke="#64748b"/>');
+      s2.push('<path class="st-band" style="--i:' + i + '" d="M' + num(cx - 8, 1) + ' ' + (yb - 17) + ' L' + num(cx + 8, 1) + ' ' + (yb - 17) +
         ' L' + num(cx + 11, 1) + ' ' + (yb - 12) + ' L' + num(cx - 11, 1) + ' ' + (yb - 12) + ' Z" fill="#dbeafe" stroke="#93c5fd"/>');
       s2.push('<text x="' + num(cx, 1) + '" y="' + (yb + bh - 8) + '" text-anchor="middle" class="dg-xs" ' +
-        'paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">C' + (i + 1) + '</text>');
+        'class="st-band" style="--i:' + i + '" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">C' + (i + 1) + '</text>');
     }
 
     // 重叠区：斜线填充，宽度 = 单台视场 × 重叠率
     for (var j = 0; j < n - 1; j++) {
       var ox = x0 + ((j + 1) * P) * k;
       var ow = (F - P) * k;
-      s2.push('<rect x="' + num(ox, 1) + '" y="' + yb + '" width="' + num(Math.max(ow, 0.6), 1) + '" height="' + bh +
+      s2.push('<rect class="st-band" style="--i:' + (j + 1) + '" x="' + num(ox, 1) + '" y="' + yb + '" width="' + num(Math.max(ow, 0.6), 1) + '" height="' + bh +
         '" fill="url(#stHatch)" stroke="#f59e0b" stroke-width="0.8"/>');
     }
     s2.push('<defs><pattern id="stHatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
@@ -787,6 +787,9 @@
   /* ---------------- 同系列参数：标签页切换 + 就地结果 ---------------- */
   var SIB_TAB = 'camera';
   var SIB_PULSE = false;
+  var SIB_FADE = false;       // 点选型号 / 恢复自动后，备选面板淡入一次
+  var lastStitchSig = '';     // 拼接排布图只在台数或选型真的变了才按台次入场
+  var stitchAnimSeq = 0;      // 动画收尾用序号防止旧定时器清掉新一轮
 
   /** 自动方案基线：清掉手动指定再算一次，用来显示「比自动方案好/差多少」 */
   function sibBaseline() {
@@ -978,6 +981,15 @@
     if (c.top < b.top + 34 || c.bottom > b.bottom - 4) {
       box.scrollTop += (c.top - b.top) - box.clientHeight / 2 + cur.offsetHeight / 2;
     }
+  }
+
+  /** 备选面板淡入一次：结束时撤掉 class，避免终态卡在半透明 */
+  function pulseSibFade() {
+    var pane = $('siblings').querySelector('.sib-pane.on');
+    if (!pane) return;
+    void pane.offsetWidth;
+    pane.classList.add('sib-in');
+    setTimeout(function () { pane.classList.remove('sib-in'); }, 320);
   }
 
   /* ---------------- 选型依据（与次优对比） ---------------- */
@@ -1195,6 +1207,8 @@
       $('cards').innerHTML = '';
       $('stitch').innerHTML = '';
       $('stitchSec').hidden = true;
+      lastStitchSig = '';
+      $('stitch').classList.remove('st-static');
       $('bom').innerHTML = '';
       $('calcBody').innerHTML = '';
       $('risks').innerHTML = '';
@@ -1237,12 +1251,33 @@
     var stHtml = stitchCard(r);
     $('stitch').innerHTML = stHtml;
     $('stitchSec').hidden = !stHtml;
+    // 排布图：只在台数 / 相机 / 几何真的变了才按台次入场；连续调参重算不重播
+    if (!stHtml) {
+      lastStitchSig = '';
+      $('stitch').classList.remove('st-static');
+    } else {
+      var sg = r.lineScanStitch.best;
+      var sig = [r.lineScanStitch.totalW, sg.n, sg.camera.model, Math.round(sg.pitch),
+        Math.round(sg.fovPer), Math.round(sg.overlapW)].join('/');
+      if (sig === lastStitchSig) $('stitch').classList.add('st-static');
+      else {
+        $('stitch').classList.remove('st-static');
+        lastStitchSig = sig;
+        // 动画放完撤掉动画类，避免某些浏览器把终态停在首帧
+        var seq = ++stitchAnimSeq;
+        setTimeout(function () { if (seq === stitchAnimSeq) $('stitch').classList.add('st-static'); }, 1100);
+      }
+    }
     $('bom').innerHTML = bomCard(r);
     $('suggest').innerHTML = suggestCard(r);
     // 同系列面板重绘时保留表格滚动位置，避免每次点选都跳回顶部
     var sibBox = document.querySelector('#siblings .sib-pane.on .sib-scroll');
     var sibTop = sibBox ? sibBox.scrollTop : 0;
     $('siblings').innerHTML = siblingCard(r);
+    if (SIB_FADE) {
+      pulseSibFade();
+      SIB_FADE = false;
+    }
     var sibBox2 = document.querySelector('#siblings .sib-pane.on .sib-scroll');
     if (sibBox2) { sibBox2.scrollTop = sibTop; sibEnsureCurrent(); }
     $('site').innerHTML = siteCard(r);
@@ -1521,19 +1556,58 @@
     document.body.removeChild(ta);
   }
 
+  // 链接里携带的固定型号。applyState 会清空 manual，所以要在它之后再回填。
+  var queryPicks = null;
+
   /** 从 URL 读取表单参数，便于把具体需求发给别人 */
   function fromQuery() {
+    var sp;
+    try { sp = new URLSearchParams(location.search); } catch (e) { return {}; }
     var q = {};
-    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm', 'space'].forEach(function (k) {
-      var m = new RegExp('[?&]' + k + '=([\\d.]+)').exec(location.search);
-      if (m) q[k] = parseFloat(m[1]);
+    // 数值项：空串与非法值一律忽略，避免把 NaN 填进输入框
+    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm', 'space',
+      'stitchOverlap', 'stitchMaxCams'].forEach(function (k) {
+      var v = sp.get(k);
+      if (v != null && v !== '' && isFinite(parseFloat(v))) q[k] = parseFloat(v);
     });
     ['task', 'material', 'colorTarget'].forEach(function (k) {
-      var m = new RegExp('[?&]' + k + '=([a-zA-Z_]+)').exec(location.search);
-      if (m) q[k] = m[1];
+      var v = sp.get(k);
+      if (v) q[k] = v;
     });
-    if (/[?&]needColor=1\b/.test(location.search)) q.needColor = true;
+    if (sp.get('needColor') === '1') q.needColor = true;
+    if (sp.get('lineScanFirst') === '1') q.lineScanFirst = true;
+
+    var cam = sp.get('cam'), lens = sp.get('lens'), light = sp.get('light');
+    if (cam || lens || light) queryPicks = { cam: cam || null, lens: lens || null, light: light || null };
     return q;
+  }
+
+  /**
+   * 把「当前需求 + 已固定型号」编码成一条可分享的链接。
+   * 只带真正有值的项，所以默认需求不会生成一长串 ?fovW=&fovH=…
+   */
+  function shareUrl() {
+    var parts = [];
+    ['fovW', 'fovH', 'precision', 'wd', 'heightDiff', 'speed', 'cpm', 'space'].forEach(function (k) {
+      var v = $(k) ? $(k).value : '';
+      if (v !== '' && v != null) parts.push(k + '=' + encodeURIComponent(v));
+    });
+    ['task', 'material', 'colorTarget'].forEach(function (k) {
+      if ($(k) && $(k).value) parts.push(k + '=' + encodeURIComponent($(k).value));
+    });
+    if ($('needColor') && $('needColor').checked) parts.push('needColor=1');
+    if ($('lineScanFirst') && $('lineScanFirst').checked) parts.push('lineScanFirst=1');
+    // 拼接参数只在勾了线扫时才有意义，没勾就不带，免得对方打开看到一堆无效值
+    if ($('lineScanFirst') && $('lineScanFirst').checked) {
+      ['stitchOverlap', 'stitchMaxCams'].forEach(function (k) {
+        if ($(k) && $(k).value !== '') parts.push(k + '=' + encodeURIComponent($(k).value));
+      });
+    }
+    if (manual.camera) parts.push('cam=' + encodeURIComponent(manual.camera));
+    if (manual.lens) parts.push('lens=' + encodeURIComponent(manual.lens));
+    if (manual.light) parts.push('light=' + encodeURIComponent(manual.light));
+    var base = location.href.split('#')[0].split('?')[0];
+    return base + (parts.length ? '?' + parts.join('&') : '');
   }
 
   /* ---------------- 绑定 ---------------- */
@@ -1571,6 +1645,23 @@
     if ($('lineScanFirst')) $('lineScanFirst').addEventListener('change', syncStitchOpt);
     syncStitchOpt();
     $('copyBtn').addEventListener('click', copyText);
+
+    // 复制分享链接：只读当前表单与固定型号，不改地址栏（否则用户改完参数会对不上）
+    var shareBtn = $('shareBtn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', function () {
+        var url = shareUrl();
+        var done = function () {
+          shareBtn.textContent = '链接已复制 ✓';
+          setTimeout(function () { shareBtn.textContent = '复制链接'; }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done, function () { fallbackCopy(url, done); });
+        } else {
+          fallbackCopy(url, done);
+        }
+      });
+    }
 
     /* ---------------- 详细方案：大屏默认摊开，手机按需展开 ---------------- */
     var detailWrap = $('detailWrap');
@@ -1776,8 +1867,11 @@
           b.classList.toggle('on', b === tab);
         });
         Array.prototype.forEach.call($('siblings').querySelectorAll('.sib-pane'), function (p) {
-          p.classList.toggle('on', p.getAttribute('data-pane') === SIB_TAB);
+          var on = p.getAttribute('data-pane') === SIB_TAB;
+          p.classList.toggle('on', on);
+          if (!on) p.classList.remove('sib-in');
         });
+        pulseSibFade();
         Array.prototype.forEach.call($('siblings').querySelectorAll('.sl-item'), function (it) {
           it.classList.toggle('on', it.getAttribute('data-kind') === SIB_TAB);
         });
@@ -1790,6 +1884,7 @@
         manual.lens = null;
         manual.light = null;
         SIB_PULSE = true;
+        SIB_FADE = true;
         render();
         return;
       }
@@ -1800,6 +1895,7 @@
       if (!kind || !model) return;
       manual[kind] = manual[kind] === model ? null : model;
       SIB_PULSE = true;
+      SIB_FADE = true;
       render();
     });
 
@@ -1816,6 +1912,13 @@
       manual.lens = ho.lens ? comboKey(ho.lens.b, ho.lens.m) : null;
       manual.light = ho.light ? ho.light.m : null;
       try { localStorage.removeItem(COMBO_KEY); } catch (e) { /* 隐私模式忽略 */ }
+      render();
+    } else if (queryPicks) {
+      // 分享链接里带了固定型号：放在 applyState 之后回填（那一步会把 manual 清空）。
+      // 搭配页的交接属于主动动作，优先级高于链接，所以只在没有交接时才用。
+      manual.camera = queryPicks.cam;
+      manual.lens = queryPicks.lens;
+      manual.light = queryPicks.light;
       render();
     }
   }

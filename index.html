@@ -13,31 +13,14 @@
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
 <link rel="apple-touch-icon" href="assets/brand/icon-180.png" />
+<link rel="stylesheet" href="common.css" />
 <style>
   :root {
     /* 与 home.html 同一套语言：近白沙底 + 墨蓝字 + 细线 + 3px 直角 */
-    --bg: #f7f7f5;
-    --panel: #ffffff;
-    --ink: #101c2b;
-    --muted: #5f6f80;
-    --line: #e6e4e0;
-    --accent: #0e7490;
-    --accent-soft: #eef6f8;
     --ok: #16a34a;
     --warn: #d97706;
     --danger: #dc2626;
     --r: 12px;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 14px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-    font-variant-numeric: tabular-nums;
   }
 
   /* ---------- 顶栏：一行标题 + 导航 + 预设 ---------- */
@@ -47,18 +30,8 @@
     max-width: 1200px; margin: 0 auto; min-height: 74px;
     display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap;
   }
-  .brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .brand h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
   .brand p { margin: 0; font-size: 12px; color: rgba(255, 255, 255, .55); }
-  .pnav { margin-left: auto; display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
-  .pnav > a, .pnav > .on {
-    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
-    font-size: 13.5px; font-weight: 400; line-height: 1; border-radius: 0; padding: 6px 0;
-    color: rgba(255, 255, 255, .74); background: none; border: 0; border-bottom: 1px solid transparent;
-    transition: color .15s, border-color .15s;
-  }
-  .pnav > a:hover { color: #fff; }
-  .pnav > .on { color: #fff; font-weight: 500; border-bottom-color: #22d3ee; }
   /* 快速试用已搬进左侧需求面板，见 .px-set */
 
   /* ---------- 主容器：左需求（悬浮）/ 右结论 ---------- */
@@ -854,14 +827,8 @@
   }
 
   /* ---------- 品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
-  .tb-mark { width: 32px; height: 32px; flex: 0 0 auto; }
-  .tb-title { display: inline-flex; align-items: center; gap: 10px; }
-  .tb-txt { min-width: 0; }
-  .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
-  .brand-txt { min-width: 0; }
 
   /* ---------- 模块图标 ---------- */
-  .entry-ico svg { width: 22px; height: 22px; }
 
   /* ---------- 移动端：标识与导航收紧，5 个页签一屏放下 ---------- */
   @media (max-width: 860px) {
@@ -873,17 +840,29 @@
   }
 
   /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
-  tbody tr { transition: background-color .12s ease; }
-  :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
 
   /* 评分变化闪一下：改需求后能确认「结果已重算」，值不变就不闪 */
   @keyframes numFlash { from { background: rgba(14, 116, 144, .18); } to { background: transparent; } }
   #scoreNum.flash { animation: numFlash .55s ease; }
   tbody tr:hover { background: #f4f7f9; }
 
+  /* 拼接排布图：按台次从左到右入位。只有台数/选型变化时才由 JS 放行，
+     连续调参会重建 DOM，此时容器带 st-static，不重播。 */
+  @keyframes stBandIn { from { opacity: 0; transform: translate(-9px, 0); } to { opacity: 1; transform: none; } }
+  #stitch .st-band {
+    animation: stBandIn .42s cubic-bezier(.22, .61, .36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  #stitch.st-static .st-band { animation: none; }
+
+  /* 备选方案：点型号切换 / 恢复自动 / 切标签时，只淡入当前面板内容 */
+  @keyframes sibPaneIn { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  .sib-pane.on.sib-in .sib-scroll { animation: sibPaneIn .22s ease-out backwards; }
+
   @media (prefers-reduced-motion: reduce) {
     tbody tr { transition: none; }
     #scoreNum.flash { animation: none; }
+    #stitch .st-band, .sib-pane.on.sib-in .sib-scroll { animation: none; }
   }
 </style>
 </head>
@@ -1067,6 +1046,7 @@
 
     <div class="hero-actions">
       <button type="button" class="btn primary" id="pdfBtn" title="按当前需求导出打印稿，浏览器里选「另存为 PDF」">导出 PDF</button>
+      <button type="button" class="btn" id="shareBtn" title="把当前需求与已固定型号编码进网址，对方打开即还原同一份结果">复制链接</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
       <a class="btn" href="combo.html" data-combo-link>自定义搭配</a>
     </div>

@@ -8,29 +8,12 @@
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon.ico" />
 <link rel="apple-touch-icon" href="assets/brand/icon-180.png" />
+<link rel="stylesheet" href="common.css" />
 <style>
   :root {
-    --bg: #f7f7f5;
-    --panel: #ffffff;
-    --ink: #101c2b;
-    --muted: #5f6f80;
-    --line: #e6e4e0;
-    --accent: #0e7490;
-    --accent-soft: #eef6f8;
     --ok: #16a34a;
     --warn: #d97706;
     --danger: #dc2626;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-    font-size: 14px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-    font-variant-numeric: tabular-nums;
   }
 
   /* ---------- 顶栏 ---------- */
@@ -40,15 +23,6 @@
   .brand h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
   .brand p { margin: 2px 0 0; font-size: 12px; color: rgba(255,255,255,.55); }
   /* ---------- 全站导航（与选型助手 / 产品库同一套） ---------- */
-  .pnav { margin-left: auto; display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
-  .pnav > a, .pnav > .on {
-    display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
-    font-size: 13.5px; font-weight: 400; line-height: 1; border-radius: 0; padding: 6px 0;
-    color: rgba(255, 255, 255, .74); background: none; border: 0; border-bottom: 1px solid transparent;
-    transition: color .15s, border-color .15s;
-  }
-  .pnav > a:hover { color: #fff; }
-  .pnav > .on { color: #fff; font-weight: 500; border-bottom-color: #22d3ee; }
   .head-note { margin-left: auto; font-size: 12.5px; color: #7d8ca5; }
 
   /* ---------- 布局：左需求（悬浮）/ 右搭配与评定 ---------- */
@@ -343,14 +317,8 @@
   }
 
   /* ---------- 品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
-  .tb-mark { width: 32px; height: 32px; flex: 0 0 auto; }
-  .tb-title { display: inline-flex; align-items: center; gap: 10px; }
-  .tb-txt { min-width: 0; }
-  .brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
-  .brand-txt { min-width: 0; }
 
   /* ---------- 模块图标 ---------- */
-  .entry-ico svg { width: 22px; height: 22px; }
 
   /* ---------- 移动端：标识与导航收紧，5 个页签一屏放下 ---------- */
   @media (max-width: 860px) {
@@ -362,8 +330,6 @@
   }
 
   /* ---------- 交互反馈：只做「看得见的状态改变」，不做会被重算打断的入场动画 ---------- */
-  tbody tr { transition: background-color .12s ease; }
-  :focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
   tbody tr:hover { background: #f4f7f9; }
 
   @media (prefers-reduced-motion: reduce) {

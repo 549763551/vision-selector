@@ -1,0 +1,54 @@
+/* ===================================================================
+   四页公共基础：index / library / combo / calc
+   —— 配色令牌 · 排版基线 · 顶栏品牌标识 · 导航 · 交互反馈
+   加载位置：各页 <style> 之前，所以页面专属规则天然覆盖本文件。
+   只放「四页逐字相同」的部分；有差异的（顶栏 padding、calc 的
+   语义色深浅、各页禁用动效清单）一律留在各自 <style> 里。
+   =================================================================== */
+
+/* ---------- 配色令牌（四页同值） ---------- */
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --ink: #101c2b;
+  --muted: #5f6f80;
+  --line: #e6e4e0;
+  --accent: #0e7490;
+  --accent-soft: #eef6f8;
+}
+
+/* ---------- 排版基线 ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 顶栏导航：文字 + 青色下划线 ---------- */
+.pnav { margin-left: auto; display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.pnav > a, .pnav > .on {
+  display: inline-flex; align-items: center; white-space: nowrap; text-decoration: none;
+  font-size: 13.5px; font-weight: 400; line-height: 1; border-radius: 0; padding: 6px 0;
+  color: rgba(255, 255, 255, .74); background: none; border: 0; border-bottom: 1px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.pnav > a:hover { color: #fff; }
+.pnav > .on { color: #fff; font-weight: 500; border-bottom-color: #22d3ee; }
+
+/* ---------- 顶栏品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
+.tb-mark { width: 32px; height: 32px; flex: 0 0 auto; }
+.tb-title { display: inline-flex; align-items: center; gap: 10px; }
+.tb-txt { min-width: 0; }
+.brand { display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+.brand-txt { min-width: 0; }
+.entry-ico svg { width: 22px; height: 22px; }
+
+/* ---------- 交互反馈：只做「看得见的状态改变」 ---------- */
+tbody tr { transition: background-color .12s ease; }
+:focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
