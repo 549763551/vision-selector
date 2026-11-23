@@ -186,7 +186,10 @@
       manualCamera: i.manualCamera || null,
       manualLens: i.manualLens || null,
       manualLight: i.manualLight || null,
-      lineScanFirst: !!i.lineScanFirst
+      lineScanFirst: !!i.lineScanFirst,
+      // 多机拼接参数：重叠率（%）与台数上限，只在单台线扫覆盖不了时才用到
+      stitchOverlap: num(i.stitchOverlap, 10),
+      stitchMaxCams: num(i.stitchMaxCams, 6)
     };
     if (!(out.fovW > 0) || !(out.fovH > 0)) return { ok: false, error: '视野尺寸必须大于 0' };
     if (!(out.precision > 0)) return { ok: false, error: '检测精度（最小特征）必须大于 0' };
@@ -904,6 +907,53 @@
 
   /* ============================ 线扫 / 远心建议 ============================ */
 
+  /**
+   * 线扫镜头：直配卡口（线扫不做转接）、像面直径 ≥ 行传感器宽的一半（行方向是长边）、
+   * 解析力 ≥ 行像素数/1000 MP、最近摄距够；焦距取不超过理论值的最大档，没有时取最接近档并提示。
+   * 单机线扫与多机拼接共用同一套选法 —— 拼接时每台配同一支，避免各台视场不一致。
+   */
+  function lineLensFor(cam, sensorW, w, wd, f) {
+    var needMp = w / 1000;
+    function base(l) {
+      return mountMatch(cam.mount, l.mount) === 1
+        && (l.ic == null || l.ic >= sensorW / 2)
+        && (l.mp == null || l.mp >= needMp * 0.9)
+        && l.focal < wd * 0.95
+        && (l.minDist == null || l.minDist * 1000 <= wd);
+    }
+    var note = '', pickLens = null;
+    var poolFit = (CAT.LENSES || []).filter(base).filter(function (l) { return l.focal <= f + 1e-9; });
+    if (poolFit.length) {
+      poolFit.sort(function (a, b) {
+        return b.focal - a.focal || (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
+      });
+      pickLens = poolFit[0];
+    } else {
+      var poolNear = (CAT.LENSES || []).filter(base);
+      if (poolNear.length) {
+        poolNear.sort(function (a, b) {
+          return Math.abs(a.focal - f) - Math.abs(b.focal - f) ||
+            (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
+        });
+        pickLens = poolNear[0];
+        note = '焦距档位偏离理论值，视场会相应变化';
+      }
+    }
+    if (!pickLens) return null;
+    var mAct = pickLens.focal / (wd - pickLens.focal);
+    return {
+      model: pickLens.model,
+      brand: pickLens.brand || null,
+      focal: pickLens.focal,
+      mount: pickLens.mount,
+      ic: pickLens.ic,
+      mp: pickLens.mp,
+      m: mAct,
+      fovW: sensorW / mAct,
+      note: note
+    };
+  }
+
   function suggestLineScan(inp, needW, pxAccReq, isColor) {
     var list = (CAT && CAT.LINESCAN) || [];
     if (!list.length) return null;
@@ -942,49 +992,7 @@
     var llGood = lineLights.filter(function (x) { return (x.size[0] || 0) >= inp.fovW * 1.15; });
     var lineLight = llGood[0] || lineLights[lineLights.length - 1] || null;
 
-    // 线扫镜头：直配卡口（线扫不做转接）；像面直径 ≥ 行传感器宽的一半（行方向是长边）；
-    // 解析力 ≥ 行像素数/1000 MP；焦距取不超过理论焦距的最大档，没有时取最接近档并提示
-    var needMp = pick.w / 1000;
-    function lsLensBase(l) {
-      return mountMatch(pick.mount, l.mount) === 1
-        && (l.ic == null || l.ic >= sensorW / 2)
-        && (l.mp == null || l.mp >= needMp * 0.9)
-        && l.focal < inp.wd * 0.95
-        && (l.minDist == null || l.minDist * 1000 <= inp.wd);
-    }
-    var lsLens = null, lsLensNote = '';
-    var poolFit = (CAT.LENSES || []).filter(lsLensBase).filter(function (l) { return l.focal <= f + 1e-9; });
-    if (poolFit.length) {
-      poolFit.sort(function (a, b) {
-        return b.focal - a.focal || (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
-      });
-      lsLens = poolFit[0];
-    } else {
-      var poolNear = (CAT.LENSES || []).filter(lsLensBase);
-      if (poolNear.length) {
-        poolNear.sort(function (a, b) {
-          return Math.abs(a.focal - f) - Math.abs(b.focal - f) ||
-            (a.mp == null ? 25 : a.mp) - (b.mp == null ? 25 : b.mp);
-        });
-        lsLens = poolNear[0];
-        lsLensNote = '焦距档位偏离理论值，视场会相应变化';
-      }
-    }
-    var lsLensOut = null;
-    if (lsLens) {
-      var mAct = lsLens.focal / (inp.wd - lsLens.focal);
-      lsLensOut = {
-        model: lsLens.model,
-        brand: lsLens.brand || null,
-        focal: lsLens.focal,
-        mount: lsLens.mount,
-        ic: lsLens.ic,
-        mp: lsLens.mp,
-        m: mAct,
-        fovW: sensorW / mAct,
-        note: lsLensNote
-      };
-    }
+    var lsLensOut = lineLensFor(pick, sensorW, pick.w, inp.wd, f);
 
     return {
       model: pick.model,
@@ -1021,6 +1029,264 @@
         '沿运动方向每行前进 ' + (runPxAcc ? fmt(runPxAcc, 4) : '—') + ' mm/px；' +
         '需编码器触发并与线光源同步。'
     };
+  }
+
+  /* ------------------------ 线扫多机拼接 ------------------------ */
+  /**
+   * 单台线扫覆盖不了整个幅面时，沿幅面方向并排 N 台，靠重叠区做几何拼接。
+   * 横向靠台数铺满，运动方向仍由线扫连续成像 —— 所以像素精度、行频、带宽都按「每台」算，
+   * 增加台数只解决横向覆盖，不会提高行频，也不会放宽精度。
+   *
+   * 记号：W 总幅面、N 台数、δ 重叠率、F 单台行向视场
+   *   总覆盖 = F·[N − (N−1)δ] = W   →   F = W / [N − (N−1)δ]
+   *   光轴间距 P = F(1−δ)，首台中心距边 = F/2
+   */
+  function suggestLineScanStitch(inp, needW, pxAccReq, isColor) {
+    var list = (CAT && CAT.LINESCAN) || [];
+    if (!list.length) return null;
+
+    var color = isColor ? '彩色' : '黑白';
+    var pool = list.filter(function (x) { return x.color === color && x.w > 0; });
+    if (!pool.length) return null;
+
+    var maxW = 0;
+    pool.forEach(function (x) { if (x.w > maxW) maxW = x.w; });
+    // 单台就覆盖得住时不提示：拼接只在单台物理上不够时才有意义
+    if (needW <= maxW + 1e-9) return null;
+
+    var ovPct = inp.stitchOverlap == null ? 10 : Number(inp.stitchOverlap);
+    if (!isFinite(ovPct) || ovPct <= 0) ovPct = 10;
+    var ov = Math.min(0.35, Math.max(0.03, ovPct / 100));
+    var maxCams = inp.stitchMaxCams == null ? 6 : Math.round(Number(inp.stitchMaxCams));
+    if (!isFinite(maxCams)) maxCams = 6;
+    maxCams = Math.min(8, Math.max(2, maxCams));
+
+    var needRate = inp.speed > 0 ? (inp.speed / pxAccReq) / 1000 : null;
+
+    var plans = [], blockedRate = 0;
+    for (var n = 2; n <= maxCams; n++) {
+      var fovPer = inp.fovW / (n - (n - 1) * ov);
+      var wNeed = Math.ceil(fovPer / pxAccReq);
+      if (wNeed > maxW) continue;
+
+      var cands = pool.filter(function (x) { return x.w >= wNeed; });
+      if (!cands.length) continue;
+      if (needRate) {
+        var rateOk = cands.filter(function (x) { return x.lineRate >= needRate * 1.2; });
+        if (!rateOk.length) { blockedRate++; continue; }
+        cands = rateOk;
+      }
+      // 排序：先看「镜头能不能配上」—— 型号给得再准，卡口没镜头也装不起来；
+      // 同档内再按像素数最小（省带宽）、行频余量最大取
+      var lensOk = {};
+      cands.forEach(function (c) {
+        var sw = (c.w * c.pxH) / 1000;
+        var mm = sw / fovPer;
+        var ff = (inp.wd * mm) / (1 + mm);
+        lensOk[c.model] = !!lineLensFor(c, sw, c.w, inp.wd, ff);
+      });
+      cands.sort(function (a, b) {
+        return (lensOk[a.model] ? 0 : 1) - (lensOk[b.model] ? 0 : 1)
+          || a.w - b.w
+          || b.lineRate - a.lineRate
+          || (a.model < b.model ? -1 : a.model > b.model ? 1 : 0);
+      });
+      // 逐个候选试到「精度达标」，同型号相机也可能因镜头档位不同而一档达标一档不达标
+      var pickPlan = null, firstPlan = null;
+      for (var ci = 0; ci < cands.length; ci++) {
+        var pl = stitchPlan(inp, n, cands[ci], fovPer, wNeed, ov, pxAccReq, needRate);
+        if (!pl) continue;
+        if (!firstPlan) firstPlan = pl;
+        if (pl.accOk) { pickPlan = pl; break; }
+      }
+      var plan = pickPlan || firstPlan;
+      if (plan) plans.push(plan);
+    }
+
+    // 去重按「相机 + 镜头」：同样一台 16K，5 台配 60mm 镜头不达标、6 台配 80mm 反而达标，
+    // 只按相机型号去重会把可用的那档删掉
+    var uniq = [], seen = {};
+    plans.forEach(function (p) {
+      var key = p.camera.model + '|' + (p.lens ? p.lens.model : '-');
+      if (seen[key]) return;
+      seen[key] = 1;
+      uniq.push(p);
+    });
+    // 排序口径：先看「装得起来」—— 精度达标但库里没这支镜头，跟方案不可交付是一回事；
+    // 再看台数少（装调与标定成本低）。同档内台数少的优先。
+    function stitchRank(p) {
+      if (p.accOk && p.lens) return 0;
+      if (p.accOk) return 1;
+      if (p.lens) return 2;
+      return 3;
+    }
+    uniq.sort(function (a, b) { return stitchRank(a) - stitchRank(b) || a.n - b.n; });
+    plans = uniq.slice(0, 4);
+
+    if (!plans.length) {
+      var maxFov = maxW * pxAccReq;
+      var nMin = Math.ceil((inp.fovW / maxFov - ov) / (1 - ov));
+      return {
+        ok: false,
+        totalW: inp.fovW,
+        pxAccReq: pxAccReq,
+        overlap: ov,
+        maxCams: maxCams,
+        color: color,
+        needW: needW,
+        singleMaxW: maxW,
+        needCams: isFinite(nMin) && nMin > 0 ? nMin : null,
+        reason: blockedRate
+          ? '所需行频 ' + fmt(needRate, 1) + ' kHz 超过库内线扫相机上限；拼接只解决横向覆盖、不提高行频，需降低线速或放宽像素精度'
+          : '按 ' + maxCams + ' 台上限仍覆盖不了 ' + fmt(inp.fovW, 0) + ' mm，至少需要 ' +
+            (isFinite(nMin) ? nMin : '—') + ' 台 ' + maxW + ' 像素相机（可增大台数上限或缩小幅面）',
+        plans: []
+      };
+    }
+
+    return {
+      ok: true,
+      totalW: inp.fovW,
+      pxAccReq: pxAccReq,
+      overlap: ov,
+      maxCams: maxCams,
+      color: color,
+      needW: needW,
+      singleMaxW: maxW,
+      plans: plans,
+      best: plans[0],
+      notes: stitchNotes(plans[0])
+    };
+  }
+
+  /** 单档拼接方案：给定台数与相机，算出视场、间距、带宽、镜头与光源 */
+  /**
+   * 单档拼接方案。镜头焦距只有固定档位，设计视场常常配不出来 —— 所以以「镜头实际能给的视场」
+   * 为准重算间距与重叠，否则表里写 261 mm、明细写 324.9 mm，同一份方案两个数。
+   * 视场变宽只会让重叠变大（更容易标定），但精度会按视场/像素数同步变差，需重新校核。
+   */
+  function stitchPlan(inp, n, cam, fovDesign, wNeed, ov, pxAccReq, needRate) {
+    var w = cam.w;
+    var sensorW = (w * cam.pxH) / 1000;
+    var mDesign = sensorW / fovDesign;
+    var fDesign = (inp.wd * mDesign) / (1 + mDesign);
+    var lens = lineLensFor(cam, sensorW, w, inp.wd, fDesign);
+
+    // 有镜头就按镜头视场，没镜头（库里配不出）先按设计值算，前端标注「需另配」
+    var fovPer = (lens && lens.fovW > 0) ? lens.fovW : fovDesign;
+    var pxAcc = fovPer / w;
+    var pitch = n > 1 ? (inp.fovW - fovPer) / (n - 1) : fovPer;
+    var overlapW = fovPer - pitch;
+    // 镜头的视场比总幅面还宽时没有拼接余量，这一档作废
+    if (!(pitch > 0) || !(overlapW > 0)) return null;
+
+    var overlapPx = Math.round(overlapW / pxAcc);
+    var m = sensorW / fovPer;
+    var f = (inp.wd * m) / (1 + m);
+    var accOk = pxAcc <= pxAccReq * (1 + 1e-9);
+
+    var bitDepth = bitDepthOf(cam);
+    var rate = needRate || Math.min(cam.lineRate, 20);
+    var bandwidth = (w * bitDepth * rate * 1000) / 8 / 1e6;
+    var cap = ifaceCapOf(cam);
+    var light = lineLightForStitch(inp.fovW);
+
+    return {
+      n: n,
+      camera: {
+        model: cam.model,
+        brand: cam.brand || null,
+        w: w,
+        pxH: cam.pxH,
+        lineRate: cam.lineRate,
+        taps: cam.taps == null ? null : cam.taps,
+        iface: cam.iface,
+        mount: cam.mount,
+        powerW: cam.powerW == null ? null : cam.powerW,
+        color: cam.color
+      },
+      fovPer: fovPer,                 // 单台实际覆盖（镜头决定）
+      fovDesign: fovDesign,           // 按重叠率算出来的设计值
+      fovLensDriven: !!(lens && Math.abs(fovPer - fovDesign) > 0.5),
+      wNeed: wNeed,
+      pxAcc: pxAcc,
+      accOk: accOk,
+      accMargin: pxAccReq > 0 ? 1 - pxAcc / pxAccReq : null,
+      pitch: pitch,
+      overlapW: overlapW,
+      overlapPx: overlapPx,
+      overlapPct: fovPer > 0 ? overlapW / fovPer : 0,
+      edge: fovPer / 2,
+      span: pitch * (n - 1) + fovPer,
+      sensorW: sensorW,
+      m: m,
+      f: f,
+      rate: rate,
+      rateCap: cam.lineRate,
+      rateOk: !needRate || cam.lineRate >= needRate * 1.2,
+      bandwidth: bandwidth,
+      bandwidthTotal: bandwidth * n,
+      ifaceCap: cap,
+      lens: lens,
+      lensNote: lens ? '' : '镜头库无 ' + cam.mount + ' 口的线扫镜头，需按像面宽 ' + fmt(sensorW, 1) + ' mm 另配',
+      light: light,
+      camPowerTotal: cam.powerW == null ? null : cam.powerW * n,
+      pixelTotal: w * n,
+      steps: [
+        { t: '单台设计视场', f: 'W / [N − (N−1)δ] = ' + fmt(inp.fovW, 0) + ' / [' + n + ' − ' + (n - 1) + '×' + fmt(ov, 2) + ']', v: fmt(fovDesign, 1) + ' mm' },
+        { t: '单台所需像素', f: '设计视场 / 像素精度 = ' + fmt(fovDesign, 1) + ' / ' + fmt(pxAccReq, 4), v: wNeed + ' px' },
+        { t: '镜头实配视场', f: lens ? (lens.focal + ' mm 焦距 ÷ 像面 ' + fmt(sensorW, 1) + ' mm 反推') : '库内无直配，需按像面另选', v: fmt(fovPer, 1) + ' mm' },
+        { t: '实际横向精度', f: '视场 / 像素数 = ' + fmt(fovPer, 1) + ' / ' + w, v: fmt(pxAcc, 4) + ' mm/px' + (accOk ? '' : '（超差）') },
+        { t: '光轴间距', f: '(W − 视场) / (N − 1) = (' + fmt(inp.fovW, 0) + ' − ' + fmt(fovPer, 1) + ') / ' + (n - 1), v: fmt(pitch, 1) + ' mm' },
+        { t: '重叠宽度', f: '视场 − 间距', v: fmt(overlapW, 1) + ' mm / ' + overlapPx + ' px（' + fmt(overlapW / fovPer * 100, 1) + '%）' },
+        { t: '每台行频', f: '速度 / 像素精度', v: fmt(rate, 1) + ' kHz（上限 ' + cam.lineRate + '）' },
+        { t: '每台带宽', f: w + ' × ' + bitDepth + ' bit × ' + fmt(rate, 1) + ' kHz', v: fmt(bandwidth, 0) + ' MB/s（合计 ' + fmt(bandwidth * n, 0) + '）' }
+      ]
+    };
+  }
+
+  /** 拼接用线光源：整幅一条，超出库内最长规格时按段数对接 */
+  function lineLightForStitch(totalW) {
+    var needLen = totalW * 1.05;
+    var lights = (CAT.LIGHTS || []).filter(function (x) {
+      return (x.type === 'line' || x.type === 'line_high') && x.color === 'white' && x.size && x.size[0] > 0;
+    }).sort(function (a, b) { return a.size[0] - b.size[0]; });
+    if (!lights.length) return null;
+
+    var fits = lights.filter(function (x) { return x.size[0] >= needLen; });
+    if (fits.length) {
+      return {
+        mode: 'single',
+        model: fits[0].model,
+        brand: fits[0].brand || null,
+        len: fits[0].size[0],
+        count: 1,
+        power: fits[0].power == null ? null : fits[0].power,
+        note: ''
+      };
+    }
+    var longest = lights[lights.length - 1];
+    var segs = Math.ceil(needLen / longest.size[0]);
+    return {
+      mode: 'segments',
+      model: longest.model,
+      brand: longest.brand || null,
+      len: longest.size[0],
+      count: segs,
+      power: longest.power == null ? null : longest.power,
+      note: '单支最长 ' + longest.size[0] + ' mm，按 ' + segs + ' 段对接，接缝处需补光校核'
+    };
+  }
+
+  /** 多机拼接的现场要点：同步、标定、亮度、链路 —— 这四条不落实，型号对了也拼不出整幅图 */
+  function stitchNotes(p) {
+    return [
+      '同步触发：一台编码器分频后并联 ' + p.n + ' 台，同一触发沿成像，行号偏差需 ≤ 1 行，否则拼接后横向错位。',
+      '拼接标定：用特征板在重叠区求每台外参（旋转 + 平移），同名点残差 ≤ 1 px；标定后各台位置必须锁死。',
+      '亮度一致：' + p.n + ' 台用同型号相机、同焦距镜头、同一光源，必要时做平场校正，否则接缝处出现明暗带。',
+      '数据链路：' + p.n + ' 台各走独立接口（合计 ' + fmt(p.bandwidthTotal, 0) +
+        ' MB/s），网口需独立网卡或多口卡，不能并在一个千兆口上。'
+    ];
   }
 
   function suggestTelecentric(inp, cam, m) {
@@ -2714,6 +2980,8 @@
     // 扩展建议：面阵搞不定（或用户勾选“优先线扫”）时给具体线扫型号；高精度/景深不足时给远心系列
     var m0 = Math.min(cam.sw / inp.fovW, cam.sh / inp.fovH);
     var lineScan = (!feasible || inp.lineScanFirst) ? suggestLineScan(inp, needW, pxAccReq, isColor) : null;
+    // 单台线扫覆盖不了整幅时给多机拼接（单台够用则返回 null，不打扰主方案）
+    var lineScanStitch = (!feasible || inp.lineScanFirst) ? suggestLineScanStitch(inp, needW, pxAccReq, isColor) : null;
     if (lineScan && inp.lineScanFirst && feasible) {
       lineScan.note = '已按需求优先给出线扫方案（面阵方案：' + cam.model + ' 亦可满足精度 ' + fmt(pxAcc, 4) + ' mm/px）。' + (lineScan.note || '');
     }
@@ -2825,6 +3093,7 @@
       rationale: rationale,
       geometry: geometry,
       lineScan: lineScan,
+      lineScanStitch: lineScanStitch,
       profile3D: profile3D,
       telecentric: telecentric,
       calc: calc,

@@ -107,7 +107,8 @@
   var DEFAULT = {
     fovW: 50, fovH: 40, precision: 0.1, task: 'defect', wd: 300,
     material: 'metal_shiny', colorTarget: 'none', needColor: false,
-    heightDiff: 1, speed: 0, cpm: 0, space: 0, lineScanFirst: false
+    heightDiff: 1, speed: 0, cpm: 0, space: 0, lineScanFirst: false,
+    stitchOverlap: 10, stitchMaxCams: 6
   };
 
   var SWATCH = {
@@ -377,6 +378,8 @@
       cpm: readNum('cpm'),
       space: readNum('space'),
       lineScanFirst: $('lineScanFirst').checked,
+      stitchOverlap: readNum('stitchOverlap'),
+      stitchMaxCams: readNum('stitchMaxCams'),
       manualCamera: manual.camera,
       manualLens: manual.lens,
       manualLight: manual.light
@@ -400,6 +403,9 @@
     $('cpm').value = st.cpm;
     $('space').value = st.space == null ? 0 : st.space;
     $('lineScanFirst').checked = !!st.lineScanFirst;
+    if ($('stitchOverlap')) $('stitchOverlap').value = st.stitchOverlap == null ? 10 : st.stitchOverlap;
+    if ($('stitchMaxCams')) $('stitchMaxCams').value = st.stitchMaxCams == null ? 6 : st.stitchMaxCams;
+    syncStitchOpt();
     render();
   }
 
@@ -531,6 +537,190 @@
       (g.reasons.length
         ? '<ul class="why kv-extra">' + g.reasons.slice(0, 3).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
         : '') +
+      '</div>';
+  }
+
+  /* ------------------------ 线扫多机拼接 ------------------------ */
+  /** 勾了线扫优先才需要填重叠率与台数上限；不勾时这两项藏起来，免得误填 */
+  function syncStitchOpt() {
+    var on = $('lineScanFirst') && $('lineScanFirst').checked;
+    ['stitchOvRow', 'stitchMaxRow'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.hidden = !on;
+    });
+  }
+
+  /**
+   * 俯视排布图：横向是幅面方向，N 个条带即 N 台的单台视场，交叠处就是拼接区。
+   * 图只表达几何关系（谁跟谁重叠多少、光轴隔多远），不做比例失真处理 ——
+   * 条带宽度按真实比例画，重叠区一眼能看出够不够宽。
+   */
+  function stitchSvg(p, totalW) {
+    var W = 660, H = 224;
+    var x0 = 66, x1 = 626;
+    var k = (x1 - x0) / totalW;
+    var yb = 92, bh = 42;
+    var n = p.n, F = p.fovPer, P = p.pitch;
+    var s2 = [];
+    s2.push('<svg viewBox="0 0 ' + W + ' ' + H + '" class="dg" role="img" aria-label="' + n + ' 台线扫拼接排布">');
+
+    // 每台条带
+    for (var i = 0; i < n; i++) {
+      var bx = x0 + i * P * k;
+      var bw = F * k;
+      s2.push('<rect x="' + num(bx, 1) + '" y="' + yb + '" width="' + num(bw, 1) + '" height="' + bh +
+        '" fill="' + (i % 2 ? '#e0eafc' : '#eff6ff') + '" stroke="#93c5fd"/>');
+      // 光轴
+      var cx = bx + bw / 2;
+      s2.push('<line x1="' + num(cx, 1) + '" y1="' + (yb - 26) + '" x2="' + num(cx, 1) + '" y2="' + (yb + bh) +
+        '" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 3"/>');
+      // 相机 + 镜头
+      s2.push('<rect x="' + num(cx - 13, 1) + '" y="' + (yb - 30) + '" width="26" height="13" rx="2.5" fill="#f1f5f9" stroke="#64748b"/>');
+      s2.push('<path d="M' + num(cx - 8, 1) + ' ' + (yb - 17) + ' L' + num(cx + 8, 1) + ' ' + (yb - 17) +
+        ' L' + num(cx + 11, 1) + ' ' + (yb - 12) + ' L' + num(cx - 11, 1) + ' ' + (yb - 12) + ' Z" fill="#dbeafe" stroke="#93c5fd"/>');
+      s2.push('<text x="' + num(cx, 1) + '" y="' + (yb + bh - 8) + '" text-anchor="middle" class="dg-xs" ' +
+        'paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">C' + (i + 1) + '</text>');
+    }
+
+    // 重叠区：斜线填充，宽度 = 单台视场 × 重叠率
+    for (var j = 0; j < n - 1; j++) {
+      var ox = x0 + ((j + 1) * P) * k;
+      var ow = (F - P) * k;
+      s2.push('<rect x="' + num(ox, 1) + '" y="' + yb + '" width="' + num(Math.max(ow, 0.6), 1) + '" height="' + bh +
+        '" fill="url(#stHatch)" stroke="#f59e0b" stroke-width="0.8"/>');
+    }
+    s2.push('<defs><pattern id="stHatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+      '<line x1="0" y1="0" x2="0" y2="6" stroke="#f59e0b" stroke-width="1.4" opacity="0.55"/></pattern></defs>');
+
+    // 光轴间距：紧跟条带下方，只标第一段（多了会挤）
+    if (n >= 2) {
+      var c1 = x0 + (F * k) / 2, c2 = x0 + (P + F / 2) * k;
+      var yp = yb + bh + 16;
+      s2.push('<line x1="' + num(c1, 1) + '" y1="' + (yp - 5) + '" x2="' + num(c1, 1) + '" y2="' + (yp + 5) + '" stroke="#7c3aed"/>');
+      s2.push('<line x1="' + num(c2, 1) + '" y1="' + (yp - 5) + '" x2="' + num(c2, 1) + '" y2="' + (yp + 5) + '" stroke="#7c3aed"/>');
+      s2.push('<line x1="' + num(c1, 1) + '" y1="' + yp + '" x2="' + num(c2, 1) + '" y2="' + yp +
+        '" stroke="#7c3aed" stroke-width="1.2" stroke-dasharray="3 2"/>');
+      s2.push('<text x="' + num((c1 + c2) / 2, 1) + '" y="' + (yp + 17) + '" text-anchor="middle" class="dg-xs" fill="#6d28d9">光轴间距 ' +
+        num(P, 0) + ' mm</text>');
+    }
+
+    // 幅面总宽：放在最下面一条独立轴线上，跟局部尺寸分开
+    var yd = yb + bh + (n >= 2 ? 52 : 26);
+    s2.push('<line x1="' + x0 + '" y1="' + yd + '" x2="' + x1 + '" y2="' + yd + '" stroke="#475569"/>');
+    s2.push('<line x1="' + x0 + '" y1="' + (yd - 6) + '" x2="' + x0 + '" y2="' + (yd + 6) + '" stroke="#475569"/>');
+    s2.push('<line x1="' + x1 + '" y1="' + (yd - 6) + '" x2="' + x1 + '" y2="' + (yd + 6) + '" stroke="#475569"/>');
+    s2.push('<rect x="' + x0 + '" y="' + (yd + 10) + '" width="' + (x1 - x0) + '" height="3" fill="#cbd5e1"/>');
+    s2.push('<text x="' + ((x0 + x1) / 2) + '" y="' + (yd + 26) + '" text-anchor="middle" class="dg-s">总幅面 ' +
+      num(totalW, 0) + ' mm（' + n + ' 台拼接）</text>');
+    // 重叠区标注（只在第一处，靠右避开间距标注）
+    var ox0 = x0 + P * k, ow0 = (F - P) * k;
+    s2.push('<text x="' + num(ox0 + ow0 / 2, 1) + '" y="' + (yb + 16) + '" text-anchor="middle" class="dg-xs" ' +
+      'fill="#b45309" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">重叠 ' +
+      num(p.overlapW, 0) + '</text>');
+    s2.push('</svg>');
+    return s2.join('');
+  }
+
+  /** 单台覆盖不了整幅时的拼接方案：台数对比 + 选中方案明细 + 现场要点 */
+  function stitchCard(r) {
+    var st = r.lineScanStitch;
+    if (!st) return '';
+
+    var head = '<div class="card"><h2 class="sec">线扫多机拼接' +
+      '<span class="hint">单台覆盖不了 ' + num(st.totalW, 0) + ' mm 幅面，沿幅面并排 N 台、靠重叠区拼接</span></h2>';
+
+    if (!st.ok) {
+      return head +
+        '<div class="kv-block"><span>为什么拼不了</span><p style="color:#b45309">' + esc(st.reason) + '</p></div>' +
+        kv('单台最大覆盖', esc(num(st.singleMaxW * st.pxAccReq, 0)) + ' mm（' + st.singleMaxW + ' 像素 × ' + num(st.pxAccReq, 3) + ' mm/px）') +
+        kv('按当前上限所需台数', esc(st.needCams == null ? '—' : '≥ ' + st.needCams + ' 台')) +
+        kv('当前设定', esc('重叠 ' + Math.round(st.overlap * 100) + '%，上限 ' + st.maxCams + ' 台')) +
+        '<div class="sib-note">拼接只解决横向覆盖，不会提高行频，也不会放宽像素精度；' +
+        '要把 ' + num(st.totalW, 0) + ' mm 铺满，可放宽像素精度、提高台数上限，或改用多工位分段检测。</div>' +
+        '</div>';
+    }
+
+    var b = st.best;
+    var rows = st.plans.map(function (p, i) {
+      var lensTxt = p.lens
+        ? esc(p.lens.focal + ' mm') + '<i class="sub"> ' + esc(p.lens.mount) + '</i>'
+        : '<span class="st-bad">另配</span>';
+      var accTxt = n4(p.pxAcc) + (p.accOk ? '' : '<i class="sub st-bad"> 超差</i>');
+      // 镜头视场与设计值差得多时把设计值带出来，免得看表的人以为重叠率没按设定走
+      var fovTxt = num(p.fovPer, 0) +
+        (p.fovLensDriven ? '<i class="sub"> 设计 ' + num(p.fovDesign, 0) + '</i>' : '');
+      return '<tr' + (i === 0 ? ' class="best"' : '') + '>' +
+        '<td class="num"><b>' + p.n + ' 台</b>' + (i === 0 ? ' <span class="pick-mark">推荐</span>' : '') + '</td>' +
+        '<td class="model">' + esc(p.camera.model) + '</td>' +
+        '<td class="num">' + fovTxt + '</td>' +
+        '<td class="num">' + p.camera.w + ' px</td>' +
+        '<td class="num">' + accTxt + '</td>' +
+        '<td class="num">' + num(p.pitch, 0) + '</td>' +
+        '<td class="num">' + num(p.overlapW, 0) +
+          '<i class="sub"> / ' + p.overlapPx + ' px · ' + Math.round(p.overlapPct * 100) + '%</i></td>' +
+        '<td class="num">' + num(p.rate, 1) + '</td>' +
+        '<td class="num">' + num(p.bandwidthTotal, 0) + '</td>' +
+        '<td>' + lensTxt + '</td></tr>';
+    }).join('');
+
+    var lensLine = b.lens
+      ? '<b>' + esc((b.lens.brand ? '[' + b.lens.brand + '] ' : '') + b.lens.model) + '</b>　' + esc(b.lens.focal) + ' mm　' +
+        esc(b.lens.mount) + ' 口直配　每台行向视场 ' + num(b.lens.fovW, 1) + ' mm' +
+        (b.lens.note ? '<br><span style="color:#b45309">' + esc(b.lens.note) + '</span>' : '') +
+        libLink('lens', b.lens.model)
+      : '<span style="color:#b45309">' + esc(b.lensNote || '镜头库无直配型号') + '</span>　' + b.f + ' mm 附近、像面 ≥ ' + num(b.sensorW, 1) + ' mm 即可';
+
+    var lightLine = b.light
+      ? '<b>' + esc((b.light.brand ? '[' + b.light.brand + '] ' : '') + b.light.model) + '</b>　' +
+        (b.light.count > 1 ? b.light.count + ' 段对接　' : '整条 ') +
+        (b.light.power == null ? '' : esc(b.light.power) + ' W × ' + b.light.count + ' = ' + esc(b.light.power * b.light.count) + ' W') +
+        (b.light.note ? '<br><span style="color:#b45309">' + esc(b.light.note) + '</span>' : '')
+      : '—';
+
+    return head +
+      // 结论
+      '<div class="st-hero">' +
+        '<span class="st-n">' + b.n + '<small> 台</small></span>' +
+        '<span class="st-txt"><b>' + esc(b.camera.model) + '</b><i>单台视场 ' + num(b.fovPer, 0) + ' mm　光轴间距 ' +
+          num(b.pitch, 0) + ' mm　合计带宽 ' + num(b.bandwidthTotal, 0) + ' MB/s</i></span>' +
+        '<span class="st-tag ' + (b.accOk ? 'ok' : 'bad') + '">' +
+          (b.accOk ? '✓ 精度达标 ' + n4(b.pxAcc) + ' mm/px' : '✕ 精度超差 ' + n4(b.pxAcc) + ' mm/px') + '</span>' +
+      '</div>' +
+      // 排布图
+      '<div class="st-svg">' + stitchSvg(b, st.totalW) + '</div>' +
+      // 台数对比
+      '<div style="overflow-x:auto"><table class="mini st-table"><thead><tr>' +
+        '<th>台数</th><th>相机</th><th>单台视场</th><th>像素</th><th>实际精度</th>' +
+        '<th>光轴间距</th><th>重叠</th><th>行频</th><th>合计带宽</th><th>镜头</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="sib-note">单位：视场 / 间距 / 重叠 mm，精度 mm/px，行频 kHz，带宽 MB/s。' +
+        '台数越多单台视场越小、越容易选到高精度相机，但镜头、光源、标定与同步的复杂度同步上升；' +
+        '表内已按「台数最少且镜头配得上」排好序。</div>' +
+      // 选中方案明细
+      '<div class="st-detail">' +
+        block('每台相机 / 镜头', lensLine) +
+        block('整幅光源', lightLine) +
+        kv('单台视场', esc(num(b.fovPer, 1)) + ' mm（设计 ' + num(b.fovDesign, 1) +
+          (b.fovLensDriven ? '，由镜头焦距档决定' : '') + '）') +
+        kv('实际横向精度', esc(n4(b.pxAcc)) + ' mm/px（需求 ' + num(st.pxAccReq, 3) + '，' +
+          (b.accMargin >= 0 ? '余 ' + pct(b.accMargin) : '超差 ' + pct(-b.accMargin)) + '）') +
+        kv('实际重叠', esc(num(b.overlapW, 1)) + ' mm / ' + b.overlapPx + ' px（' + Math.round(b.overlapPct * 100) + '%，设定 ' + Math.round(st.overlap * 100) + '%）') +
+        kv('每台所需行频', esc(num(b.rate, 1)) + ' kHz（上限 ' + b.rateCap + ' kHz）') +
+        kv('单台带宽', esc(num(b.bandwidth, 0)) + ' MB/s（' + esc(b.camera.iface) + ' 上限 ' + b.ifaceCap + '）') +
+        kv('总像素 / 总功耗', esc(b.pixelTotal + ' px　' + (b.camPowerTotal == null ? '—' : num(b.camPowerTotal, 1) + ' W'))) +
+      '</div>' +
+      // 现场要点
+      '<div class="st-notes"><div class="sub-h">现场四条硬要求</div><ul>' +
+        st.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' +
+      // 演算
+      '<details class="fold sub st-calc"><summary>单台演算 <span class="sum-hint">' + b.n + ' 台方案逐格复核</span><span class="sum-act"></span></summary>' +
+        '<div class="fold-body"><table class="mini"><thead><tr><th>步骤</th><th>公式 / 代入</th>' +
+        '<th style="text-align:right">结果</th></tr></thead><tbody>' +
+        b.steps.map(function (x) {
+          return '<tr><td>' + esc(x.t) + '</td><td class="model">' + esc(x.f) + '</td>' +
+            '<td style="text-align:right"><b>' + esc(x.v) + '</b></td></tr>';
+        }).join('') +
+        '</tbody></table></div></details>' +
       '</div>';
   }
 
@@ -973,6 +1163,8 @@
       $('quick').innerHTML = '';
       $('rationale').innerHTML = '';
       $('cards').innerHTML = '';
+      $('stitch').innerHTML = '';
+      $('stitchSec').hidden = true;
       $('bom').innerHTML = '';
       $('calcBody').innerHTML = '';
       $('risks').innerHTML = '';
@@ -1009,6 +1201,10 @@
     $('rationale').innerHTML = rationaleCard(r);
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
+    // 拼接方案独立成卡：三件套网格塞不下对比表和排布图
+    var stHtml = stitchCard(r);
+    $('stitch').innerHTML = stHtml;
+    $('stitchSec').hidden = !stHtml;
     $('bom').innerHTML = bomCard(r);
     $('suggest').innerHTML = suggestCard(r);
     // 同系列面板重绘时保留表格滚动位置，避免每次点选都跳回顶部
@@ -1157,6 +1353,33 @@
       lines.push('　 行频需求 ' + num(ls.needRate, 1) + 'kHz，带宽约 ' + num(ls.bandwidth, 0) + 'MB/s（上限 ' + ls.ifaceCap + '）');
       if (ls.lineLight) lines.push('　 线光源：' + ls.lineLight.model + '　' + (ls.lineLight.size || []).join('×') + 'mm');
       lines.push('　 ' + ls.note);
+    }
+    if (r.lineScanStitch) {
+      var sg = r.lineScanStitch;
+      lines.push('');
+      lines.push('· 线扫多机拼接：总幅面 ' + num(sg.totalW, 0) + 'mm，重叠 ' + Math.round(sg.overlap * 100) + '%，台数上限 ' + sg.maxCams);
+      if (!sg.ok) {
+        lines.push('　 当前不可行：' + sg.reason);
+        if (sg.needCams) lines.push('　 至少需要 ' + sg.needCams + ' 台');
+      } else {
+        lines.push('　 方案对比（台数 / 相机 / 单台视场 / 实际精度 / 光轴间距 / 重叠 / 行频 / 合计带宽）：');
+        sg.plans.forEach(function (p, i) {
+          lines.push('　 ' + (i === 0 ? '★ ' : '　 ') + p.n + ' 台　' + p.camera.model + '　' +
+            num(p.fovPer, 0) + 'mm　' + n4(p.pxAcc) + 'mm/px　间距 ' + num(p.pitch, 0) + 'mm　重叠 ' +
+            p.overlapPx + 'px　' + num(p.rate, 1) + 'kHz　' + num(p.bandwidthTotal, 0) + 'MB/s');
+        });
+        var bp = sg.best;
+        lines.push('　 推荐 ' + bp.n + ' 台：' + bp.camera.model + '，镜头 ' +
+          (bp.lens ? ((bp.lens.brand ? '[' + bp.lens.brand + '] ' : '') + bp.lens.model + '（' + bp.lens.focal + 'mm ' + bp.lens.mount + ' 口）')
+                   : (bp.lensNote || '库内无直配型号，需另配')));
+        if (bp.light) {
+          lines.push('　 整幅光源：' + (bp.light.brand ? '[' + bp.light.brand + '] ' : '') + bp.light.model +
+            '　' + (bp.light.count > 1 ? bp.light.count + ' 段对接（' + bp.light.note + '）' : '整条 ' + bp.light.len + 'mm'));
+        }
+        lines.push('　 合计像素 ' + bp.pixelTotal + 'px，相机合计功耗 ' +
+          (bp.camPowerTotal == null ? '—' : num(bp.camPowerTotal, 1) + 'W') + '，合计带宽 ' + num(bp.bandwidthTotal, 0) + 'MB/s');
+        sg.notes.forEach(function (x) { lines.push('　 · ' + x); });
+      }
     }
     if (r.profile3D) {
       var d3c = r.profile3D;
@@ -1313,6 +1536,8 @@
     });
 
     $('resetBtn').addEventListener('click', function () { applyState(DEFAULT); });
+    if ($('lineScanFirst')) $('lineScanFirst').addEventListener('change', syncStitchOpt);
+    syncStitchOpt();
     $('copyBtn').addEventListener('click', copyText);
 
     /* ---------------- 详细方案：大屏默认摊开，手机按需展开 ---------------- */

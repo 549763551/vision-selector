@@ -1616,6 +1616,88 @@ test('全量在售池可解出可行方案', () => {
   assert.ok(SEL_CAT.LENSES.some((l) => l.model === r.lens.model), '推荐镜头必须来自在售池');
 });
 
+console.log('\n[19] 线扫多机拼接（幅面超单台能力）');
+
+function stitchBase(over) {
+  return base(Object.assign({ fovW: 1200, fovH: 900, precision: 0.05, wd: 400, speed: 200, lineScanFirst: true }, over || {}));
+}
+
+test('单台线扫够用 / 面阵可行时不推拼接', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const one = E.solve(stitchBase({ fovW: 300, fovH: 200, precision: 0.2 }));
+  assert.ok(one.lineScan, '300 mm 幅面应能单台线扫覆盖');
+  assert.strictEqual(one.lineScanStitch, null, '单台够用不应给拼接');
+  const normal = E.solve(base({ fovW: 300, fovH: 200, precision: 0.2 }));
+  assert.strictEqual(normal.lineScanStitch, null, '未勾线扫优先且面阵可行时不应出现拼接');
+});
+
+test('幅面超单台时给多机方案：覆盖 / 精度 / 像素 / 行频自洽', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const r = E.solve(stitchBase());
+  const s = r.lineScanStitch;
+  assert.ok(s && s.ok, '1200 mm / 0.05 mm 应给拼接方案');
+  assert.strictEqual(r.lineScan, null, '单台覆盖不了时 lineScan 应为空');
+  assert.ok(s.plans.length >= 1, '至少一档方案');
+  assert.ok(s.plans.some((p) => p.accOk), '至少一档精度达标');
+  s.plans.forEach((p) => {
+    assert.ok(p.n >= 2 && p.n <= s.maxCams, '台数应在 2..上限，实际 ' + p.n);
+    // 单台视场由镜头焦距档决定，不一定等于按重叠率算出的设计值，所以用「间距 + 重叠」闭环
+    near(p.pitch * (p.n - 1) + p.fovPer, 1200, 1e-6, p.n + ' 台总覆盖');
+    near(p.pitch + p.overlapW, p.fovPer, 1e-9, '间距 + 重叠 = 单台视场');
+    assert.ok(p.pitch > 0 && p.overlapW > 0, '间距与重叠都必须为正');
+    near(p.overlapPx, Math.round(p.overlapW / p.pxAcc), 0.6, '重叠像素');
+    near(p.bandwidthTotal, p.bandwidth * p.n, 1e-6, '总带宽');
+    assert.ok(p.camera.w >= p.wNeed, '像素数应不少于需求');
+    assert.ok(p.rateOk, '行频应满足');
+    // 精度：达标的档必须真的达标；不达标的档要如实标出来，不能悄悄当达标
+    if (p.accOk) assert.ok(p.pxAcc <= s.pxAccReq + 1e-9, p.n + ' 台标了达标但精度不够');
+    else assert.ok(p.pxAcc > s.pxAccReq, p.n + ' 台标了超差但精度其实够');
+  });
+});
+
+test('头号方案装得起来：有镜头且精度达标，且同档台数最少', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const s = E.solve(stitchBase()).lineScanStitch;
+  const p = s.best;
+  // 精度达标但库里没这支镜头，和方案不可交付是一回事，所以首选必须有镜头
+  assert.ok(p.lens && p.lens.model, '头号方案必须配得上线扫镜头（卡口 + 像面 + 摄距）');
+  assert.ok(p.accOk, '头号方案精度必须达标，实际 ' + p.pxAcc.toFixed(4) + ' vs ' + s.pxAccReq.toFixed(4));
+  const sameGrade = s.plans.filter((x) => x.accOk && x.lens);
+  assert.strictEqual(p.n, Math.min.apply(null, sameGrade.map((x) => x.n)), '同档里应取最少台数');
+  if (p.lens.ic != null) assert.ok(p.lens.ic >= p.sensorW / 2 - 1e-9, '镜头像面直径应覆盖行传感器');
+  assert.ok(p.light && p.light.count >= 1, '应给线光源');
+  assert.ok(p.light.len * p.light.count >= 1200 * 1.05 - 1e-6, '光源总长应覆盖整幅');
+  assert.ok(s.notes.length >= 4, '应给出同步 / 标定 / 亮度 / 链路要点');
+});
+
+test('台数上限不够时给原因与所需台数', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const s = E.solve(stitchBase({ stitchMaxCams: 2 })).lineScanStitch;
+  assert.ok(s && !s.ok, '2 台上限应判不可行');
+  assert.ok(/覆盖不了|至少需要/.test(s.reason), '应说明原因，实际：' + s.reason);
+  assert.ok(s.needCams >= 3, '应算出至少需要的台数，实际 ' + s.needCams);
+  assert.strictEqual(s.plans.length, 0);
+});
+
+test('重叠率可调，且按公式改变单台视场', () => {
+  const E = Engine.VisionEngineFactory(SEL_CAT);
+  const sa = E.solve(stitchBase({ fovW: 800, stitchOverlap: 10 })).lineScanStitch;
+  const sb = E.solve(stitchBase({ fovW: 800, stitchOverlap: 20 })).lineScanStitch;
+  // 设计视场逐档按公式核：重叠率变大 → 单台要铺更宽 → 台数往往随之上台阶，不能直接拿 best 比大小
+  [[sa, 0.1], [sb, 0.2]].forEach(([s, ov]) => {
+    s.plans.forEach((p) => {
+      near(p.fovDesign, 800 / (p.n - (p.n - 1) * ov), 1e-6, p.n + ' 台设计视场（重叠 ' + ov * 100 + '%）');
+    });
+  });
+  // 同一台数下重叠率大则设计视场大
+  const na = sa.plans[0].n;
+  const pb = sb.plans.filter((p) => p.n === na)[0];
+  if (pb) assert.ok(pb.fovDesign > sa.plans[0].fovDesign, '同台数下重叠率大则设计视场大');
+  const best = sa.best;
+  assert.ok(best.overlapPct > 0 && best.overlapPx >= 50,
+    '重叠区应够做标定，实际 ' + best.overlapPx + ' px / ' + (best.overlapPct * 100).toFixed(1) + '%');
+});
+
 console.log('\n' + '='.repeat(52));
 console.log(pass + ' 通过, ' + fail + ' 失败');
 if (fail > 0) {
