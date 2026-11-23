@@ -96,6 +96,9 @@
   .req-col .f-row > label em { display: none; }
   .req-col .f-row input, .req-col .f-row select { height: 36px; padding: 0 9px; font-size: 13.5px; }
   .req-col .req-more .f-row { grid-template-columns: 92px minmax(0, 1fr); }
+  /* 上面给 .f-row 定了 display:grid，作者样式会压掉 UA 的 [hidden]{display:none}，
+     导致 hidden="true" 的元素照样占位（拼接重叠率/台数上限就这样漏出来过）；这里补一条更具体的兜底 */
+  .req-col .f-row[hidden] { display: none; }
   .res-col { min-width: 0; }
   .res-col > * + * { margin-top: 16px; }
   .card {
