@@ -97,15 +97,15 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > js/h
 
 ## 目录结构
 
-五个页面 + 两份引擎（选型引擎 / 公式引擎）+ 各品牌型录，全是静态文件，没有构建步骤。
+五个页面在根目录，所有 JS 统一收在 `js/`（两份引擎 + 界面脚本 + 各品牌型录 + 测试），生成器在 `tools/`，全是静态文件，没有构建步骤；`npm test` 跑 `js/` 下的两个测试文件。
 
 | 文件 | 作用 |
 |---|---|
-| `home.html` | **主页**：五页统一入口、数据速览（实时统计型号库）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
+| `home.html` | **主页**：五页统一入口、数据速览（`js/home-stats.js` 预生成的各品牌型号数量，型录变动后重跑 `tools/build-home-stats.js`）、官方资料区（按品牌分组 / 搜索 / 本地副本切换） |
 | `index.html` | 选型助手页面骨架 + 样式（无依赖），含顶栏「品牌范围」筛选 |
 | `combo.html` | **自定义搭配评定页**：需求表单 + 相机/镜头/光源可搜索选择器 + 逐项评定与替换建议 |
 | `js/combo.js` | 搭配页逻辑：经 `js/selection-catalog.js` 全量合并六品牌在售型录、解析品牌别名、调用 `evaluateCombo`、草稿与「应用到选型助手」交接 |
-| `library.html` | **产品库**：8868 个型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应 |
+| `library.html` | **产品库**：8868 个在售 + 198 款退市型号、11 个页签（面阵 / 线阵 / 镜头 / 远心 / 光源 / 控制器 / 3D / 工控机 / 红外 + 收藏 + 全部）的分类筛选 / 关键词搜索（型号在别的类别时自动切页签，搜线阵 / 镜头 / 光源不会被当前页签挡成「库里没有」）/ 全参数详情 / 分页，同规格跨品牌自动互标备注，型号示意图按真实参数内联绘制（镜筒长随焦距、光源形状随类型、控制器旋钮随通道数），移动端卡片自适应；对比表可导出 CSV，「同系列」可跳转选型 |
 | `js/docs-data.js` | 主页官方资料清单（6 品牌 / 211 条），由 `tools/build-docs-data.py` 生成，勿手改；`return` 后是严格 JSON，下载脚本共用 |
 | `manuals/` | 本地 PDF 副本，`.gitignore` 忽略、**不入库不推送**；PDF 版权归厂商，线上只走官方直链 |
 | `js/selection-catalog.js` | **选型链目录合并（共用）**：型录源清单、按类目品牌启停、退市排除、必要参数硬门槛、等价字段补齐、`brandKeys()` / `merge()`；`index.html` / `combo.html` / `js/engine.test.js` 共用，保证三处口径一致 |
@@ -123,7 +123,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > js/h
 | `js/daheng-catalog.js` | 大恒图像型号库（面阵 / 板级 + 镜头 + 远心），由 `tools/parse-daheng-cams-v2.py` + `tools/parse-daheng-lenses-all.py` + `tools/curate-daheng-lenses.py` 生成，勿手改 |
 | `js/opt-catalog.js` | 奥普特相机库（面阵 118 + 线阵 24），由 `tools/parse-opt-list.py` → `tools/fetch-opt-detail.js` → `tools/parse-opt-detail.py` → `tools/build-opt-catalog.py` 生成，勿手改 |
 | `js/opt-lens-catalog.js` | 奥普特镜头库（定焦 / 线扫 / 液态 / 显微 / 变倍 278 + 远心 619），由 `tools/build-opt-full.py` 生成，勿手改 |
-| `js/opt-light-catalog.js` | 奥普特光源库（2133 支，16 个照明子类），由 `tools/build-opt-full.py` 生成，勿手改 |
+| `js/opt-light-catalog.js` | 奥普特光源库（2133 支，16 个照明子类），由 `tools/build-opt-full.py` 生成，勿手改；README 型号库表按此口径 |
 | `js/opt-ctrl-catalog.js` | 奥普特光源控制器 43 款 + 视觉控制器 / 工控机 21 台，由 `tools/build-opt-full.py` 生成，勿手改 |
 | `js/opt-misc-catalog.js` | 奥普特智能相机 / 读码器 145 + 传感器 1057 + 测量运控 26，由 `tools/build-opt-misc.py` 生成。**仅备份、未挂载**：产品库不扩张产品线类型，这几个类目暂不进页面 |
 | `js/engine.js` | **选型算路引擎**，纯计算、无 DOM，浏览器和 Node 都能跑；暴露 `VisionEngineFactory` 便于按品牌重建 |
@@ -131,8 +131,8 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > js/h
 | `js/calc-engine.js` | **公式引擎**，纯计算、无 DOM、无隐式默认值；`FORMULAS`（17 式：输入定义 / 公式符号 / 判定 / `provides` 可传递量）、`COMBOS`（6 组：字段、小节、`fieldFrom` 跨式带入、`auto` 输入来源）、`compute(id, params)`、`computeCombo(id, params, seed)`、`defaults(id)` 与 `core` 底层口径；浏览器 `window.CalcEngine` / Node `require`。口径与 `js/engine.js` 一致 |
 | `js/calc-app.js` | 计算器页面逻辑：按组合元数据生成空白输入、输入即算、自动带入标注、缺项定位、复制本组 / 单式、清空；不含任何公式 |
 | `js/calc.test.js` | 41 个单元测试（元数据与缺参数拦截、k 表与接口带宽口径对照、17 式数值回归、6 组组合的共享输入 / 缺项根因 / 跨组带入 / 可选参数 / 覆盖完整性、边界与复制文本），`node js/calc.test.js` 运行 |
-| `js/app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `js/selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()` |
-| `js/engine.test.js` | 120 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node js/engine.test.js` 运行 |
+| `js/app.js` | 界面逻辑：读表单 → 调引擎 → 渲染；三类品牌筛选条由 `js/selection-catalog.js` 的 `brandKeys()` 生成，合并目录走 `merge()`；「复制链接」把需求与固定型号写进 URL（`fromQuery()` / `shareUrl()`），光源型号构成仅海康且系列前缀 / 颜色后缀匹配时显示 |
+| `js/engine.test.js` | 129 个单元测试（含多品牌合并 / 全量选型池清洗与品牌开关 / 镜头·线扫·光源三线双品牌 / 跨品牌等价 / 选优回归 / mount 完备性 / 线扫优先 / 镜头跨品牌选型 / 转接环与景深光圈 / 备选方案与镜头·光源备选标注 / 自定义搭配评定 / 现场参数与配套验收 / 选型依据对比），`node js/engine.test.js` 运行 |
 | `tools/build-opt-series-index.py` | 解析官网首页产品导航的「产品线 → 分类 → 系列」三级树（179 个系列） |
 | `tools/fetch-opt-tree.js` | 抓标准光源侧栏分类树（`item-id` 不可信，按文档顺序归属；交替正则会吞节点） |
 | `tools/fetch-opt-ajax.js` | 按系列抓全量型号表（`ajax_series_<id>.html?pageSize=500`，并发 6） |
@@ -203,7 +203,7 @@ node tools/parse-catalog.js stdraw.txt webref.json lights.json specs.json > js/h
 ## 开发与发布
 
 ```bash
-npm test                 # node js/engine.test.js（120 项）+ node js/calc.test.js（41 项），共 161 项
+npm test                 # node js/engine.test.js（129 项）+ node js/calc.test.js（41 项），共 170 项
 ```
 
 测试覆盖：型号库自洽性、分辨率与颜色/快门约束、型号与镜头像面/卡口/最近摄距匹配、
