@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="机器视觉智能选型助手">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#142d42"/>
+      <stop offset="0.55" stop-color="#0b1a28"/>
+      <stop offset="1" stop-color="#060f18"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.52" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#22d3ee" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="0.55" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#0ea5c6"/>
+    </linearGradient>
+    <clipPath id="round"><rect width="1024" height="1024" rx="224"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#glow)"/>
+    <g fill="none" stroke="#e8f2f8" stroke-width="100" stroke-linecap="square">
+      <path d="M128 384V128h256"/>
+      <path d="M128 640v256h256"/>
+      <path d="M640 896h256V640"/>
+    </g>
+    <rect x="704" y="64" width="256" height="256" fill="url(#chip)"/>
+    <rect x="0.5" y="0.5" width="1023" height="1023" rx="223.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+  </g>
+</svg>
