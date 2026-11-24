@@ -88,10 +88,20 @@
   }
 
   function build() {
+    var nav = $('moduleNav');
+    if (nav) {
+      nav.innerHTML = C.COMBOS.map(function (combo, i) {
+        var n = String(i + 1).padStart(2, '0');
+        return '<a class="anchor" href="#c_' + esc(combo.id) + '" data-target="' + esc(combo.id) + '" data-state="empty">' +
+               '<span class="an">' + n + '</span>' + esc(combo.label) + '<span class="adot"></span></a>';
+      }).join('');
+    }
     var html = '';
-    C.COMBOS.forEach(function (combo) {
+    C.COMBOS.forEach(function (combo, i) {
+      var n = String(i + 1).padStart(2, '0');
       html += '<section class="combo" id="c_' + esc(combo.id) + '" data-combo="' + esc(combo.id) + '">' +
         '<div class="chead">' +
+          '<span class="cno">' + n + '</span>' +
           '<h2>' + esc(combo.label) + '<small>' + combo.items.length + ' 个结果</small></h2>' +
           '<span class="cstat" data-role="stat">待填参数</span>' +
           '<div class="cbtns">' +
@@ -174,7 +184,7 @@
     return '<div class="rcard ' + esc(item.tone) + '">' +
            '<div class="rhead"><h4>' + esc(item.title) + '</h4>' +
            '<span class="rtag" data-item="' + esc(item.id) + '">' + esc(show(item.result.value)) +
-           (item.result.unit ? ' ' + esc(item.result.unit) : '') + '</span></div>' +
+           (item.result.unit ? '<span class="u">' + esc(item.result.unit) + '</span>' : '') + '</span></div>' +
            '<div class="rsym">' + esc(item.sym) + '</div>' +
            '<div class="verdict ' + esc(item.tone) + '">' + esc(item.verdict) + '</div>' +
            stepsHTML(item.steps) + notesHTML(item.notes, item.warnings) +
@@ -205,6 +215,10 @@
     if (!root || !out || out.error) return;
     var stat = root.querySelector('[data-role="stat"]');
     if (stat) stat.textContent = statText(out);
+    var navItem = document.querySelector('.anchor[data-target="' + combo.id + '"]');
+    if (navItem) {
+      navItem.dataset.state = !out.done ? 'empty' : out.done >= out.total ? 'done' : 'partial';
+    }
     var res = root.querySelector('[data-role="res"]');
     if (res) {
       // 结果标签重建前先记下旧值：只有数值真的变了才闪一下，输错退回不闪
@@ -321,7 +335,36 @@
     setTimeout(function () { wrap.classList.remove('need'); }, 1900);
   }
 
+  var navLinks = [];
+  function syncActiveNav() {
+    if (!navLinks.length) return;
+    var line = 132, active = navLinks[0].dataset.target;
+    navLinks.forEach(function (a) {
+      var sec = document.querySelector('.combo[data-combo="' + a.dataset.target + '"]');
+      if (!sec) return;
+      var r = sec.getBoundingClientRect();
+      if (r.top <= line && r.bottom > line) active = a.dataset.target;
+    });
+    navLinks.forEach(function (a) { a.classList.toggle('on', a.dataset.target === active); });
+  }
+
   function bind() {
+    navLinks = Array.prototype.slice.call(document.querySelectorAll('.anchor[data-target]'));
+    navLinks.forEach(function (a) {
+      a.addEventListener('click', function () {
+        navLinks.forEach(function (x) { x.classList.remove('on'); });
+        a.classList.add('on');
+      });
+    });
+    var navTick = false;
+    window.addEventListener('scroll', function () {
+      if (navTick) return;
+      navTick = true;
+      requestAnimationFrame(function () { syncActiveNav(); navTick = false; });
+    }, { passive: true });
+    window.addEventListener('resize', syncActiveNav);
+    syncActiveNav();
+
     document.addEventListener('input', onEdit);
     document.addEventListener('change', onEdit);
     document.addEventListener('click', function (e) {

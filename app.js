@@ -6,6 +6,26 @@
   var SC = window.SelectionCatalog;
   var $ = function (id) { return document.getElementById(id); };
 
+  // 本地光学实验室（Qsianuo/vision-spec-generator）地址；可在脚本加载前用
+  // window.SPEC_GENERATOR_BASE 覆盖（换端口或部署地址）。
+  var LAB_BASE = window.SPEC_GENERATOR_BASE || 'http://127.0.0.1:8848';
+  // 选型助手光源子类 → 实验室光源系列。实验室没有点光源模型，按环形兜底。
+  var LAB_SERIES = {
+    backlight: 'HFS', coaxial: 'CO', dome: 'DS',
+    ring: 'RS', ring_low: 'RS', ring_high: 'RS',
+    bar_low: '2BS', line: 'LPG', point: 'RS'
+  };
+  // 光源颜色：各品牌型录里既有英文也有中文写法，统一成实验室的 tint 取值。
+  var LAB_TINT = {
+    white: 'white', '白光': 'white',
+    red: 'red', '红光': 'red',
+    blue: 'blue', '蓝光': 'blue',
+    green: 'green', '绿光': 'green',
+    yellow: 'yellow', '黄光': 'yellow', '黄光（琥珀）': 'yellow',
+    ir: 'ir', '红外': 'ir', '红外光': 'ir',
+    cyan: 'cyan', '青光': 'cyan'
+  };
+
   // 三个类目各自按「清洗后仍有有效型号」的品牌初始化，默认全选。
   // 退市排除、必要参数硬门槛、等价字段补齐统一在 selection-catalog.js，
   // 选型助手与自定义搭配共用同一套口径。
@@ -140,6 +160,33 @@
 
   function kv(k, v) {
     return '<div class="kv"><span>' + esc(k) + '</span><b>' + v + '</b></div>';
+  }
+
+  // 只给真正决定选型的几项上色；其余行保留类别但压低视觉权重
+  function kvKey(k, v) {
+    return '<div class="kv key"><span>' + esc(k) + '</span><b>' + v + '</b></div>';
+  }
+  function kvSoft(k, v) {
+    return '<div class="kv soft"><span>' + esc(k) + '</span><b>' + v + '</b></div>';
+  }
+  // 值里的补充说明：跟在关键值后面做小字，不另起一行
+  function sub(txt) {
+    return '<small class="v-sub">' + esc(txt) + '</small>';
+  }
+  // 安装角度 / 尺寸建议这类长句：首句高亮，后半留作小字，信息不丢
+  function leadRest(txt) {
+    var i = txt.indexOf('，');
+    if (i < 0 || txt.length < 26) return esc(txt);
+    return '<b class="v-key">' + esc(txt.slice(0, i)) + '</b>' + sub(txt.slice(i + 1));
+  }
+  // 引擎的 series / suffix / example 是海康 MV-L 系列命名规则。
+  // 光源实际来自 CST / OPT / Basler 等品牌时这套模板不适用；即便海康，手动指定的
+  // 子类 / 颜色与模板不一致时（如 MV-LBSS 背光、白光 -W 配红色模板）也不能展示。
+  function hikRuleOf(g) {
+    // 合并目录里 brand 是品牌全名（如「海康机器人 HIKROBOT」），不是注册键
+    var m = g ? brandMeta(g.skuBrand) : null;
+    return !!(m && m.key === 'hikrobot' && g.series && g.sku && g.suffix &&
+      g.sku.indexOf(g.series) === 0 && g.sku.slice(-g.suffix.length) === g.suffix);
   }
 
   function block(k, v) {
@@ -296,8 +343,8 @@
   function verdictsHtml(r) {
     var out = [];
     function chip(tone, icon, label, text) {
-      out.push('<span class="vd ' + tone + '"><i>' + icon + '</i><span>' + label +
-        ' <b>' + text + '</b></span></span>');
+      out.push('<span class="vd ' + tone + '"><i>' + icon + '</i><span><em>' + label +
+        '</em><b>' + text + '</b></span></span>');
     }
     var m = r.margin;
     if (m != null) {
@@ -386,6 +433,20 @@
     };
   }
 
+  // 只带实验室需要的条件：光源形态、颜色、视野、工作距离。
+  // 任务/精度/速度/型号都不传，避免把两套口径混在一起。
+  function labHref(lightType, lightColor) {
+    var i = readInput();
+    var q = new URLSearchParams();
+    q.set('series', LAB_SERIES[lightType] || 'RS');
+    var tint = LAB_TINT[lightColor] || LAB_TINT[i.colorTarget];
+    if (tint) q.set('tint', tint);
+    q.set('fov', (i.fovW || 15) + 'x' + (i.fovH || 12));
+    // 实验室把 WD 夹在 80~400，链接里先夹一遍，免得页面显示值和 URL 不一致。
+    q.set('wd', String(Math.max(80, Math.min(400, i.wd || 160))));
+    return LAB_BASE + '/lab?' + q.toString();
+  }
+
   function applyState(st) {
     manual.camera = null;
     manual.lens = null;
@@ -459,21 +520,22 @@
       '<div class="card-head"><span class="ico">📷</span><h3>相机</h3>' + blogo + '<span class="tag">' + esc(c.color) + '</span></div>' +
       '<div class="hero">' + esc(c.model) + '</div>' +
       '<div class="hero-sub"><span>' + esc(c.series) + ' · ' + c.w + '×' + c.h + ' px</span>' + libLink('cam', c.model) + '</div>' +
-      kv('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
-      kv('精度余量', esc(r.margin >= 0 ? pct(r.margin) : '不足')) +
+      kvKey('有效像素精度', esc(n4(c.pxAcc)) + ' mm/px') +
+      kvKey('精度余量', esc(r.margin >= 0 ? pct(r.margin) : '不足')) +
       kv('像元尺寸', esc(c.pxUm) + ' µm') +
       kv('最大帧率', esc(c.maxFps) + ' fps') +
-      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' + (c.size || (c.sw > 0 && c.sh > 0) ? '（' + sensorSizeTxt(c) + '）' : '')) +
+      kv('靶面尺寸', esc(c.sw + ' × ' + c.sh) + ' mm' +
+        (c.size ? ' · ' + esc(c.size) : (c.sw > 0 && c.sh > 0 ? ' · ' + sensorSizeTxt(c) : ''))) +
       kv('镜头接口', esc(c.mount) + ' 口') +
       kv('数据接口', esc(c.interface)) +
-      kv('传感器型号', esc(c.sensor || '—')) +
-      kv('快门类型', esc(c.shutter)) +
-      kv('动态范围', esc(c.dr == null ? '—' : c.dr + ' dB')) +
-      kv('信噪比', esc(c.snr == null ? '—' : c.snr + ' dB')) +
-      kv('曝光范围', esc(expoRange(c.expMinUs, c.expMaxUs))) +
-      kv('供电', esc(c.poe == null ? '—' : c.poe ? 'PoE / 12V' : '12V')) +
-      kv('典型功耗', esc(c.powerW == null ? '—' : c.powerW + ' W')) +
-      kv('所需带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
+      kvSoft('传感器型号', esc(c.sensor || '—')) +
+      kvSoft('快门类型', esc(c.shutter)) +
+      kvSoft('动态范围', esc(c.dr == null ? '—' : c.dr + ' dB')) +
+      kvSoft('信噪比', esc(c.snr == null ? '—' : c.snr + ' dB')) +
+      kvSoft('曝光范围', esc(expoRange(c.expMinUs, c.expMaxUs))) +
+      kvSoft('供电', esc(c.poe == null ? '—' : c.poe ? 'PoE / 12V' : '12V')) +
+      kvSoft('典型功耗', esc(c.powerW == null ? '—' : c.powerW + ' W')) +
+      kvSoft('所需带宽', esc(num(c.bandwidthMBps, 2)) + ' MB/s') +
       '</div>';
   }
 
@@ -488,29 +550,30 @@
       ? '<span class="tag" style="background:#fef3c7;color:#92400e" title="大口径相机经转接环安装 C 口镜头，接环约 12 mm 已计入安装空间">需 ' +
         esc(camMount + '→' + l.mount) + ' 转接环</span>'
       : '';
-    // 满足景深的最大光圈：F 数字越小进光量越大；apMaxOk=false 表示最小光圈景深仍不足
-    var apTxt = 'F' + l.aperture + (l.apMaxOk
-      ? '（景深允许的最大光圈，现场可再收一档保险）'
-      : '（已至最小光圈，景深仍不足）');
+    // 满足景深的最大光圈：F 数字越小进光量越大；apMaxOk=false 表示最小光圈景深仍不足。
+    // 括号里的口径说明压成小字，数值留在第一行。
+    var apTxt = 'F' + l.aperture + sub(l.apMaxOk
+      ? '景深上限，可再收一档'
+      : '已至最小光圈，景深不足');
     var lenTxt = l.len
-      ? l.len + ' mm（手册图）' + (l.adapter ? ' + 转接环 ≈12 mm' : '')
-      : (l.lenEst != null ? '≈' + l.lenEst + ' mm' + (l.adapter ? '（含转接环）' : '') : '—');
+      ? l.len + ' mm' + sub(l.adapter ? '手册图 + 转接环 ≈12 mm' : '手册图')
+      : (l.lenEst != null ? '≈' + l.lenEst + ' mm' + sub(l.adapter ? '含转接环' : '估算') : '—');
     return '<div class="card lens" id="card-lens">' +
       '<div class="card-head"><span class="ico">🔍</span><h3>镜头</h3>' + llogo +
       '<span class="tag">' + esc(l.mount) + ' 口</span>' + adapterTxt + '</div>' +
       '<div class="hero">' + l.f + ' mm<span style="font-size:14px;color:#64748b;font-weight:600"> / F' + l.aperture + '</span></div>' +
       '<div class="hero-sub"><span>' + esc(l.model) + '</span>' + libLink('lens', l.model) + '</div>' +
-      kv('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
-      kv('景深', esc(num(l.dof, 2)) + ' mm') +
-      kv('满足景深的最大光圈', esc(apTxt)) +
+      kvKey('实际视场', esc(num(l.fovW, 2) + ' × ' + num(l.fovH, 2)) + ' mm') +
+      kvKey('景深', esc(num(l.dof, 2)) + ' mm') +
+      kv('满足景深的最大光圈', apTxt) +
       kv('放大倍率', esc(n4(l.m)) + '×') +
       kv('像面 / 解析力', esc(icTxt)) +
-      kv('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
-      kv('镜头系列', esc(l.series)) +
-      kv('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
-      kv('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
-      kv('镜头总长', esc(lenTxt)) +
-      kv('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
+      kvSoft('理论焦距', esc(num(l.fReq, 1)) + ' mm') +
+      kvSoft('镜头系列', esc(l.series)) +
+      kvSoft('衍射弥散', esc(num(l.blurPx, 2)) + ' px') +
+      kvSoft('光学畸变', esc(l.dist == null ? '—' : num(l.dist, 2) + '%')) +
+      kvSoft('镜头总长', lenTxt) +
+      kvSoft('最近摄距', esc(l.minDist != null ? l.minDist + ' m' : '—')) +
       '</div>';
   }
 
@@ -521,16 +584,17 @@
     return '<div class="card light" id="card-light">' +
       '<div class="card-head"><span class="ico">💡</span><h3>光源</h3>' + glogo + '<span class="tag">' + esc(TYPE_TAG[g.type] || '环形') + '</span></div>' +
       '<div class="hero">' + esc(g.sku || g.seriesName) + '</div>' +
-      '<div class="hero-sub"><span>' + swatch(g.color) + esc(g.colorName) + ' ' + esc(g.wavelength) + ' · ' +
-        esc(g.series) + esc(g.suffix) + '</span>' + libLink('light', g.sku) + '</div>' +
-      block('安装 / 打光角度', esc(g.angle)) +
-      block('尺寸建议', esc(g.size)) +
+      '<div class="hero-sub"><span>' + swatch(g.color) + esc(g.colorName) + ' ' + esc(g.wavelength) +
+        (hikRuleOf(g) ? ' · ' + esc(g.series + g.suffix) : '') + '</span>' + libLink('light', g.sku) + '</div>' +
+      block('安装 / 打光角度', leadRest(g.angle)) +
+      block('尺寸建议', leadRest(g.size)) +
       block('功率 / 数量',
-        esc(g.power == null ? '—' : g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W')) +
+        g.power == null ? '—' : '<b class="v-key">' + esc(g.power + ' W × ' + g.count + ' 只 = ' + g.totalPower + ' W') + '</b>') +
       block('控制器型号', esc(g.controllerModel
         ? g.controllerModel + '（' + g.controllerChannels + ' 通道）'
         : '—') + libLink('ctrl', g.controllerModel)) +
-      block('型号构成', esc(g.example) + '<br><span style="color:#94a3b8">' + esc(g.suffixNote) + '</span>') +
+      // 命名模板只在海康型号上成立，CST / OPT 等品牌按自己的型号命名
+      (hikRuleOf(g) ? block('型号构成', '<b class="v-key">' + esc(g.example) + '</b><br>' + sub(g.suffixNote)) : '') +
       (g.skuNote ? block('选型说明', '<span style="color:#b45309">' + esc(g.skuNote) + '</span>') : '') +
       block('配件', esc(g.accessories.length ? g.accessories.join('；') : '无')) +
       block('控制方式', esc(g.controller)) +
@@ -1188,6 +1252,8 @@
     }
 
     var r = E.solve(readInput());
+    var labBtn = $('labBtn');
+    if (labBtn) labBtn.href = labHref(r.ok && r.light ? r.light.type : null, r.ok && r.light ? r.light.color : null);
     Array.prototype.forEach.call(document.querySelectorAll('[data-combo-link]'), function (a) {
       a.href = comboLinkHref();
     });
@@ -1240,7 +1306,9 @@
     }
     $('stateChip').className = 'tag ' + (r.feasible ? 'ok' : 'bad');
     $('stateChip').textContent = r.feasible ? '方案可行' : '需升级方案';
-    $('summary').innerHTML = esc(heroLine(r));
+    // 可行时整句结论与下方三项判定重复，不再显示；不可行时保留一句提醒，避免三项判定全绿却说「需升级方案」
+    $('summary').hidden = !!r.feasible;
+    $('summary').innerHTML = r.feasible ? '' : esc(heroLine(r));
     $('verdicts').innerHTML = verdictsHtml(r);
     $('quick').innerHTML = quickRows(r);
     $('scoreItems').innerHTML = scoreItemsHtml(r);
@@ -1397,8 +1465,9 @@
       num(l.fovW, 2) + '×' + num(l.fovH, 2) + 'mm，景深 ' + num(l.dof, 2) + 'mm');
     lines.push('　 像面 ' + (l.ic == null ? '大靶面' : l.ic + 'mm') + '，解析力 ' + (l.mp ? l.mp + 'MP' : '—') + '，' + l.mount + ' 口' +
       (l.adapter ? '（需 ' + r.camera.mount + '→' + l.mount + ' 转接环，约 12mm）' : ''));
-    lines.push('· 光源：' + (g.skuBrand ? '[' + g.skuBrand + '] ' : '') + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength + '（后缀 ' + g.suffix + '）');
-    lines.push('　 型号构成：' + g.example);
+    lines.push('· 光源：' + (g.skuBrand ? '[' + g.skuBrand + '] ' : '') + (g.sku || g.series) + '（' + g.seriesName + '），' + g.colorName + ' ' + g.wavelength +
+      (hikRuleOf(g) ? '（后缀 ' + g.suffix + '）' : ''));
+    if (hikRuleOf(g)) lines.push('　 型号构成：' + g.example);
     if (g.skuNote) lines.push('　 选型说明：' + g.skuNote);
     lines.push('　 安装：' + g.angle);
     lines.push('　 尺寸：' + g.size);

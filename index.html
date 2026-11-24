@@ -185,23 +185,25 @@
   .score-mid { flex: 1; min-width: 220px; }
   .score-mid .lbl { font-size: 13.5px; color: var(--muted); margin-bottom: 9px; display: flex; justify-content: space-between; align-items: center; }
   .score-note { margin-top: 9px; font-size: 12.5px; line-height: 1.6; color: #5b6b82; }
-  /* 指标判定：✓ 够 / ! 偏紧 / ✕ 不足，让人不用换算就知道结论 */
-  .verdicts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  /* 三项关键判定：这是整页最该先读的信息，做成一行三块，不再是小标签 */
+  .verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px; margin-top: 14px; }
   .vd {
-    display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 8px;
-    border-radius: 9px; border: 1px solid #e2e8f0; background: #f8fafc;
-    font-size: 12.5px; line-height: 1.55; color: #3d4f63;
+    display: flex; align-items: flex-start; gap: 9px; min-width: 0;
+    padding: 11px 12px; border-radius: 12px; border: 1px solid #cfe3e8; background: #f4fafb;
   }
-  .vd b { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .vd > span { display: block; min-width: 0; }
+  .vd em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: #5b6b82; line-height: 1.4; }
+  .vd b { display: block; font-size: 14.5px; font-weight: 700; color: #0f172a; line-height: 1.45; font-variant-numeric: tabular-nums; }
   .vd i {
-    font-style: normal; font-weight: 700; font-size: 11px; width: 15px; height: 15px; border-radius: 50%;
+    font-style: normal; font-weight: 700; font-size: 12px; width: 21px; height: 21px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center; color: #fff; background: #64748b;
+    flex: 0 0 auto; margin-top: 1px;
   }
-  .vd.ok { border-color: #bfe3cf; background: #f2fbf5; }
+  .vd.ok { border-color: #a9dcc0; background: #f1fbf5; }
   .vd.ok i { background: #15803d; }
-  .vd.tight { border-color: #f0dcb4; background: #fdf8ee; }
+  .vd.tight { border-color: #ecd29a; background: #fdf8ee; }
   .vd.tight i { background: #b45309; }
-  .vd.bad { border-color: #f2c6c6; background: #fdf3f3; }
+  .vd.bad { border-color: #efb9b9; background: #fdf3f3; }
   .vd.bad i { background: #b91c1c; }
   .bar { height: 10px; border-radius: 999px; background: #e6edf5; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: 999px; transition: width .45s ease; background: linear-gradient(90deg, #0f766e, #0891b2 62%, #0e7490); }
@@ -211,12 +213,14 @@
   }
   .tag.ok { background: #dcfce7; color: #15803d; }
   .tag.bad { background: #fee2e2; color: #b91c1c; }
+  /* 可行时不再显示整句结论；仅有硬性条件不过时留一条紧凑提示 */
   .summary {
-    margin-top: 16px; padding: 13px 15px; border-radius: 12px;
-    background: #f8fafc; border: 1px dashed #cfdae7;
-    font-size: 14px; line-height: 1.8; color: #334155;
+    margin-top: 12px; padding: 9px 12px; border-radius: 10px;
+    background: #fff8ed; border: 1px solid #f5d9a8;
+    font-size: 13px; line-height: 1.6; color: #8a5200;
     word-break: break-word;
   }
+  .summary[hidden] { display: none; }
   .score-items { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
   .score-items .si-title { font-weight: 600; color: #475569; }
   .si-chip {
@@ -228,9 +232,10 @@
   /* ---------- 三张方案卡 ---------- */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 16px; margin-top: 16px; }
   .cards .card { margin-top: 0; display: flex; flex-direction: column; min-width: 0; }
-  .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; min-width: 0; }
+  .card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin-bottom: 12px; min-width: 0; }
   .card-head h3 { margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
-  .card-head .tag { margin-left: auto; }
+  .card-head .tag { margin-left: auto; flex: 0 0 auto; }
+  .card-head .tag + .tag { margin-left: 0; }
   .card-brand-logo { height: calc(16px * var(--logo-scale, 1)); width: auto; max-width: 78px; object-fit: contain; margin-left: 6px; vertical-align: -3px; border-radius: 3px; flex: 0 0 auto; }
   .lib-link {
     font-size: 12px; text-decoration: none; color: var(--accent);
@@ -258,8 +263,14 @@
   /* 值里的行内标记（达标 / 超差 等）必须留在行内，别继承标签的 block */
   .kv-block p span { display: inline; color: inherit; margin: 0; }
   .kv-block p { margin: 0; line-height: 1.65; color: #1e293b; word-break: break-word; }
-  .why { margin: 14px 0 0; padding: 0; list-style: none; }
-  .why li { position: relative; padding-left: 16px; margin-bottom: 7px; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  /* 关键项高亮：只标决定选型的数值，类别名全部保留、次要项压低权重 */
+  .kv.key > span { color: #334155; font-weight: 600; }
+  .kv.key > b, .kv-block p .v-key { color: var(--accent); font-weight: 700; }
+  .kv.soft > b { color: #5b6b82; font-weight: 500; }
+  /* <small> 避开 .kv-block p span 的继承规则，说明文字按小字贴着关键值走 */
+  .v-sub { color: #5b6b82; font-size: 12px; font-weight: 400; margin-left: 5px; }
+  .why { margin: 12px 0 0; padding: 0; list-style: none; }
+  .why li { position: relative; padding-left: 16px; margin-bottom: 5px; font-size: 12.5px; line-height: 1.6; color: #475569; }
   .why li::before { content: ""; position: absolute; left: 4px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: #7fb8d4; }
 
   /* ---------- 方案卡「展开全部参数」 ---------- */
@@ -813,7 +824,9 @@
     .kv { padding: 8px 0; font-size: 13.5px; }
     .hero { font-size: 17px; }
     .hero-sub { font-size: 12.5px; }
-    .summary { font-size: 13.5px; }
+    .summary { font-size: 12.5px; }
+    .vd { padding: 10px 11px; }
+    .vd b { font-size: 14px; }
     .q-seg > b { font-size: 13.5px; }
     .q-sub { font-size: 12px; }
     /* 评分区收紧为一行，避免 100 分单独占一大块 */
@@ -823,7 +836,7 @@
     .score-mid { min-width: 0; }
     .score-mid .lbl { font-size: 12.5px; margin-bottom: 7px; }
     .score-mid .lbl .tag { font-size: 11.5px; padding: 3px 8px; }
-    .summary { margin-top: 13px; padding: 11px 13px; }
+    .summary { margin-top: 11px; padding: 9px 11px; }
   }
 
   /* ---------- 品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
@@ -1049,6 +1062,7 @@
       <button type="button" class="btn" id="shareBtn" title="把当前需求与已固定型号编码进网址，对方打开即还原同一份结果">复制链接</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
       <a class="btn" href="combo.html" data-combo-link>自定义搭配</a>
+      <a class="btn" id="labBtn" target="_blank" rel="noopener" href="http://127.0.0.1:8848/lab" title="按当前光源形态、颜色、视野和工作距离，在本地光学实验室里看打光效果；点光源在实验室里按环形光源显示">光学实验室 ↗</a>
     </div>
   </section>
 

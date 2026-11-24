@@ -27,24 +27,63 @@
   .tb-sub b { color: #fff; font-weight: 600; }
   .wrap { max-width: 1320px; margin: 0 auto; padding: 14px 28px 40px; }
   .intro {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
-    padding: 11px 15px; margin-bottom: 2px; box-shadow: none;
+    position: relative; overflow: hidden;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center;
+    background: linear-gradient(135deg, #fff 0%, #f9fcfa 100%);
+    border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 22px 17px 24px; margin-bottom: 12px;
   }
-  .intro h1 { font-size: 16px; margin: 0 0 4px; }
-  .intro p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.65; }
+  .intro::before {
+    content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
+    background: var(--accent); border-radius: 0 999px 999px 0;
+  }
+  .intro-main { min-width: 0; }
+  .eyebrow {
+    font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--accent);
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+  .intro h1 { font-size: 22px; line-height: 1.25; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro > .intro-main > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
   .intro b { color: var(--accent); }
-  .toolbar {
-    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    position: sticky; top: 0; z-index: 12; padding: 6px 0;
-    background: linear-gradient(180deg, var(--bg) 78%, rgba(238, 242, 247, 0));
+  .intro-more { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+  .intro-more summary { cursor: pointer; color: var(--accent); font-weight: 600; list-style: none; display: inline-flex; align-items: center; gap: 4px; }
+  .intro-more summary::-webkit-details-marker { display: none; }
+  .intro-more summary::after { content: '▾'; font-size: 10px; transition: transform .18s ease; }
+  .intro-more[open] summary::after { transform: rotate(180deg); }
+  .intro-more p { margin: 6px 0 0; line-height: 1.7; }
+  .intro-meta { display: flex; gap: 8px; }
+  .imeta {
+    min-width: 82px; padding: 8px 12px; border-radius: 11px;
+    background: #fff; border: 1px solid var(--line); text-align: center;
   }
+  .imeta b { display: block; font-size: 20px; line-height: 1.1; color: var(--ink); letter-spacing: -.03em; }
+  .imeta span { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); }
+  .toolbar {
+    display: flex; gap: 10px; align-items: center;
+    position: sticky; top: 0; z-index: 12; padding: 8px 0 10px;
+    background: var(--bg);
+  }
+  .nav-label {
+    flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: .12em;
+    color: #8794a3; text-transform: uppercase;
+  }
+  .anchors { display: flex; gap: 5px; flex-wrap: wrap; min-width: 0; }
   .toolbar .anchor, .toolbar button, .btn {
     display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
-    font-size: 12px; font-weight: 600; line-height: 1; padding: 6px 11px;
+    font-size: 12px; font-weight: 600; line-height: 1; padding: 7px 11px;
     border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
     color: var(--ink); text-decoration: none; cursor: pointer; transition: .15s;
   }
-  .toolbar .anchor:hover, .toolbar button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toolbar .anchor { background: transparent; border-color: transparent; color: var(--muted); font-weight: 500; }
+  .toolbar .anchor .an { font-size: 10px; color: #94a3b8; font-weight: 700; }
+  .toolbar .anchor .adot { width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; margin-left: 2px; }
+  .toolbar .anchor[data-state="partial"] .adot { background: var(--accent); }
+  .toolbar .anchor[data-state="done"] .adot { background: #16a34a; }
+  .toolbar .anchor:hover { background: #fff; border-color: var(--line); color: var(--accent); }
+  .toolbar .anchor.on { background: #0d2745; border-color: #0d2745; color: #fff; }
+  .toolbar .anchor.on .an { color: #7dd3fc; }
+  .toolbar .anchor.on .adot { background: #22d3ee; }
+  .toolbar button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
   .toolbar .sep { flex: 1 1 auto; }
   section { scroll-margin-top: 64px; }
   /* 顶栏锚点跳转：只在用户没要求减少动效时做平滑滚动 */
@@ -54,82 +93,114 @@
 
   /* ---------- 组合卡片 ---------- */
   .combo {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
-    padding: 11px 13px 12px; box-shadow: none; margin-top: 10px;
+    position: relative; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 17px 15px 19px; box-shadow: none; margin-top: 12px;
   }
-  .chead { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
-  .chead h2 { margin: 0; font-size: 15px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .chead h2 small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .combo::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--accent), rgba(14, 116, 144, .12));
+  }
+  .chead { display: flex; align-items: flex-start; gap: 9px 11px; flex-wrap: wrap; }
+  .cno {
+    width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
+    display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+    font-size: 11.5px; font-weight: 800; letter-spacing: .02em;
+  }
+  .chead h2 { margin: 0; font-size: 16px; line-height: 1.35; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .chead h2 small {
+    font-size: 10.5px; font-weight: 600; color: var(--muted);
+    background: #f1f5f9; border-radius: 999px; padding: 2px 7px;
+  }
   .cstat {
-    font-size: 12px; color: var(--muted); background: #f1f5f9;
-    border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; line-height: 1.45; font-size: 11.5px;
+    font-size: 11.5px; color: var(--muted); background: #f8fafb;
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; line-height: 1.45;
   }
-  .cbtns { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
-  .cbtns .btn { font-size: 11px; padding: 5px 9px; }
-  .cdesc { margin: 4px 0 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .cbtns { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .cbtns .btn { font-size: 10.5px; padding: 5px 9px; color: var(--muted); background: #fff; }
+  .cdesc { margin: 8px 0 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
   /* 组内进度：已算出的公式占比。宽度用过渡，跟输入走但不抖；
      0 个结果时整条淡出，免得像一条无意义的分隔线 */
-  .cprog { height: 3px; margin: 0 0 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; opacity: 0; transition: opacity .2s ease; }
+  .cprog { height: 4px; margin: 0 0 12px; background: #edf1f4; border-radius: 999px; overflow: hidden; opacity: 0; transition: opacity .2s ease; }
   .cprog.on { opacity: 1; }
   .cprog i {
     display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px;
     transition: width .4s cubic-bezier(.22, .61, .36, 1);
   }
-  .cprog.done i { background: var(--ok); }
-  .cform { background: #fbfdff; border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px 9px; }
-  .fsec + .fsec { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
-  .fsec-h { font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: .3px; margin-bottom: 4px; }
-  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+  .cprog.done i { background: #16a34a; }
+  .cform { background: #f8fafb; border: 1px solid #e8ecef; border-radius: 12px; padding: 11px 12px 12px; }
+  .fsec + .fsec { margin-top: 11px; padding-top: 11px; border-top: 1px solid #e7ecef; }
+  .fsec-h {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700; color: #6b7a8a; letter-spacing: .08em;
+    margin-bottom: 7px;
+  }
+  .fsec-h::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
   .cform .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .field.sel { grid-column: span 2; }
-  .field { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .field { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .field.wide { grid-column: 1 / -1; }
-  .field label { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
-  .field label .u { color: #5b6b82; font-size: 11.5px; }
+  .field label { font-size: 12px; font-weight: 500; color: #405166; line-height: 1.35; }
+  .field label .u { color: #748396; font-size: 11px; font-weight: 400; }
   .opt { font-size: 10px; color: #5b6b82; border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; margin-left: 2px; }
   .field input[type="number"], .field select {
     width: 100%; min-width: 0; font: inherit; font-size: 13.5px; color: var(--ink);
-    background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
-    padding: 6px 9px; outline: none; transition: .15s;
+    background: #fff; border: 1px solid #dfe5ea; border-radius: 9px;
+    padding: 7px 10px; min-height: 36px; outline: none; transition: .15s;
   }
+  .field input::placeholder { color: #a9b4c0; }
   .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(14, 116, 144, .14); }
-  .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 11px; }
-  .field.check label { font-size: 13px; color: var(--ink); }
+  .field.check { flex-direction: row; align-items: center; gap: 8px; padding-top: 12px; }
+  .field.check label { font-size: 12.5px; color: #405166; }
   .field.check input { width: 16px; height: 16px; accent-color: var(--accent); }
-  .ftag { font-size: 10px; color: var(--accent); min-height: 12px; line-height: 1.2;
+  .ftag { font-size: 10.5px; color: #0b7285; min-height: 12px; line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .field.auto input[type="number"], .field.auto select {
-    border-color: #b6dcec; background: #f5f9ff; color: #0b4a6b; font-weight: 600;
+    border-color: #9fd0e2; background: #f2f9fd; color: #0b4a6b; font-weight: 600;
   }
+  .field.auto label { color: #0b4a6b; }
   .field.need input, .field.need select {
     border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251, 146, 60, .16); background: #fff7ed;
   }
 
   /* ---------- 结果 ---------- */
-  .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; align-items: start; }
+  .cres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; align-items: start; }
   .cres.one { grid-template-columns: 1fr; }
-  .rcard { border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: #fff; min-width: 0; }
-  .rcard.wait { border-style: dashed; background: #fbfdff; }
-  .rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .rhead h4 { margin: 0; font-size: 13px; }
-  .rtag {
-    font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
-    border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+  .rcard {
+    position: relative; overflow: hidden; min-width: 0;
+    border: 1px solid #e4e9ee; border-radius: 12px; padding: 11px 13px 10px 15px; background: #fff;
   }
-  .rcard.ok .rtag { color: var(--ok); background: var(--ok-bg); }
-  .rcard.warn .rtag { color: var(--warn); background: var(--warn-bg); }
-  .rcard.bad .rtag { color: var(--bad); background: var(--bad-bg); }
-  .rtag.wait { color: var(--muted); background: #f1f5f9; }
+  .rcard::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 999px; background: #cbd5e1; }
+  .rcard.ok::before { background: #16a34a; }
+  .rcard.warn::before { background: #f59e0b; }
+  .rcard.bad::before { background: #dc2626; }
+  .rcard.wait { background: #fafbfc; border-color: #e9edf1; }
+  .rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .rhead h4 { margin: 0; font-size: 13.5px; letter-spacing: -.01em; }
+  .rtag {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    font-size: 16px; font-weight: 800; letter-spacing: -.02em; line-height: 1.25;
+    color: var(--ink); background: transparent; padding: 0; white-space: nowrap;
+  }
+  .rtag .u { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .rcard.ok .rtag { color: #0f7a3d; }
+  .rcard.warn .rtag { color: #a16207; }
+  .rcard.bad .rtag { color: #b91c1c; }
+  .rtag.wait { font-size: 11px; font-weight: 600; letter-spacing: 0; color: #64748b; background: #eef2f7; border-radius: 999px; padding: 3px 8px; }
   /* 数值变了才闪：温和外扩光晕，不改配色，长列表里也不会抢眼 */
   @keyframes rtFlash {
-    0% { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(14, 116, 144, .18); }
+    0% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(14, 116, 144, .18); }
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 116, 144, 0); }
   }
   .rtag.flash { animation: rtFlash .5s cubic-bezier(.22, .61, .36, 1) both; }
-  .rsym { font-size: 11.5px; color: var(--muted); margin: 2px 0 5px; word-break: break-word; }
+  .rsym {
+    font-size: 11px; color: #607087; background: #f7f9fb; border-radius: 7px;
+    padding: 5px 8px; margin: 6px 0 0; word-break: break-word; line-height: 1.5;
+  }
   .verdict {
-    border-radius: 9px; padding: 5px 9px; font-size: 12px; font-weight: 600;
-    background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin-bottom: 6px;
+    border-radius: 8px; padding: 6px 9px; font-size: 11.5px; font-weight: 600;
+    background: var(--accent-soft); color: #0b4a6b; border: 1px solid #b6dcec; margin: 8px 0 7px;
     line-height: 1.55; word-break: break-word;
   }
   .verdict.bad { background: var(--bad-bg); border-color: #fecaca; color: var(--bad); }
@@ -138,40 +209,40 @@
   .steps { display: flex; flex-direction: column; gap: 5px; }
   .step {
     display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.9fr) minmax(96px, .8fr);
-    gap: 8px; align-items: start; padding: 4px 8px; border-radius: 8px;
-    background: #f8fafc; border: 1px solid var(--line); font-size: 12px;
+    gap: 8px; align-items: start; padding: 6px 9px; border-radius: 8px;
+    background: #fbfcfd; border: 1px solid #e8edf1; font-size: 11.5px;
   }
-  .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 12px; }
-  .step .sn { font-weight: 700; color: var(--ink); line-height: 1.45; word-break: break-word; }
+  .rcard .step { grid-template-columns: minmax(0, .95fr) minmax(0, 1.7fr) minmax(68px, .7fr); font-size: 11.5px; }
+  .step .sn { font-weight: 700; color: #45596e; line-height: 1.45; word-break: break-word; }
   .step .sf { color: var(--muted); line-height: 1.5; word-break: break-word; }
   .step .sf b { color: #334155; font-weight: 600; }
-  .step .sv { text-align: right; font-weight: 700; color: var(--accent); word-break: break-word; }
-  .step .sv .su { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 3px; }
+  .step .sv { text-align: right; font-weight: 800; color: #0b4a6b; white-space: nowrap; }
+  .step .sv .su { font-weight: 400; color: var(--muted); font-size: 10.5px; margin-left: 3px; }
   .step .sv .flag { font-size: 11px; margin-left: 4px; }
   .step.ok .sv .flag { color: var(--ok); }
   .step.bad .sv .flag { color: var(--bad); }
-  .step .snote { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .step .snote { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
   .notes { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
-  .notes div { font-size: 12px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
+  .notes div { font-size: 11.5px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
   .notes div::before { content: '·'; position: absolute; left: 3px; color: var(--accent); }
   .notes .risk { color: var(--bad); }
   .notes .risk::before { content: '⚠'; color: var(--bad); }
   .rmiss {
-    font-size: 12px; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa;
+    margin-top: 6px; font-size: 11.5px; color: #8a5a13; background: #fffaf2; border: 1px solid #f6dfb8;
     border-radius: 8px; padding: 6px 9px; line-height: 1.6;
   }
   .rmiss b { color: #b45309; }
   .rmiss .locate {
-    font: inherit; font-size: 11.5px; margin-left: 5px; border: 1px solid #fdba74;
-    background: #fff; color: #b45309; border-radius: 999px; padding: 3px 10px; cursor: pointer;
+    font: inherit; font-size: 11px; margin-left: 5px; border: 1px solid #e7bf7a;
+    background: #fff; color: #a15c10; border-radius: 999px; padding: 2px 9px; cursor: pointer;
   }
   .rmiss .locate:hover { background: #ffedd5; }
   .rauto {
-    margin-top: 6px; font-size: 11px; color: #0b4a6b; background: #eef6fb;
+    margin-top: 7px; font-size: 10.5px; color: #0b4a6b; background: #f1f8fb;
     border: 1px dashed #b6dcec; border-radius: 8px; padding: 5px 8px; line-height: 1.5;
   }
-  .rfoot { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
-  .rfoot .btn { font-size: 11px; padding: 4px 8px; }
+  .rfoot { margin-top: 7px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .rfoot .btn { font-size: 10.5px; padding: 4px 9px; color: var(--muted); background: #fff; }
   footer.foot { margin-top: 16px; color: var(--muted); font-size: 11.5px; line-height: 1.65; border-top: 1px solid var(--line); padding-top: 9px; }
   .toast {
     position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 16px);
@@ -179,23 +250,19 @@
     opacity: 0; pointer-events: none; transition: .22s; z-index: 40; box-shadow: 0 8px 24px rgba(15, 23, 42, .25);
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
-  /* ---------- 宽屏：一行两个模块（每个 570 左右） ---------- */
+  /* ---------- 宽屏：双列瀑布流，短模块不排队长模块 ---------- */
   @media (min-width: 1200px) {
-    /* 双列瀑布流：模块内容多寡差得远（面阵 8 个结果、线扫 1 个），
-       用栅格强行对齐会让短的那一半空出两屏白；多列布局按内容自动分摊。 */
-    #combos { column-count: 2; column-gap: 12px; }
-    #combos .combo { margin: 0 0 12px; break-inside: avoid; }
-    #combos .chead { row-gap: 4px; }
-    /* 待填统计（「待填: 水平像素、垂直像素…」）很长，挤在同一行会把右侧按钮顶出卡片 */
+    #combos { column-count: 2; column-gap: 14px; }
+    #combos .combo { margin: 0 0 14px; break-inside: avoid; padding: 15px 16px 14px 18px; }
+    #combos .chead { row-gap: 5px; }
+    /* 待填统计很长，独占一行，别把右侧按钮顶出卡片 */
     #combos .cstat { order: 3; flex: 1 1 100%; }
     #combos .cbtns { margin-left: auto; }
-    /* 半栏宽度下 4 列输入会挤成一条缝，回到 2 列 */
+    /* 半栏宽度回到两列输入；下拉与复选各占一格，避免错行 */
     #combos .cform .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    /* 下拉若还占两列，2 列栅格会被它切断成一行一个字段，右侧留大洞；统一单列宽 */
     #combos .cform .field.sel { grid-column: auto; }
-    /* 复选独占一行：否则它跟 FOV 挤在一格，勾选框会贴到格子底部看着像错行 */
     #combos .cform .field.check { grid-column: 1 / -1; align-self: start; }
-    /* 半栏里「名称 / 公式 / 数值」三列放不下，改成两行：名称+数值一行，公式一行 */
+    /* 半栏里公式拆成两行：名称 + 数值，公式另起一行 */
     #combos .step { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
     #combos .step .sn { grid-row: 1; grid-column: 1; }
     #combos .step .sv { grid-row: 1; grid-column: 2; }
@@ -204,7 +271,11 @@
     /* 通过的结论与上方数值标签重复，只留异常提示 */
     #combos .verdict:not(.bad):not(.warn) { display: none; }
   }
+  @media (max-width: 1199px) and (min-width: 861px) {
+    #combos .combo { max-width: 900px; margin-left: auto; margin-right: auto; }
+  }
   @media (max-width: 1000px) {
+    .intro { grid-template-columns: minmax(0, 1fr) auto; }
     .cform .fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 860px) {
@@ -213,19 +284,31 @@
   @media (max-width: 760px) {
     .topbar { padding: 0 16px; }
     .topbar-inner { min-height: 64px; }
-    .wrap { padding: 16px 14px 48px; }
+    .wrap { padding: 12px 12px 40px; }
     .pnav { margin-left: 0; }
     .pnav > a, .pnav > .on { font-size: 12px; padding: 6px 0; }
-    .toolbar { gap: 6px; }
-    .toolbar .anchor, .toolbar button { font-size: 11.5px; padding: 8px 10px; }
+    .intro { grid-template-columns: 1fr; gap: 12px; padding: 16px 15px 15px 18px; }
+    .intro h1 { font-size: 20px; }
+    .intro > .intro-main > p { font-size: 12.5px; }
+    .intro-meta { gap: 6px; }
+    .imeta { flex: 1; min-width: 0; padding: 7px 6px; }
+    .imeta b { font-size: 18px; }
+    .toolbar { flex-wrap: nowrap; gap: 7px; padding: 7px 0 9px; }
+    .nav-label { display: none; }
+    .anchors { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .anchors::-webkit-scrollbar { display: none; }
+    .toolbar .anchor, .toolbar button { font-size: 11.5px; padding: 7px 10px; }
     .toolbar .sep { display: none; }
+    .toolbar > button { flex: 0 0 auto; }
     .cform .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .field.check { grid-column: 1 / -1; }   /* 窄屏下复选框独占一行，避免被读成相邻字段的标签 */
+    .field.sel { grid-column: 1 / -1; }   /* 下拉独占整行，半栏会截断选项文字 */
+    .field.check { grid-column: 1 / -1; }
     .chead h2 { font-size: 15px; }
-    .cbtns { margin-left: 0; }
+    .cbtns { margin-left: auto; }
+    .cno { width: 27px; height: 27px; }
     .step { grid-template-columns: 1fr; gap: 3px; }
     .step .sv { text-align: left; }
-    .combo { padding: 13px 12px; }
+    .combo { padding: 15px 13px 14px 16px; }
   }
 
   /* ---------- 品牌标识（四角取景框，右上实心角 = 已选中） ---------- */
@@ -271,17 +354,25 @@
 
 <div class="wrap">
   <div class="intro">
-    <h1>机器视觉工程计算器</h1>
-    <p>按方案里的实际场景合成 <b>6 个计算器</b>：同一组的条件只填一次，组里「输入齐了」的公式立刻一起出结果；算不出的不报错，只提示还缺哪一项，点「去填」直接跳到那个输入框。上一组算出的放大倍率、有效像素精度、需求帧率和实际视场，会自动带到下一组并标明来源，可随时改。不预填示例值、不生成方案，纯前端离线可用。</p>
+    <div class="intro-main">
+      <div class="eyebrow">CALC WORKSPACE · 17 FORMULAS</div>
+      <h1>工程计算器</h1>
+      <p>6 个场景计算器，同组条件只填一次；结果一次算全，缺项直接定位，推导量自动带到下一组。</p>
+      <details class="intro-more">
+        <summary>计算口径与联动规则</summary>
+        <p>组里「输入齐了」的公式立刻一起出结果；算不出的不报错，只提示还缺哪一项，点「去填」直接跳到那个输入框。上一组算出的放大倍率、有效像素精度、需求帧率和实际视场会自动带到下一组并标明来源，可随时改。不预填示例值、不生成方案，纯前端离线可用。</p>
+      </details>
+    </div>
+    <div class="intro-meta" aria-label="计算器概览">
+      <div class="imeta"><b>06</b><span>场景计算器</span></div>
+      <div class="imeta"><b>17</b><span>计算公式</span></div>
+      <div class="imeta"><b>0</b><span>预填示例</span></div>
+    </div>
   </div>
 
   <div class="toolbar" id="toolbar">
-    <a class="anchor" href="#c_camera">面阵成像</a>
-    <a class="anchor" href="#c_motion">运动曝光</a>
-    <a class="anchor" href="#c_link">接口安装</a>
-    <a class="anchor" href="#c_scan">线扫行频</a>
-    <a class="anchor" href="#c_tele">远心倍率</a>
-    <a class="anchor" href="#c_quick">照明与单位</a>
+    <span class="nav-label">模块索引</span>
+    <div class="anchors" id="moduleNav"></div>
     <span class="sep"></span>
     <button type="button" id="btnClearAll">清空全部</button>
   </div>
