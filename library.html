@@ -21,23 +21,51 @@
   /* ---------- 全站导航（与选型助手 / 自定义搭配同一套） ---------- */
   .tb-stats { margin-top: 10px; font-size: 13.5px; color: #93a4bd; }
   .tb-stats b { color: #fff; font-weight: 600; }
-  .tb-search { margin-top: 14px; position: relative; max-width: 620px; }
+  /* ---------- 搜索条：独立吸顶浮层，水平居中 ---------- */
+  .search-dock {
+    position: sticky; top: 0; z-index: 40;
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    transition: background .18s, border-color .18s, box-shadow .18s;
+  }
+  /* 只有吸顶之后才铺底色、加分隔线与浅影：页面停在顶部时它就是一片空白带 */
+  .search-dock.stuck {
+    background: #fff;
+    border-bottom-color: var(--line);
+    box-shadow: 0 6px 16px -12px rgba(16, 28, 43, .45);
+  }
+  .sd-row { position: relative; max-width: 1200px; margin: 0 auto; padding: 9px 28px; }
+  .tb-search { position: relative; max-width: 620px; margin: 0 auto; }
   .tb-search input {
-    width: 100%; padding: 13px 42px 13px 42px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2);
-    background: rgba(255,255,255,.10); color: #fff; font-size: 14px; font-family: inherit; outline: none;
+    width: 100%; height: 44px; padding: 0 44px; border-radius: 999px;
+    border: 1px solid #d6e0ea; background: #fff; color: var(--ink);
+    font-size: 14px; font-family: inherit; outline: none;
+    box-shadow: 0 1px 2px rgba(16, 28, 43, .04);
+    transition: border-color .15s, box-shadow .15s;
   }
   .tb-search input::placeholder { color: #8fa2bd; }
-  .tb-search input:focus { border-color: rgba(56,189,248,.6); background: rgba(255,255,255,.14); }
+  .tb-search input:focus { border-color: #7fb8d4; box-shadow: 0 0 0 3px rgba(14, 116, 144, .16); }
   .tb-search .s-ico {
-    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
     color: #8fa2bd; font-size: 14px; pointer-events: none;
   }
   .tb-search .s-clear {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    border: 0; background: rgba(255,255,255,.14); color: #d7e3f4; width: 24px; height: 24px;
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    border: 0; background: #eef2f7; color: #5b6b82; width: 24px; height: 24px;
     border-radius: 50%; cursor: pointer; font-size: 13px; line-height: 1; display: none;
   }
+  .tb-search .s-clear:hover { background: #e2e9f2; color: var(--ink); }
   .tb-search.has-val .s-clear { display: block; }
+  /* 返回刚才的方案：搜索框居中不动，它贴在左侧留白里 */
+  .sd-back {
+    position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px;
+    font-size: 13px; font-weight: 500; color: var(--accent); text-decoration: none;
+    background: var(--accent-soft); border: 1px solid #c3e2ea; border-radius: 999px;
+    white-space: nowrap; transition: .15s;
+  }
+  .sd-back:hover { background: #e2f2f6; border-color: #9fd0de; }
+  .sd-back[hidden] { display: none; }
 
   /* ---------- 类别标签 ---------- */
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 28px 60px; }
@@ -209,7 +237,8 @@
   thead th:last-child { border-top-right-radius: 13px; }
   #thead th:last-child, #tbody td:last-child { padding-right: 18px; }
   thead th {
-    position: sticky; top: 0; background: #e9eef5; color: #33465c; font-size: 12.5px; font-weight: 600;
+    /* 表头吸附在搜索条下沿：--dock-h 由 js/library.js 按实际高度写进 :root */
+    position: sticky; top: var(--dock-h, 0px); background: #e9eef5; color: #33465c; font-size: 12.5px; font-weight: 600;
     letter-spacing: .2px; text-align: left; padding: 9px 12px; border-bottom: 1px solid #cbd6e2; white-space: nowrap; z-index: 2;
     box-shadow: 0 6px 10px -12px rgba(10, 24, 40, .55);
   }
@@ -388,7 +417,7 @@
   .x-tip { margin-top: 7px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
 
   /* ---------- 分页 ---------- */
-  .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+  .pager { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
   .pager button {
     font-family: inherit; font-size: 13.5px; border: 1px solid var(--line); background: var(--panel);
     color: var(--ink); border-radius: 10px; padding: 9px 18px; cursor: pointer;
@@ -396,6 +425,14 @@
   .pager button:disabled { opacity: .4; cursor: default; }
   .pager button:not(:disabled):hover { border-color: #0e7490; color: var(--accent); }
   .pager .pg-info { font-size: 13.5px; color: var(--muted); }
+  /* 每页条数：5 的倍数，5–100 */
+  .pg-size { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); }
+  .pg-size select {
+    font-family: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); border-radius: 9px;
+    padding: 8px 8px; outline: none;
+  }
+  .pg-size select:focus { border-color: #7fb8d4; box-shadow: 0 0 0 3px rgba(14, 116, 144, .16); }
 
   /* ---------- 详情弹层 ---------- */
   .mask {
@@ -431,6 +468,16 @@
   .sheet-acts { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .sheet-acts .inq-add { margin-left: 0; }
   .sheet-model { font-size: 19px; font-weight: 700; font-family: Consolas, "Courier New", monospace; word-break: break-all; }
+  /* 从选型助手「看参数」进来时，详情弹层右上角也给一条回原方案的口子 */
+  .sheet-back {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+    height: 30px; padding: 0 12px; font-size: 12.5px; font-weight: 500;
+    color: var(--accent); text-decoration: none;
+    background: var(--accent-soft); border: 1px solid #c3e2ea; border-radius: 999px;
+    transition: .15s;
+  }
+  .sheet-back:hover { background: #e2f2f6; border-color: #9fd0de; }
+  .sheet-back + .sheet-close { margin-left: 0; }
   .sheet-close {
     margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--muted);
     width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; flex: 0 0 auto;
@@ -469,10 +516,19 @@
     #thead th:last-child, #tbody td:last-child { padding-right: 12px; }
   }
 
+  /* 搜索条两侧放不下「返回方案」时（620 搜索框 + 130 按钮），挪到搜索框上方一行居中 */
+  @media (max-width: 960px) {
+    .sd-back { position: static; transform: none; display: flex; width: max-content; margin: 0 auto 7px; }
+  }
+
   /* ---------- 移动端 ---------- */
   @media (max-width: 860px) {
     .tbl-wrap { display: none; }
     .cards { display: flex; }
+    /* 搜索条：两侧留白收窄；返回按钮挪到搜索框上方一行，免得压住输入框 */
+    .sd-row { padding: 8px 12px; }
+    .sd-back { height: 30px; font-size: 12.5px; }
+    .tb-search input { height: 42px; font-size: 13.5px; }
     /* 类别标签换行铺满，不做横向截断 */
     .tabs { flex-wrap: wrap; }
     .wrap { padding: 12px 12px 48px; }
@@ -528,6 +584,13 @@
       </nav>
     </div>
     <div class="tb-stats" id="stats"></div>
+  </div>
+</div>
+
+<!-- 搜索条：独立吸顶浮层，居中；从选型助手点「看参数」进来时，左侧给一条返回方案的口子 -->
+<div class="search-dock" id="searchDock">
+  <div class="sd-row">
+    <a class="sd-back" id="backLink" href="#" hidden>← 返回刚才的方案</a>
     <div class="tb-search" id="searchBox">
       <span class="s-ico">🔍</span>
       <input id="search" type="search" placeholder="搜型号 / 系列 / 传感器，如 CS016、IMX273、HN-25…" autocomplete="off" />
@@ -558,6 +621,9 @@
     <button id="pgPrev">上一页</button>
     <span class="pg-info" id="pgInfo"></span>
     <button id="pgNext">下一页</button>
+    <label class="pg-size" title="每页显示条数：5 的倍数，最多 100 条">每页
+      <select id="pgSize"></select> 条
+    </label>
   </div>
 </div>
 

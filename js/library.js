@@ -1074,6 +1074,13 @@
   };
 
   /* ============ 4. 状态与渲染 ============ */
+  var PER_KEY = 'vs-lib-per';        // 每页条数：记在本机，下次打开还是上次那档
+  var PER_DEFAULT = 15, PER_MIN = 5, PER_MAX = 100, PER_STEP = 5;
+  function normPer(v) {
+    var n = Math.round(Number(v) / PER_STEP) * PER_STEP;
+    if (!isFinite(n) || n < PER_MIN) return PER_DEFAULT;
+    return Math.min(PER_MAX, n);
+  }
   var state = {
     cat: 'cam',
     q: '',
@@ -1082,12 +1089,23 @@
     sel: {},              // 各下拉筛选 { 'cam.iface': 'USB3', ... }
     sort: 'brand',
     page: 1,
+    per: PER_DEFAULT,     // 每页条数（5 的倍数，5–100），可在分页条里换
     lensFor: null,        // 适配镜头反查：{ model, mounts:Set, adapter:Set, minIc, minMp }
     mpNear: null,         // 未收录型号面板「只看同规格」临时锁定的分辨率（MP），其余筛选一碰就清
     compare: []           // 横向对比：型号 item 引用，最多 4
   };
-  var PAGE_SIZE = 50;
+  try {
+    var perSaved = localStorage.getItem(PER_KEY);
+    if (perSaved) state.per = normPer(perSaved);
+  } catch (e) { /* 隐私模式读不到就用默认值 */ }
   var isMobile = window.matchMedia('(max-width: 860px)');
+
+  // 从选型助手「看参数」跳进来时带的返回地址（同源页面 + 原需求参数），详情弹层与搜索条共用
+  var BACK_URL = '';
+  try {
+    var backQ = new URLSearchParams(location.search).get('back');
+    if (backQ && /^(https?:\/\/|file:\/\/)/i.test(backQ)) BACK_URL = backQ;
+  } catch (e) { /* 参数坏了就当没有 */ }
 
   function selKey(def) { return state.cat + '.' + def.k; }
 
@@ -1101,6 +1119,8 @@
   var $pgPrev = document.getElementById('pgPrev');
   var $pgNext = document.getElementById('pgNext');
   var $pgInfo = document.getElementById('pgInfo');
+  var $pgSize = document.getElementById('pgSize');
+  var $dock = document.getElementById('searchDock');
   var $mask = document.getElementById('mask');
   var $sheet = document.getElementById('sheet');
   var $search = document.getElementById('search');
@@ -1707,10 +1727,10 @@
     state._qr = { q: qr.q, note: qr.note || switchNote };
     switchNote = '';
     filtered = currentItems();
-    var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    var totalPages = Math.max(1, Math.ceil(filtered.length / state.per));
     if (state.page > totalPages) state.page = totalPages;
-    var start = (state.page - 1) * PAGE_SIZE;
-    var slice = filtered.slice(start, start + PAGE_SIZE);
+    var start = (state.page - 1) * state.per;
+    var slice = filtered.slice(start, start + state.per);
 
     renderTable(filtered, slice);
     renderCards(slice, filtered);
@@ -1732,7 +1752,7 @@
 
     renderEolBanner(nEol);
 
-    $pgInfo.textContent = '第 ' + state.page + ' / ' + totalPages + ' 页 · 每页 ' + PAGE_SIZE + ' 条';
+    $pgInfo.textContent = '第 ' + state.page + ' / ' + totalPages + ' 页 · 每页 ' + state.per + ' 条';
     $pgPrev.disabled = state.page <= 1;
     $pgNext.disabled = state.page >= totalPages;
 
@@ -1745,6 +1765,21 @@
     if ($pager) $pager.style.display = empty ? 'none' : '';
 
     renderMiss();
+  }
+
+  /**
+   * 搜索词改了就把视口带回结果第一行。
+   * 偏移量用搜索条的实际高度：它是 sticky 的，滚到位时正好贴在条下面。
+   */
+  function scrollToResults() {
+    // 落到「共 N 条结果」这行：它下面紧跟表头与第一行数据，一屏就能看到结果开头
+    var el = $result;
+    if (!el) return;
+    var off = ($dock ? $dock.offsetHeight : 0) + 8;
+    var top = el.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop || 0) - off;
+    if (Math.abs(top - (window.pageYOffset || 0)) < 3) return;   // 已经在位就别滚，免得手一抖页面自己动
+    try { window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+    catch (e) { window.scrollTo(0, Math.max(0, top)); }
   }
 
   // 搜到退市型号时的顶部提示：说明它为什么还在、并给出官方替代
@@ -1840,6 +1875,7 @@
       '<div class="sheet-head"><div class="row1">' +
         (logo ? '<img class="sheet-logo" src="' + esc(logo) + '" alt="' + esc(brandShort(it.brand)) + '" />' : '') +
         '<span class="cat-tag">' + esc(catInfo ? catInfo.catName : '') + '</span>' +
+        (BACK_URL ? '<a class="sheet-back" href="' + esc(BACK_URL) + '" title="回到跳转前的选型方案（需求与已固定型号都在）">← 返回方案</a>' : '') +
         '<button class="sheet-close" id="sheetClose">✕</button>' +
       '</div>' +
       '<div class="sheet-model">' + esc(d.model || d.series || '') + '</div>' +
@@ -2121,6 +2157,7 @@
       state.mpNear = null;
       state.page = 1;
       render();
+      scrollToResults();   // 改完搜索词，视线直接落到第一条结果上
     }, 120);
   });
   document.getElementById('searchClear').addEventListener('click', function () {
@@ -2130,14 +2167,48 @@
     state.mpNear = null;
     state.page = 1;
     render();
+    scrollToResults();
     $search.focus();
   });
 
   $pgPrev.addEventListener('click', function () { if (state.page > 1) { state.page--; render(); } });
   $pgNext.addEventListener('click', function () {
-    var tp = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    var tp = Math.max(1, Math.ceil(filtered.length / state.per));
     if (state.page < tp) { state.page++; render(); }
   });
+
+  // 每页条数：5–100 按 5 递增，默认 15；换档回到第 1 页并记在本机
+  if ($pgSize) {
+    var perOpts = [];
+    for (var ps = PER_MIN; ps <= PER_MAX; ps += PER_STEP) {
+      perOpts.push('<option value="' + ps + '"' + (ps === state.per ? ' selected' : '') + '>' + ps + '</option>');
+    }
+    $pgSize.innerHTML = perOpts.join('');
+    $pgSize.addEventListener('change', function () {
+      state.per = normPer(this.value);
+      state.page = 1;
+      try { localStorage.setItem(PER_KEY, String(state.per)); } catch (e) {}
+      render();
+    });
+  }
+
+  // 搜索条吸顶：只有贴到视口顶部才描边 + 浅影；同时把实际高度写进 --dock-h，给表头 sticky 让位
+  if ($dock) {
+    var dockH = 0;
+    var syncDock = function () {
+      var h = $dock.offsetHeight;
+      if (h !== dockH) {
+        dockH = h;
+        document.documentElement.style.setProperty('--dock-h', h + 'px');
+      }
+      $dock.classList.toggle('stuck', $dock.getBoundingClientRect().top <= 0);
+    };
+    window.addEventListener('scroll', syncDock, { passive: true });
+    window.addEventListener('resize', syncDock);
+    window.addEventListener('load', syncDock);
+    syncDock();
+  }
+
   if (isMobile.addEventListener) isMobile.addEventListener('change', render);
   else isMobile.addListener(render);
 
@@ -2620,6 +2691,14 @@
         renderAll();
       }
       if (sp.get('inq') === '1') openInquiryPanel();
+
+      // 从选型助手「看参数」进来的：给一条回到原方案的链接（需求与固定型号都在 back 里）
+      var backLink = document.getElementById('backLink');
+      if (BACK_URL && backLink) {
+        backLink.href = BACK_URL;
+        backLink.hidden = false;
+        backLink.title = '回到跳转前的选型方案（需求、已固定型号与阅读模式都会保留）';
+      }
     } catch (e) { /* URL 解析失败不影响正常使用 */ }
   })();
 
