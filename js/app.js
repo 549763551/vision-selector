@@ -6,9 +6,76 @@
   var SC = window.SelectionCatalog;
   var $ = function (id) { return document.getElementById(id); };
 
+  /* ---------------- 动效：只做「值真的变了」的反馈 ----------------
+     结果区每次重算都会重建 DOM，入场动画会跟着重播，所以除了首次绘制，
+     一律由这里按「上一次的值」判断：变了才给元素挂一次动画类，播完撤掉。 */
+  var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function pulseOnce(el, cls, ms) {
+    if (!el || REDUCED) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;            // 强制重排，让同一个类能重新触发
+    el.classList.add(cls);
+    setTimeout(function () { el.classList.remove(cls); }, ms || 460);
+  }
+
+  /* ---------------- 轻提示：一句话说明，几秒后自己收 ---------------- */
+  var toastTimer = 0;
+  function toast(msg, ms) {
+    var t = $('vsToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 5200);
+  }
+
+  /* ---------------- 阅读模式：简明（外行）/ 专业（工程师） ---------------- */
+  // 首帧的类由 index.html 的头部内联脚本先写好，这里只读取，避免两套内容闪一下。
+  var MODE = /(^|\s)mode-pro(\s|$)/.test(document.documentElement.className) ? 'pro' : 'simple';
+  var MODE_KEY = 'vs-mode';
+  var fitColFn = null;   // 左栏高度适配在 init 里定义，切模式后要重算一次
+  var fitCardFn = null;  // 简明模式「一屏」适配，同样在 init 里定义
+  var swapTimer = 0;     // 模式切换淡入的收尾定时器
+
+  function setMode(m) {
+    MODE = m === 'pro' ? 'pro' : 'simple';
+    var de = document.documentElement;
+    de.classList.toggle('mode-pro', MODE === 'pro');
+    de.classList.toggle('mode-simple', MODE === 'simple');
+    try { localStorage.setItem(MODE_KEY, MODE); } catch (e) { /* 隐私模式下忽略 */ }
+    var sw = $('modeSwitch');
+    if (sw) {
+      Array.prototype.forEach.call(sw.querySelectorAll('[data-mode]'), function (b) {
+        b.classList.toggle('on', b.getAttribute('data-mode') === MODE);
+      });
+    }
+    // 专业模式默认摊开左栏全部字段；简明模式收起（值仍然生效）
+    var rp = $('reqPro');
+    if (rp) rp.open = MODE === 'pro';
+    render();
+    if (fitColFn) fitColFn();
+    if (fitCardFn) fitCardFn();
+    // 换读法时给结论卡与需求面板一次淡入，提示「这一屏是另一套说法」
+    if (!REDUCED) {
+      de.classList.remove('mode-swap');
+      void de.offsetWidth;
+      de.classList.add('mode-swap');
+      clearTimeout(swapTimer);
+      swapTimer = setTimeout(function () { de.classList.remove('mode-swap'); }, 420);
+    }
+  }
+
   // 本地光学实验室（Qsianuo/vision-spec-generator）地址；可在脚本加载前用
   // window.SPEC_GENERATOR_BASE 覆盖（换端口或部署地址）。
   var LAB_BASE = window.SPEC_GENERATOR_BASE || 'http://127.0.0.1:8848';
+  // 那是同伴的独立工程，只能在本机跑起来：线上打开时 127.0.0.1:8848 必然连不上，
+  // 按钮降级成说明，不做一次注定失败的跳转。自定义了非本机地址就当可用。
+  var LAB_USABLE = (function () {
+    var localHost = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i;
+    var custom = window.SPEC_GENERATOR_BASE;
+    if (custom && !localHost.test(String(custom).replace(/^https?:\/\//i, '').split(/[:\/]/)[0])) return true;
+    return location.protocol === 'file:' || localHost.test(location.hostname);
+  })();
   // 选型助手光源子类 → 实验室光源系列。实验室没有点光源模型，按环形兜底。
   var LAB_SERIES = {
     backlight: 'HFS', coaxial: 'CO', dome: 'DS',
@@ -330,15 +397,6 @@
       '<div class="sib-note">清单按当前方案自动生成；「加入询价清单」保存在本机浏览器，可在产品库查看完整参数。</div></div>';
   }
 
-  /* ---- 评分构成 ---- */
-  function scoreItemsHtml(r) {
-    var items = r.scoreItems || [];
-    if (!items.length) return '评分构成：<span class="si-chip ok">无扣分项</span>';
-    return '评分构成：' + items.map(function (x) {
-      return '<span class="si-chip" title="' + esc(x.detail) + '">' + esc(x.label) + ' −' + x.penalty + '</span>';
-    }).join('');
-  }
-
   /** 指标判定：把数字翻成「够不够」，外行看结论、内行看数值 */
   function verdictsHtml(r) {
     var out = [];
@@ -373,6 +431,158 @@
       }
     }
     return out.join('');
+  }
+
+  /* ---------------- 简明模式：结论 / 三项判定 / 三件套 ---------------- */
+  // 外行只关心「能不能用、买什么」：留结论、三条判定与三个型号，
+  // 评分、公式、风险表都在专业模式与详细方案里。
+
+  /** 光源类型的白话说明：表格里的专业名词对非工程师没有意义 */
+  var LIGHT_PLAIN = {
+    ring: '环形光，整圈均匀照亮',
+    ring_high: '高角度环光，表面细节更亮',
+    ring_low: '低角度环光，专照划痕与毛刺',
+    bar_low: '条形暗场光，适合长条工件与边缘',
+    backlight: '背光，轮廓最清楚',
+    coaxial: '同轴光，压住镜面反光',
+    dome: '无影光，曲面件也不发暗'
+  };
+
+  function simpleHero(r, passN, total) {
+    var note = total ? (passN === total ? total + ' 项工程核查全部通过' : passN + ' / ' + total + ' 项工程核查通过') : '';
+    if (r.feasible) {
+      return {
+        chip: '方案可行', bad: false, note: note,
+        h: '这套方案可以直接用',
+        p: '相机、镜头、光源三件都够用，按下面的三个型号询价即可。'
+      };
+    }
+    return {
+      chip: '需要调整', bad: true, note: note,
+      h: '还差一点，这套要先放宽条件',
+      p: '六家在售型号里没找到三项全过的组合，下面是其中最接近的一套。' +
+        '把精度、视野或工作距离放宽一点再算，通常就有能直接交付的方案。'
+    };
+  }
+
+  /** 三格成绩单：数字最大，标签与要求退到第二层；外行只看这三格就够判断 */
+  function metricsHtml(r) {
+    var out = [];
+    function cell(k, tone, key, value, unit, sub) {
+      out.push('<div class="hm ' + tone + '" data-k="' + k + '"><div class="hm-k"><i></i>' + key + '</div>' +
+        '<div class="hm-v">' + value + (unit ? '<small>' + unit + '</small>' : '') + '</div>' +
+        '<div class="hm-s">' + sub + '</div></div>');
+    }
+    var m = r.margin;
+    if (m != null) {
+      cell('p', m >= 0.15 ? '' : (m >= 0 ? 'tight' : 'bad'), '精度 · 看得清',
+        num(r.camera.pxAcc, 3), 'mm',
+        '要求 ' + num(r.pxAccReq, 3) + ' mm' + (m >= 0 ? '，余 ' + pct(m) : '，还差 ' + pct(-m)));
+    }
+    var l = r.lens, dof = l && l.dof, hd = (r.input && r.input.heightDiff) || 0;
+    if (dof != null) {
+      if (!(hd > 0)) cell('d', '', '景深 · 高低都清楚', num(dof, 2), 'mm', '在此范围内都清楚');
+      else cell('d', dof >= hd ? '' : 'bad', '景深 · 高低都清楚', num(dof, 2), 'mm',
+        '高低差 ' + num(hd, 2) + ' mm' + (dof >= hd ? '，盖得住' : '，盖不住'));
+    }
+    var sp = r.space;
+    if (sp) {
+      if (sp.pass == null) cell('s', '', '安装 · 放得下', num(sp.need, 0), 'mm', '相机 + 镜头总长');
+      else if (sp.pass) cell('s', '', '安装 · 放得下', num(sp.need, 0), 'mm',
+        '可用 ' + num(sp.available, 0) + ' mm，余 ' + num(sp.available - sp.need, 0) + ' mm');
+      else cell('s', 'bad', '安装 · 放得下', num(sp.need, 0), 'mm', '超出可用 ' + num(sp.over, 0) + ' mm');
+    }
+    return out.join('');
+  }
+
+  /** 光路示意：相机 → 镜头 → 视野锥 → 工件面，标出视野与工作距离（不写型号，型号在下面三张卡里） */
+  // 颜色全交给 CSS（.hb-art 下的 .oa-* 规则）：屏幕上是深底浅线，打印时同一套图形换成深线
+  function opticsSvg(r, anim) {
+    var i = r.input || {};
+    var fw = num(i.fovW, 0), fh = num(i.fovH, 0);
+    var wd = r.lens && r.lens.wd ? Math.round(r.lens.wd) : num(i.wd, 0);
+    return '<svg class="oa" viewBox="0 0 620 184" xmlns="http://www.w3.org/2000/svg" role="img" ' +
+      'aria-label="光路示意：工作距离 ' + wd + ' mm，视野 ' + fw + ' × ' + fh + ' mm">' +
+      '<text class="oa-tit" x="310" y="12" text-anchor="middle" font-size="10" letter-spacing="2.6">CAMERA + LENS + LIGHT</text>' +
+      '<g class="oa-cam" fill="none" stroke-width="1.2">' +
+      '<rect x="268" y="24" width="84" height="38" rx="4"/>' +
+      '<line x1="282" y1="43" x2="338" y2="43"/>' +
+      '<rect x="288" y="62" width="44" height="16" rx="2"/>' +
+      '<rect x="300" y="78" width="20" height="8" rx="1.5"/>' +
+      '</g>' +
+      '<circle class="oa-dot" cx="332" cy="33" r="2.8"/>' +
+      '<g class="oa-beam' + (anim ? ' oa-in' : '') + '">' +
+      '<path class="oa-fill" d="M298 88 L90 142 H530 L322 88 Z"/>' +
+      '<g class="oa-cone" stroke-width="1.1" fill="none" stroke-dasharray="4 4">' +
+      '<line x1="298" y1="88" x2="90" y2="142"/><line x1="322" y1="88" x2="530" y2="142"/>' +
+      '</g>' +
+      '</g>' +
+      '<line class="oa-base" x1="70" y1="142" x2="550" y2="142" stroke-width="2"/>' +
+      '<rect class="oa-work" x="290" y="134" width="40" height="8" rx="1.5"/>' +
+      '<g class="oa-dim" stroke-width="1" fill="none">' +
+      '<line x1="90" y1="156" x2="530" y2="156"/>' +
+      '<line x1="90" y1="147" x2="90" y2="165"/><line x1="530" y1="147" x2="530" y2="165"/>' +
+      '<line x1="574" y1="88" x2="574" y2="142"/>' +
+      '<line x1="567" y1="88" x2="581" y2="88"/><line x1="567" y1="142" x2="581" y2="142"/>' +
+      '</g>' +
+      '<text class="oa-txt" x="310" y="178" text-anchor="middle" font-size="12">' +
+      '视野 ' + fw + ' × ' + fh + ' mm</text>' +
+      '<text class="oa-tit" x="574" y="80" text-anchor="middle" font-size="10.5" letter-spacing=".6">WD</text>' +
+      '<text class="oa-txt" x="574" y="160" text-anchor="middle" font-size="11">' + wd + ' mm</text>' +
+      '</svg>';
+  }
+
+  /** 产品库里的「返回刚才的方案」：把当前需求 + 固定型号 + 阅读模式编码成返回地址 */
+  function backParam() {
+    try {
+      var u = shareUrl();
+      u += (u.indexOf('?') >= 0 ? '&' : '?') + 'mode=' + MODE;
+      return '&back=' + encodeURIComponent(u);
+    } catch (e) { return ''; }
+  }
+
+  /** 三件套：编号 + 品牌标识 + 型号 + 一句人话 + 关键规格 */
+  function pickCardsHtml(r) {
+    var back = backParam();
+    function pick(no, cls, cat, brand, model, note, spec) {
+      var m = brandMeta(brand);
+      var bc = m ? m.color : '#94a3b8';
+      var logo = m
+        ? '<img class="pick-logo" src="' + esc(m.logo) + '" alt="' + esc(m.short) +
+          '" style="--logo-scale:' + (m.logoScale || 1) + '" />'
+        : (brand ? '<span class="pick-cat">' + esc(brand) + '</span>' : '');
+      var href = 'library.html?cat=' + encodeURIComponent(cls) + '&q=' + encodeURIComponent(model) + back;
+      return '<a class="pick ' + cls + '" href="' + href + '" style="--bc:' + esc(bc) + '" title="在产品库看 ' + esc(model) + ' 的全参数与备选">' +
+        '<div class="pick-top"><span class="pick-no">' + no + '</span>' +
+        '<span class="pick-cat">' + cat + '</span>' + logo + '</div>' +
+        '<div class="pick-model">' + esc(model) + '</div>' +
+        '<div class="pick-note">' + note + '</div>' +
+        '<div class="pick-foot"><span class="pick-sub">' + spec + '</span>' +
+        '<span class="pick-link">看参数 ↗</span></div>' +
+        '</a>';
+    }
+    var c = r.camera, l = r.lens, g = r.light;
+    var camNote = '能拍清 <b>' + num(c.pxAcc, 3) + ' mm</b> 的细节';
+    var camSpec = c.w + '×' + c.h + ' ' + esc(c.color) + ' · ' + esc(c.interface);
+    var lensNote = '一次拍全 <b>' + num(l.fovW, 0) + ' × ' + num(l.fovH, 0) + ' mm</b>';
+    var lensSpec = (l.f ? l.f + ' mm' : (l.mag ? num(l.mag, 3) + '× 远心' : esc(l.model))) +
+      ' · F' + l.aperture + ' · ' + esc(l.mount) + ' 口';
+    var lightNote = LIGHT_PLAIN[g.type] || '按要求照亮视野';
+    var lightSpec = esc(g.colorName) + (g.wavelength ? ' ' + esc(g.wavelength) : '') +
+      (g.power != null ? ' · ' + g.power + ' W' : '');
+    return pick('01', 'cam', '相机', c.brand, c.model, camNote, camSpec) +
+      pick('02', 'lens', '镜头', l.brand, l.model, lensNote, lensSpec) +
+      pick('03', 'light', '光源', g.skuBrand, g.sku || g.seriesName, lightNote, lightSpec);
+  }
+
+  /** 9 项工程核查：只留通过与否，扣分来由不再单列成表 */
+  function checkChipsHtml(checks) {
+    if (!checks || !checks.length) return '';
+    return '<span class="cc-label">工程核查</span>' + checks.map(function (c) {
+      return '<span class="si-chip ' + (c.ok ? 'ok' : '') + '" data-k="' + esc(c.label) +
+        '" data-ok="' + (c.ok ? 1 : 0) + '" title="' + esc(c.detail) + '">' +
+        (c.ok ? '✓ ' : '✕ ') + esc(c.label) + '</span>';
+    }).join('');
   }
 
   /** 结论行：数字都在下面的判定标签里，这里只说「这套能不能用」 */
@@ -471,11 +681,12 @@
   }
 
   /* ---------------- 卡片渲染 ---------------- */
-  // 「在产品库查看」链接：带型号与类别跳产品库，产品库会自动搜索并弹出详情
+  // 「在产品库查看」链接：带型号与类别跳产品库，产品库会自动搜索并弹出详情；
+  // 同时把当前方案编进 back，产品库那边一键就能回到这份需求
   function libLink(cat, model) {
     if (!model) return '';
     return '<a class="lib-link" href="library.html?cat=' + encodeURIComponent(cat) +
-      '&q=' + encodeURIComponent(model) + '" title="在产品库中查看全参数与备选">产品库 ↗</a>';
+      '&q=' + encodeURIComponent(model) + backParam() + '" title="在产品库中查看全参数与备选">产品库 ↗</a>';
   }
 
   // 带当前需求跳「自定义搭配」页，避免在那边重填一遍
@@ -1056,26 +1267,6 @@
     setTimeout(function () { pane.classList.remove('sib-in'); }, 320);
   }
 
-  /* ---------------- 选型依据（与次优对比） ---------------- */
-  function rationaleCard(r) {
-    var q = r.rationale;
-    if (!q) return '';
-    var head = '<div class="rationale">';
-    if (q.manual || q.none) {
-      return head + '<div class="why-sum">' + esc(q.note) + '</div></div>';
-    }
-    var rows = q.rows.map(function (x) {
-      var cls = x.cmp === 'win' ? 'cmp-win' : (x.cmp === 'lose' ? 'cmp-lose' : 'cmp-tie');
-      return '<tr><td>' + esc(x.k) + '</td><td class="' + cls + '">' + esc(x.a) + '</td><td>' + esc(x.b) + '</td></tr>';
-    }).join('');
-    return head +
-      '<div class="why-sum">' + esc(q.summary) + '</div>' +
-      '<table class="mini wrap why-table"><thead><tr><th>项目</th><th>本方案</th><th>次优（' + esc(q.altCamera) + '）</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>' +
-      '<div class="sib-note">次优镜头 ' + esc(q.altLens) +
-      '；硬指标持平时按「像素更少 → 接口更常用 → 镜头可直连」取舍。</div></div>';
-  }
-
   /* ---------------- 现场参数建议 ---------------- */
   function siteCard(r) {
     var s = r.site;
@@ -1232,6 +1423,10 @@
   /* ---------------- 渲染 ---------------- */
   // 评分数字变了才闪一下：改完需求能立刻注意到「结果更新了」，值没变就不打扰
   var lastScoreTxt = '';
+  // 简明结论板：记住上一次的文本 / 几何，只有真的变了才播一次反馈动画
+  var lastHeroH = '', lastHeroP = '', lastMetric = {}, lastOaSig = '';
+  var lastChipState = {};   // 9 项核查：上一轮每项是通过还是没过
+  var lastPickSig = '';     // 三件套上一轮的型号组合
   function flashScore() {
     var el = $('scoreNum');
     if (!el) return;
@@ -1267,9 +1462,18 @@
       $('stateChip').className = 'tag bad';
       $('stateChip').textContent = '输入有误';
       $('summary').innerHTML = '<span style="color:#b91c1c">' + esc(r.error) + '</span>';
-      $('scoreItems').innerHTML = '';
+      $('heroChip').className = 'hero-chip bad';
+      $('heroChip').textContent = '输入有误';
+      $('heroNote').textContent = '';
+      $('heroH').textContent = '先补全左侧需求';
+      $('heroP').textContent = r.error;
+      $('heroArt').innerHTML = '';
+      $('heroMetrics').innerHTML = '';
+      $('heroAssume').innerHTML = '';
+      $('picks').innerHTML = '';
+      lastHeroH = ''; lastHeroP = ''; lastMetric = {}; lastOaSig = ''; lastPickSig = '';
+      $('checkChips').innerHTML = '';
       $('quick').innerHTML = '';
-      $('rationale').innerHTML = '';
       $('cards').innerHTML = '';
       $('stitch').innerHTML = '';
       $('stitchSec').hidden = true;
@@ -1311,8 +1515,60 @@
     $('summary').innerHTML = r.feasible ? '' : esc(heroLine(r));
     $('verdicts').innerHTML = verdictsHtml(r);
     $('quick').innerHTML = quickRows(r);
-    $('scoreItems').innerHTML = scoreItemsHtml(r);
-    $('rationale').innerHTML = rationaleCard(r);
+    $('checkChips').innerHTML = checkChipsHtml(chk);
+    // 查核结果翻转（过 → 不过 / 不过 → 过）时把那一枚 chip 闪一下，改完参数能一眼看到影响
+    Array.prototype.forEach.call($('checkChips').querySelectorAll('.si-chip'), function (el) {
+      var k = el.getAttribute('data-k'), ok = el.getAttribute('data-ok');
+      if (lastChipState[k] != null && lastChipState[k] !== ok && !REDUCED) {
+        el.classList.remove('flip');
+        void el.offsetWidth;
+        el.classList.add('flip');
+      }
+      lastChipState[k] = ok;
+    });
+
+    // 简明模式：一块结论板 —— 能不能用 / 怎么装 / 买什么（与专业模式同一份计算结果）
+    var sh = simpleHero(r, passN, chk.length);
+    $('heroChip').className = 'hero-chip' + (sh.bad ? ' bad' : '');
+    $('heroChip').textContent = sh.chip;
+    $('heroNote').textContent = sh.note;
+    $('heroH').textContent = sh.h;
+    $('heroP').textContent = sh.p;
+    // 结论句 / 说明换字才动一次：连续调参时它们通常不变，不会一直抖
+    if (sh.h !== lastHeroH) { pulseOnce($('heroH'), 'swap', 440); lastHeroH = sh.h; }
+    if (sh.p !== lastHeroP) { pulseOnce($('heroP'), 'swap', 440); lastHeroP = sh.p; }
+
+    // 光锥按几何（视野 / 工作距离）判断：只在真的改了尺寸时从镜头处张开一次
+    var oaSig = [num(r.input.fovW, 0), num(r.input.fovH, 0), Math.round((r.lens && r.lens.wd) || 0)].join('/');
+    $('heroArt').innerHTML = opticsSvg(r, oaSig !== lastOaSig);
+    lastOaSig = oaSig;
+
+    // 成绩单：逐格比对，数字变了的才推一下
+    $('heroMetrics').innerHTML = metricsHtml(r);
+    Array.prototype.forEach.call($('heroMetrics').querySelectorAll('.hm'), function (el) {
+      var k = el.getAttribute('data-k'), v = el.querySelector('.hm-v');
+      if (!v) return;
+      var t = v.textContent;
+      if (lastMetric[k] && lastMetric[k] !== t && !REDUCED) v.classList.add('flash');
+      lastMetric[k] = t;
+    });
+    // 简明模式不填最小特征与工作距离，明说按什么值算的
+    var hadn = r.input || {};
+    $('heroAssume').innerHTML = '按最小特征 <b>' + num(hadn.precision, 3) + ' mm</b>、工作距离 <b>' +
+      num(hadn.wd, 0) + ' mm</b> 估算';
+    $('picks').innerHTML = pickCardsHtml(r);
+    // 三件套整体换型号（换了档位 / 关了某个品牌）才让三张卡依次落位；
+    // 只是数值微调、型号没动时不重播，避免连续调参时一直闪。
+    var pickSig = [r.camera.model, r.lens.model, (r.light.sku || r.light.seriesName || '')].join('/');
+    if (pickSig !== lastPickSig) {
+      lastPickSig = pickSig;
+      if (!REDUCED) {
+        Array.prototype.forEach.call($('picks').children, function (el, i) {
+          el.style.setProperty('--i', i);
+          el.classList.add('pick-in');
+        });
+      }
+    }
 
     $('cards').innerHTML = camCard(r) + lensCard(r) + lightCard(r);
     // 拼接方案独立成卡：三件套网格塞不下对比表和排布图
@@ -1399,9 +1655,10 @@
     // 移动端（仿小程序）：更新表单摘要 / 折叠方案卡 / 刷新分段高亮
     var fs = [];
     fs.push(r.input.fovW + '×' + r.input.fovH + 'mm');
-    fs.push('δ ' + r.input.precision + 'mm');
+    // 简明模式不填最小特征与工作距离，摘要里也不摆这两项
+    if (MODE === 'pro') fs.push('δ ' + r.input.precision + 'mm');
     fs.push(String(r.task.label).split('（')[0]);
-    fs.push('WD ' + r.input.wd + 'mm');
+    if (MODE === 'pro') fs.push('WD ' + r.input.wd + 'mm');
     if (r.input.needColor) fs.push('彩色');
     if (r.input.speed > 0) fs.push(r.input.speed + 'mm/s');
     $('fsTxt').textContent = fs.join(' · ');
@@ -1418,6 +1675,8 @@
     Object.keys(SEGS).forEach(function (k) {
       var el = document.querySelector(SEGS[k]);
       if (!el) return;
+      // 简明模式下「详细方案」整块隐藏，别把它算进高亮
+      if (el.offsetParent === null && el.getClientRects().length === 0) return;
       var top = el.getBoundingClientRect().top;
       if (top <= 60 && top > bestTop) { bestTop = top; best = k; }
     });
@@ -1680,7 +1939,21 @@
   }
 
   /* ---------------- 绑定 ---------------- */
+  // 光学实验室不在本机可用时：按钮降级 + 点击给说明，别让线上访客点进一个空白页
+  function initLabBtn() {
+    var btn = $('labBtn');
+    if (!btn || LAB_USABLE) return;
+    btn.classList.add('lab-off');
+    btn.removeAttribute('target');
+    btn.title = '光学实验室是同伴的独立项目（vision-spec-generator），要在本机启动服务才能打开；线上页面里打不开，点一下看说明';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      toast('光学实验室来自同伴的独立项目 vision-spec-generator，需要在本机启动它（默认 127.0.0.1:8848）才能打开。这里是线上版本，没有那套服务，只演示按当前需求拼好的跳转参数。');
+    });
+  }
+
   function init() {
+    initLabBtn();
     renderBrandFilter();
     renderLensFilter();
     renderLightFilter();
@@ -1811,14 +2084,27 @@
       });
     }
 
-    // 桌面端「更多参数」折叠：常用项（含景深、速度）常驻，节拍/安装空间/彩色/线扫收在里面
-    var moreBtn = $('moreBtn');
-    if (moreBtn) {
-      moreBtn.addEventListener('click', function () {
-        var card = document.querySelector('.req-card');
-        if (!card) return;
-        var open = card.classList.toggle('more-open');
-        this.textContent = open ? '收起更多参数 －' : '更多参数 ＋';
+    // 简明 / 专业：顶栏开关与结论卡里的「切到专业」共用一套委托
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-mode]');
+      if (t) setMode(t.getAttribute('data-mode'));
+    });
+    // 首帧按已读模式摆好开关与左栏折叠状态（不再触发一次全量重算）
+    var sw0 = $('modeSwitch');
+    if (sw0) {
+      Array.prototype.forEach.call(sw0.querySelectorAll('[data-mode]'), function (b) {
+        b.classList.toggle('on', b.getAttribute('data-mode') === MODE);
+      });
+    }
+    var rp0 = $('reqPro');
+    if (rp0) rp0.open = MODE === 'pro';
+    // 简明模式下点「专业参数」就是在要细节：直接切到专业，避免展开后字段仍被模式规则隐藏
+    if (rp0) {
+      var rpSum = rp0.querySelector('summary');
+      if (rpSum) rpSum.addEventListener('click', function (e) {
+        if (MODE === 'pro') return;
+        e.preventDefault();
+        setMode('pro');
       });
     }
 
@@ -1830,21 +2116,59 @@
       var reqColRaf = 0;
       var fitReqCol = function () {
         reqColRaf = 0;
+        // 折叠态只有窄轨，不需要内滚动框
+        if (document.documentElement.classList.contains('req-folded')) {
+          if (reqCol.style.maxHeight) reqCol.style.maxHeight = '';
+          return;
+        }
         // 窄屏（≤1020）是单列堆叠，面板跟着整页滚，不该自带内滚动框：把内联高度让开
         if (window.matchMedia('(max-width: 1020px)').matches) {
           if (reqCol.style.maxHeight) reqCol.style.maxHeight = '';
           return;
         }
         var top = Math.max(16, reqCol.getBoundingClientRect().top);
-        var h = Math.max(320, Math.round(window.innerHeight - top - 16));
+        // 与右侧「一屏」卡片同口径（-20）：两栏等高，页面才不会因为左栏多出几像素而出现滚动条
+        var h = Math.max(320, Math.round(window.innerHeight - top - 20));
         var v = h + 'px';
         if (reqCol.style.maxHeight !== v) reqCol.style.maxHeight = v;
       };
       var queueFitReqCol = function () { if (!reqColRaf) reqColRaf = requestAnimationFrame(fitReqCol); };
+      fitColFn = fitReqCol;
       window.addEventListener('scroll', queueFitReqCol, { passive: true });
       window.addEventListener('resize', queueFitReqCol);
       window.addEventListener('load', queueFitReqCol);
       fitReqCol();
+
+      // 需求面板折叠：收起后左栏只剩 54px 窄轨，右栏占满剩下的宽度（列宽用 CSS 过渡）
+      var foldReq = function (on) {
+        document.documentElement.classList.toggle('req-folded', !!on);
+        try { localStorage.setItem('vs-req-fold', on ? '1' : '0'); } catch (e) {}
+        reqCol.scrollTop = 0;   // 收起/展开后都从面板顶部开始，别停在半截
+        if (fitColFn) requestAnimationFrame(fitColFn);
+      };
+      var rfBtn = $('reqFold'), rfRail = $('reqRail');
+      if (rfBtn) rfBtn.addEventListener('click', function () { foldReq(true); });
+      if (rfRail) rfRail.addEventListener('click', function () { foldReq(false); });
+
+      // 简明模式：结论卡（三件套 + 结论板）锁在一屏内，不让外行往下滚才看到按钮。
+      // 高度按「视口 − 卡片实际顶边 − 底部留白」算，比 CSS calc 稳（顶栏会随宽度变高）。
+      var scoreCard = $('scoreCard');
+      var fitSimpleCard = function () {
+        if (!scoreCard) return;
+        if (MODE !== 'simple' || window.innerWidth < 1021) {
+          if (scoreCard.style.height) scoreCard.style.height = '';
+          return;
+        }
+        // 顶边用 offsetTop 累加量：模式切换有 6px 位移的淡入动画，getBoundingClientRect 会把它算进去
+        var top = 0, el = scoreCard;
+        while (el) { top += el.offsetTop; el = el.offsetParent; }
+        var v = Math.max(600, Math.round(window.innerHeight - top - 20)) + 'px';
+        if (scoreCard.style.height !== v) scoreCard.style.height = v;
+      };
+      fitCardFn = fitSimpleCard;
+      window.addEventListener('resize', fitSimpleCard);
+      window.addEventListener('load', fitSimpleCard);
+      fitSimpleCard();
     }
 
     // 品牌范围常驻显示，不再折叠（见 index.html .brands-fold）

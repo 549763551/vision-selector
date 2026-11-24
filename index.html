@@ -32,6 +32,18 @@
   }
   .brand h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
   .brand p { margin: 0; font-size: 12px; color: rgba(255, 255, 255, .55); }
+  /* 两套阅读深度：顶栏右侧双档开关 */
+  .mode-switch {
+    margin-left: 6px; display: inline-flex; align-items: center; padding: 3px; flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, .18); border-radius: 999px; background: rgba(255, 255, 255, .06);
+  }
+  .mode-switch button {
+    font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    padding: 5px 13px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, .7);
+    transition: .15s;
+  }
+  .mode-switch button:hover { color: #fff; }
+  .mode-switch button.on { background: #22d3ee; color: #083344; }
   /* 快速试用已搬进左侧需求面板，见 .px-set */
 
   /* ---------- 主容器：左需求（悬浮）/ 右结论 ---------- */
@@ -39,7 +51,32 @@
   .layout {
     display: grid; grid-template-columns: 338px minmax(0, 1fr);
     gap: 18px; align-items: start;
+    /* 折叠需求面板时列宽做过渡，右栏跟着一块儿长 */
+    transition: grid-template-columns .26s cubic-bezier(.22,.61,.36,1);
   }
+  /* 需求面板收起：只留一条 54px 窄轨，点窄轨再展开 */
+  html.req-folded .layout { grid-template-columns: 54px minmax(0, 1fr); }
+  html.req-folded .req-card { display: none; }
+  html.req-folded .req-col { max-height: none !important; overflow: visible; padding-bottom: 0; }
+  .req-rail {
+    display: none; flex-direction: column; align-items: center; gap: 12px;
+    width: 54px; min-height: 232px; padding: 15px 0 17px;
+    font-family: inherit; cursor: pointer; text-align: center;
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--muted); transition: .16s;
+  }
+  html.req-folded .req-rail { display: flex; }
+  .req-rail:hover { color: var(--accent); border-color: #bcdae6; background: var(--accent-soft); }
+  .req-rail:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(14,116,144,.22); }
+  .req-rail .rr-ico { font-size: 15px; line-height: 1; }
+  .req-rail .rr-txt {
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-size: 12.5px; font-weight: 600; letter-spacing: .2em;
+  }
+  .req-rail .rr-open {
+    margin-top: auto; font-size: 11px; letter-spacing: .1em; color: #94a3b8;
+  }
+  .req-rail:hover .rr-open { color: var(--accent); }
   /* 需求面板常驻左侧：滚动右栏时不动，改完任意一项右侧立刻重算 */
   .req-col {
     position: sticky; top: 16px;
@@ -55,7 +92,7 @@
   .req-col .f-row > label { margin: 0; font-size: 12px; line-height: 1.35; }
   .req-col .f-row > label em { display: none; }
   .req-col .f-row input, .req-col .f-row select { height: 36px; padding: 0 9px; font-size: 13.5px; }
-  .req-col .req-more .f-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .req-col .req-pro-body .f-row { grid-template-columns: 92px minmax(0, 1fr); }
   /* 上面给 .f-row 定了 display:grid，作者样式会压掉 UA 的 [hidden]{display:none}，
      导致 hidden="true" 的元素照样占位（拼接重叠率/台数上限就这样漏出来过）；这里补一条更具体的兜底 */
   .req-col .f-row[hidden] { display: none; }
@@ -79,6 +116,8 @@
   }
   h2.sec .hint { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--muted); }
   h2.sec > .btn { margin-left: auto; flex: 0 0 auto; height: 32px; padding: 0 14px; font-size: 13px; }
+  /* 两个按钮时：前一个靠右，折叠键紧贴其后 */
+  h2.sec > .req-fold-btn { margin-left: 0; }
 
   /* ---------- 需求表单 ---------- */
   .req-grid {
@@ -93,12 +132,11 @@
   .req-col .req-card h2.sec > .btn { height: 28px; padding: 0 10px; font-size: 12px; }
   .req-col .req-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
   .req-col .req-grid .fov-cell { grid-column: auto; }
-  .req-col .req-more { grid-template-columns: minmax(0, 1fr); gap: 13px; }
-  .req-col .req-more .span2 { grid-column: auto; }
+  .req-col .req-pro-body { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .req-col .req-pro-body .span2 { grid-column: auto; }
   .req-col .field > label { font-size: 12.5px; margin-bottom: 6px; }
   .req-col .field > label em { font-size: 11.5px; }
   .req-col input[type="text"], .req-col input[type="number"], .req-col select { height: 38px; font-size: 13.5px; }
-  .req-col .more-btn { height: 40px; font-size: 13px; }
   .req-col .check { font-size: 13px; padding: 9px 11px; }
   .req-col .brands-fold { margin-top: 14px; padding-top: 12px; }
   .req-col .brands-body { gap: 10px; flex-direction: column; align-items: stretch; }
@@ -122,20 +160,25 @@
     font-size: 13.5px; font-weight: 600; color: #475569; margin-bottom: 7px;
   }
   .field > label em { font-style: normal; font-weight: 400; color: #5b6b82; font-size: 12px; }
-  .more-btn {
-    font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-    height: 44px; width: 100%; border-radius: 10px;
-    border: 1px dashed #c7d5e6; background: #f8fafc; color: #475569;
-    transition: .15s; white-space: nowrap;
+  /* 专业参数：简明模式收起，专业模式摊开；面板里始终是单列 */
+  .req-pro {
+    grid-column: 1 / -1;
+    border-top: 1px dashed var(--line); padding-top: 12px; margin-top: 14px;
   }
-  .more-btn:hover { border-color: #7fb8d4; color: var(--accent); background: #f0f7ff; }
-  .req-more {
-    display: none; grid-column: 1 / -1;
-    grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 20px;
-    padding-top: 18px; margin-top: 2px; border-top: 1px dashed var(--line);
+  .req-pro > summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: #475569; user-select: none;
   }
-  .req-card.more-open .req-more { display: grid; }
-  .req-more .span2 { grid-column: span 2; }
+  .req-pro > summary::-webkit-details-marker { display: none; }
+  .req-pro .rp-h { font-weight: 400; font-size: 11.5px; color: #5b6b82; }
+  .req-pro .rp-act { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+  .req-pro .rp-act::after { content: "展开 ▾"; }
+  .req-pro[open] .rp-act::after { content: "收起 ▴"; }
+  .req-pro[open] .rp-h { display: none; }
+  .req-pro-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 13px; margin-top: 13px; }
+  .req-pro-body .span2 { grid-column: auto; }
+  .req-col .req-pro-body .f-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .req-col .req-pro-body .f-row[hidden] { display: none; }
   input[type="text"], input[type="number"], select {
     width: 100%; height: 40px; padding: 0 11px;
     font-family: inherit; font-size: 13.5px; color: var(--ink);
@@ -194,6 +237,7 @@
   .vd > span { display: block; min-width: 0; }
   .vd em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: #5b6b82; line-height: 1.4; }
   .vd b { display: block; font-size: 14.5px; font-weight: 700; color: #0f172a; line-height: 1.45; font-variant-numeric: tabular-nums; }
+  .vd b small { font-size: 11.5px; font-weight: 600; color: #5b6b82; margin-left: 5px; letter-spacing: 0; }
   .vd i {
     font-style: normal; font-weight: 700; font-size: 12px; width: 21px; height: 21px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center; color: #fff; background: #64748b;
@@ -221,8 +265,6 @@
     word-break: break-word;
   }
   .summary[hidden] { display: none; }
-  .score-items { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-  .score-items .si-title { font-weight: 600; color: #475569; }
   .si-chip {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
     background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-weight: 600; cursor: help; font-size: 12.5px;
@@ -343,6 +385,128 @@
   .hero-actions { display: flex; gap: 10px; margin-top: 18px; }
   .hero-actions .btn { height: 46px; }
   .hero-actions a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  /* 简明模式只有三个动作，按内容宽度排开，不铺满整行 */
+  html.mode-simple .hero-actions .btn { flex: 0 0 auto; padding: 0 26px; }
+
+  /* ---------- 两套布局：同一份 DOM，按模式类切换可见块 ---------- */
+  html.mode-simple .pro-only, html.mode-pro .simple-only { display: none !important; }
+  /* 简明模式：详细方案与扩展建议留给工程师，外行只看结论与三件套 */
+  html.mode-simple #detailWrap, html.mode-simple #suggest { display: none !important; }
+  /* 外行看不懂的字段说明，在简明模式下反而要显示出来 */
+  html.mode-simple .req-col .f-row > label em,
+  html.mode-simple .req-col .field > label em { display: inline; }
+
+  /* ---------- 简明模式：结论板（深色，给非工程背景的人看） ---------- */
+  /* 卡片在简明模式下不再留内边距，让深色面板顶到卡片边缘，宽度用满 */
+  html.mode-simple #scoreCard { padding: 0 0 20px; }
+  html.mode-simple .hero-actions { padding: 0 22px; }
+  .hero-board {
+    margin-top: 14px;
+    padding: 18px 24px 0; border-radius: 11px 11px 0 0; overflow: hidden;
+    background: radial-gradient(128% 150% at 4% -12%, #1c4d75 0%, #0d2745 54%, #0a1c30 100%);
+  }
+  .hb-main { min-width: 0; }
+  .hero-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hero-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700;
+    padding: 4px 12px; border-radius: 999px; letter-spacing: .2px;
+    background: rgba(34, 211, 238, .14); color: #7fe3f4; border: 1px solid rgba(34, 211, 238, .34);
+  }
+  .hero-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .hero-chip.bad { background: rgba(248, 113, 113, .14); color: #fca5a5; border-color: rgba(248, 113, 113, .38); }
+  .hero-note { font-size: 12.5px; color: rgba(255, 255, 255, .6); }
+  .hero-h {
+    margin: 10px 0 0; font-size: clamp(24px, 2.5vw, 32px); font-weight: 700;
+    letter-spacing: -.6px; line-height: 1.2; color: #fff;
+  }
+  .hero-p { margin: 7px 0 0; font-size: 14px; line-height: 1.62; color: rgba(255, 255, 255, .72); max-width: 44em; }
+  .hb-art { margin: 16px -24px 0; }
+  .hb-art svg { display: block; width: 100%; height: auto; }
+  .oa-cam { stroke: rgba(255, 255, 255, .42); }
+  .oa-cone { stroke: rgba(34, 211, 238, .6); }
+  .oa-base { stroke: rgba(255, 255, 255, .5); }
+  .oa-dim { stroke: rgba(255, 255, 255, .28); }
+  .oa-fill { fill: rgba(34, 211, 238, .07); }
+  .oa-work { fill: rgba(255, 255, 255, .42); }
+  .oa-dot { fill: rgba(34, 211, 238, .78); }
+  .oa-txt { fill: rgba(255, 255, 255, .6); }
+  .oa-tit { fill: rgba(255, 255, 255, .3); }
+  /* 三格「成绩单」：数字最大，标签与要求退到第二层 */
+  .hb-metrics {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 4px -24px 0; border-top: 1px solid rgba(255, 255, 255, .1);
+  }
+  .hm { padding: 12px 24px 15px; border-left: 1px solid rgba(255, 255, 255, .1); min-width: 0; }
+  .hm:first-child { border-left: 0; }
+  .hm-k { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .62); }
+  .hm-k i { width: 6px; height: 6px; border-radius: 50%; background: #22d3ee; flex: 0 0 auto; }
+  .hm.tight .hm-k i { background: #fbbf24; }
+  .hm.bad .hm-k i { background: #f87171; }
+  .hm-v {
+    margin-top: 5px; font-size: 29px; font-weight: 700; line-height: 1.1; color: #fff;
+    letter-spacing: -.8px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+  }
+  .hm-v small { font-size: 13px; font-weight: 600; letter-spacing: 0; color: rgba(255, 255, 255, .55); margin-left: 4px; }
+  .hm.bad .hm-v { color: #fca5a5; }
+  .hm-s { margin-top: 6px; font-size: 12px; line-height: 1.4; color: rgba(255, 255, 255, .52); }
+  /* 假设条件：简明模式下不填的两项，明说按什么算的 */
+  .hero-assume {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 22px 0;
+  }
+  .ha-txt { font-size: 12.5px; color: #5b6b82; }
+  .ha-txt b { color: #334155; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ha-btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--accent);
+    background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap;
+  }
+  .ha-btn:hover { text-decoration: underline; }
+
+  /* 三件套：编号 + 品牌标识 + 型号 + 一句人话（简明模式下排在最上方） */
+  .picks {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+    margin-top: 0; padding: 18px 22px 0;
+  }
+  /* 需求不全时没有型号可给：整块（含上内边距）收起，别在卡片顶上留一条空 */
+  .picks:empty { display: none; }
+  .pick {
+    position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+    padding: 13px 15px 12px; border: 1px solid #e2e8f0; border-radius: 12px;
+    background: #fff; transition: .15s; text-decoration: none; color: inherit; cursor: pointer;
+  }
+  .pick::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    border-radius: 12px 12px 0 0; background: var(--bc, #94a3b8);
+  }
+  .pick:hover { border-color: #b6dcec; box-shadow: 0 4px 14px rgba(13, 39, 69, .07); }
+  .pick:hover .pick-link { text-decoration: underline; }
+  .pick-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .pick-no {
+    font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: .8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pick-cat { font-size: 12.5px; font-weight: 700; color: #334155; white-space: nowrap; }
+  .pick-logo {
+    height: calc(19px * var(--logo-scale, 1)); width: auto; max-width: 104px;
+    object-fit: contain; margin-left: auto; border-radius: 2px; flex: 0 0 auto;
+  }
+  .pick-model {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 16px; font-weight: 700;
+    letter-spacing: -.2px; color: #0f172a; overflow-wrap: anywhere; line-height: 1.32;
+  }
+  .pick-note { font-size: 12.5px; line-height: 1.55; color: #475569; }
+  .pick-note b { color: #0e7490; font-weight: 700; }
+  .pick-foot { margin-top: auto; padding-top: 5px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .pick-sub {
+    font-size: 11.5px; color: #7c8a9c; min-width: 0; line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .pick-link { margin-left: auto; font-size: 12px; color: var(--accent); white-space: nowrap; }
+  .pick-link:hover { text-decoration: underline; }
+
+  /* 9 项核查：只留通过与否，细则在验算过程里 */
+  .check-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+  .check-chips .cc-label { font-size: 12.5px; color: #5b6b82; margin-right: 2px; }
 
   /* ---------- 详细方案容器 ---------- */
   .detail-wrap { margin-top: 16px; }
@@ -503,20 +667,10 @@
   .bf-mini-brand { font-size: 9.5px; color: #5b6b82; margin-left: 2px; }
   table.mini tbody tr[data-kind] { cursor: pointer; }
 
-  /* ---------- 选型依据 ---------- */
-  .why-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 700; color: #334155; }
-  .why-title .hint { font-weight: 400; font-size: 12px; color: #5b6b82; }
-  .why-sum {
-    margin: 9px 0 12px; padding: 10px 13px; border-radius: 10px;
-    background: #f8fafc; border: 1px solid #eef2f7; font-size: 13.5px; line-height: 1.75; color: #475569;
-  }
   table.mini.wrap tbody td { white-space: normal; }
   table.mini.wrap thead th { white-space: normal; }
   table.mini.wrap tbody td.nw { white-space: nowrap; }
   table.mini.wrap tbody td:last-child, table.mini.wrap thead th:last-child { min-width: 40%; }
-  .cmp-win { color: #15803d; font-weight: 700; }
-  .cmp-lose { color: #b45309; }
-  .cmp-tie { color: #475569; }
   details.inline { margin-top: 12px; }
   details.inline > summary {
     list-style: none; cursor: pointer; font-size: 13px; color: var(--accent);
@@ -650,6 +804,27 @@
   }
   .p-mask { display: none; position: fixed; inset: 0; z-index: 900; background: rgba(11, 18, 32, .55); align-items: flex-end; }
   .p-mask.show { display: flex; }
+  /* 光学实验室不在本机时：按钮降级成虚线灰字，点了弹说明，不做无效跳转 */
+  #labBtn.lab-off { color: #5b6b82; border-style: dashed; background: #fbfbfa; position: relative; }
+  #labBtn.lab-off:hover { color: #334155; border-color: #b9c4d2; }
+  /* 角标而不是加长文案：按钮行本来就挤，多三个字就把「光学实验室」挤成两行 */
+  #labBtn.lab-off::after {
+    content: "需本机"; position: absolute; top: -8px; right: -7px;
+    font-size: 10px; line-height: 1; font-weight: 700; letter-spacing: 0;
+    padding: 3px 5px; border-radius: 999px;
+    background: #e6edf4; color: #4a5c72; border: 1px solid #fff;
+  }
+  .vs-toast {
+    position: fixed; left: 50%; bottom: 26px; z-index: 960;
+    transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+    max-width: min(560px, calc(100vw - 28px));
+    padding: 12px 16px; border-radius: 11px;
+    background: #0d2745; color: #e8f2f8; border: 1px solid rgba(34, 211, 238, .28);
+    font-size: 13px; line-height: 1.65; box-shadow: 0 14px 34px -16px rgba(13, 39, 69, .7);
+    transition: opacity .18s, transform .18s;
+  }
+  .vs-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (max-width: 760px) { .vs-toast { bottom: 76px; font-size: 12.5px; padding: 11px 14px; } }
   .p-sheet {
     width: 100%; min-width: 0; height: 78vh; display: flex; flex-direction: column;
     margin-bottom: calc(56px + env(safe-area-inset-bottom));
@@ -672,9 +847,11 @@
   @media print {
     @page { margin: 14mm 12mm; }
     html, body { background: #fff; }
+    /* 打印时不带走动效的中间态：万一正好在动画里按了打印，纸面上也要是终态 */
+    *, *::before, *::after { animation: none !important; transition: none !important; }
     body { font-size: 10.5pt; }
     .topbar, .segbar, .req-col, .hero-actions, #suggest, .brands-fold,
-    .sum-act, .lib-link, .more-btn, .fs-btn, .toggle { display: none !important; }
+    .sum-act, .lib-link, .fs-btn, .toggle { display: none !important; }
     .print-head { display: block; margin: 0 0 12px; padding-bottom: 9px; border-bottom: 2px solid #0b1a28; }
     .ph-title { font-size: 15pt; font-weight: 700; color: #0b1a28; letter-spacing: .02em; }
     .ph-sub { margin-top: 4px; font-size: 9pt; color: #47556b; line-height: 1.6; }
@@ -705,16 +882,89 @@
     .st-n { font-size: 22pt !important; }
     .q-sub { font-size: 9pt; }
     .q-seg > b { font-size: 11pt; }
+    /* 简明结论板：深底换成白纸黑字，光路图同一套图形换深色线条 */
+    html.mode-simple #scoreCard {
+      padding: 0 !important; border: 0 !important;
+      /* 屏幕上的「一屏」高度是给屏看的，纸上按内容自然铺开 */
+      height: auto !important; min-height: 0 !important; display: block !important;
+    }
+    html.mode-simple #heroSimple, html.mode-simple .hero-board { display: block !important; }
+    html.mode-simple .hb-art { flex: none !important; display: block !important; }
+    html.mode-simple .hb-art svg { width: 100% !important; height: auto !important; }
+    .hero-board { background: none !important; padding: 0 !important; border-radius: 0; }
+    .hero-h { color: #0b1a28 !important; font-size: 19pt !important; margin-top: 6px; }
+    .hero-p { color: #47556b !important; font-size: 10pt; margin-top: 4px; }
+    .hero-chip { background: #eef6f8 !important; color: #0e7490 !important; border-color: #c3e2ea !important; }
+    .hero-chip.bad { background: #fdf3f3 !important; color: #b91c1c !important; border-color: #efb9b9 !important; }
+    .hero-note { color: #5b6b82 !important; }
+    .hb-art { margin: 10px 0 0 !important; }
+    .oa-cam { stroke: #94a3b8 !important; }
+    .oa-cone { stroke: #0e7490 !important; }
+    .oa-base { stroke: #64748b !important; }
+    .oa-dim { stroke: #cbd5e1 !important; }
+    .oa-fill { fill: rgba(14, 116, 144, .06) !important; }
+    .oa-work { fill: #cbd5e1 !important; }
+    .oa-dot { fill: #0e7490 !important; }
+    .oa-txt { fill: #47556b !important; }
+    .oa-tit { fill: #94a3b8 !important; }
+    .hb-metrics { margin: 8px 0 0 !important; border-top-color: #cfdae7 !important; }
+    .hm { padding: 8px 12px 8px 0 !important; border-left-color: #e2e8f0 !important; }
+    .hm-k { color: #5f6f80 !important; }
+    .hm-v { color: #0b1a28 !important; font-size: 18pt !important; }
+    .hm-v small { color: #5b6b82 !important; font-size: 9pt !important; }
+    .hm-s { color: #5b6b82 !important; }
+    .hm.bad .hm-v { color: #b91c1c !important; }
+    .hero-assume { padding: 8px 0 0 !important; }
+    .ha-txt { color: #5b6b82 !important; }
+    .ha-btn { display: none !important; }
+    .picks { padding: 0 !important; margin-top: 10px !important; gap: 8px; }
+    .pick { break-inside: avoid; page-break-inside: avoid; padding: 10px 12px !important; }
+    .pick::before { display: none !important; }
+    .pick-link { display: none !important; }
+    .pick-model { font-size: 10.5pt !important; }
     a { color: inherit; text-decoration: none; }
     a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; color: #5b6b82; }
   }
 
 /* ---------- 断点 ---------- */
+  /* 桌面简明模式：右栏（不含左侧检测需求）锁在一屏内，光路图吸收剩余高度；
+     窄屏 / 移动端回到自然流，允许上下滑动 */
+  @media (min-width: 1021px) {
+    html.mode-simple .wrap { padding-bottom: 18px; }
+    html.mode-simple #scoreCard {
+      box-sizing: border-box;
+      height: calc(100vh - var(--vs-chrome, 120px));
+      height: calc(100dvh - var(--vs-chrome, 120px));
+      min-height: 620px;
+      display: flex; flex-direction: column;
+    }
+    html.mode-simple #heroSimple { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    html.mode-simple .hero-board { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    /* 图区吃掉剩下的高度：框比图高就居中留白，比图矮就等比缩小，不压变形 */
+    html.mode-simple .hb-art { flex: 1 1 auto; min-height: 96px; display: flex; align-items: center; }
+    html.mode-simple .hb-art svg { width: 100%; height: 100%; }
+    html.mode-simple .picks,
+    html.mode-simple .hb-metrics,
+    html.mode-simple .hero-assume,
+    html.mode-simple .hero-actions { flex: 0 0 auto; }
+    html.mode-simple .hero-actions { margin-top: 12px; }
+  }
+  /* 1021–1200：三列型号卡偏窄，标识与型号各收一档，别把「01 相机」挤到 logo 上 */
+  @media (min-width: 1021px) and (max-width: 1200px) {
+    html.mode-simple .pick-logo { max-width: 82px; }
+    html.mode-simple .pick-model { font-size: 15px; }
+    html.mode-simple .pick-note { font-size: 12px; }
+  }
   @media (max-width: 1020px) {
     .wrap { padding: 16px; }
     .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
     /* 窄屏没有横向空间做悬浮栏，回到单列堆叠：此时不该再限高，否则面板会变成嵌在页面里的内滚动框 */
     .req-col { position: static; max-height: none; overflow: visible; }
+    /* 单列时没有「左右」可分，折叠不成立：卡片照常摊开，窄轨与折叠键都收起来 */
+    html.req-folded .layout { grid-template-columns: minmax(0, 1fr); }
+    html.req-folded .req-card { display: block; }
+    .req-rail { display: none !important; }
+    .req-fold-btn { display: none !important; }
     .req-col .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-col .f-row { display: block; }
     /* 单列时面板够宽，chip 把品牌短名显回来 */
@@ -723,11 +973,11 @@
     .req-col .f-row > label { font-size: 13px; margin-bottom: 6px; }
     .req-col .f-row > label em { display: inline; }
     .req-col .f-row input, .req-col .f-row select { height: 40px; font-size: 13.5px; padding: 0 11px; }
-    .req-col .req-grid .fov-cell { grid-column: span 2; }
-    .req-col .req-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .req-col .req-more .span2 { grid-column: span 2; }
+    /* 单列布局下视野只占一列：两个数字框并排就够，不必横跨整行 */
+    .req-col .req-grid .fov-cell { grid-column: auto; }
+    .req-col .req-pro-body { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .req-col .req-pro-body .span2 { grid-column: span 2; }
     .req-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .req-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .req-grid .fov-cell { grid-column: span 2; }
     .fold-body.duo { grid-template-columns: minmax(0, 1fr); gap: 22px; }
     .topbar { padding: 0 16px; }
@@ -738,12 +988,37 @@
     .sib-live { position: static; order: -1; }
   }
   /* 顶栏 / 导航：全站统一切到 860 以下换行并缩小 */
+  /* 小屏容不下横向光路图与三列数字：图收起，成绩单改成一行一条 */
+  @media (max-width: 720px) {
+    .hb-art { display: none; }
+    .hb-metrics { grid-template-columns: minmax(0, 1fr); margin-top: 14px; }
+    .hm {
+      border-left: 0; border-top: 1px solid rgba(255, 255, 255, .1);
+      padding: 12px 0 13px;
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: baseline;
+    }
+    .hm:first-child { border-top: 0; padding-top: 2px; }
+    .hm-k { grid-column: 1; }
+    .hm-v { grid-column: 2; grid-row: 1; margin: 0; font-size: 25px; text-align: right; }
+    .hm-v small { font-size: 12px; }
+    .hm-s { grid-column: 1 / -1; margin-top: 3px; }
+    .hero-h { font-size: 27px; }
+    .hero-p { font-size: 14px; }
+    .hero-board { padding: 20px 18px 0; }
+    .hb-metrics { margin-left: -18px; margin-right: -18px; padding: 0 18px; }
+    .hm { padding-left: 0; padding-right: 0; }
+    /* 深色板内边距变 18px，下面几块跟着对齐 */
+    .hero-assume, .picks, html.mode-simple .hero-actions { padding-left: 18px; padding-right: 18px; }
+  }
   @media (max-width: 860px) {
     .topbar { padding: 0 14px; }
     .topbar-inner { gap: 10px; }
     .brand h1 { font-size: 18px; width: 100%; }
-    .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .pnav { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; order: 3; }
     .pnav > a, .pnav > .on { font-size: 12.5px; padding: 6px 0; }
+    /* 模式开关跟着标题行，导航整行下移 */
+    .mode-switch { margin-left: auto; }
+    .picks { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 760px) {
     body { font-size: 15px; }
@@ -752,7 +1027,7 @@
     h2.sec { font-size: 16px; margin-bottom: 13px; }
     h2.sec .hint { display: none; }
     .req-grid { gap: 14px 12px; }
-    .req-more { gap: 14px 12px; }
+    .req-pro-body { gap: 14px 12px; }
     .fold > summary { padding: 14px 15px; font-size: 15px; }
     .fold-body { padding: 14px 15px 16px; }
     .cards { gap: 12px; }
@@ -790,13 +1065,6 @@
     [data-anchor="calc"] td.num { margin-right: 5px; }
     [data-anchor="calc"] td.num::before { content: "= "; color: #5b6b82; font-weight: 400; }
     /* 选型依据对比表 */
-    .why-table thead { display: none; }
-    .why-table, .why-table tbody, .why-table tr, .why-table td { display: block; width: auto; }
-    .why-table tr { padding: 8px 0; border-bottom: 1px dashed #eef2f7; }
-    .why-table tbody td { border: 0; padding: 1px 0; }
-    .why-table td:first-child { font-weight: 600; color: #64748b; }
-    .why-table td:nth-child(2)::before { content: "本方案　"; color: #5b6b82; }
-    .why-table td:nth-child(3)::before { content: "次优　　"; color: #5b6b82; }
     /* 方案清单 BOM */
     .bom-table thead { display: none; }
     .bom-table, .bom-table tbody { display: block; width: auto; }
@@ -818,8 +1086,7 @@
     .req-card.form-open .form-summary { display: none; }
     .req-card:not(.form-open) .req-grid,
     .req-card:not(.form-open) .px-set,
-    .req-card:not(.form-open) .more-btn,
-    .req-card:not(.form-open) .req-more,
+    .req-card:not(.form-open) .req-pro,
     .req-card:not(.form-open) .brands-fold { display: none; }
     .kv { padding: 8px 0; font-size: 13.5px; }
     .hero { font-size: 17px; }
@@ -872,12 +1139,85 @@
   @keyframes sibPaneIn { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
   .sib-pane.on.sib-in .sib-scroll { animation: sibPaneIn .22s ease-out backwards; }
 
+  /* ---------- 结果变化时的反馈：只在值真的变了播一次，连续调参不会重播 ---------- */
+
+  /* 结论句换字（可行 ↔ 需调整）：轻微上浮淡入 */
+  @keyframes heroSwap { from { opacity: .25; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+  .hero-h.swap, .hero-p.swap { animation: heroSwap .4s cubic-bezier(.22, .61, .36, 1) backwards; }
+
+  /* 成绩单数字变了：数字轻推一下落位（颜色仍随状态，不额外染色） */
+  @keyframes hmPop { from { opacity: .35; transform: translateY(5px) scale(1.05); } to { opacity: 1; transform: none; } }
+  .hm-v.flash { animation: hmPop .46s cubic-bezier(.22, .61, .36, 1) backwards; }
+
+  /* 光锥：视野 / 工作距离变了，光锥从镜头处向下张开一次 */
+  @keyframes beamIn { from { opacity: .2; transform: scaleY(.8); } to { opacity: 1; transform: none; } }
+  .oa-beam.oa-in {
+    animation: beamIn .36s cubic-bezier(.22, .61, .36, 1) backwards;
+    transform-box: fill-box; transform-origin: 50% 0%;
+  }
+
+  /* 方案不可行：状态点缓慢脉冲（只挂在红标上，绿标不闪） */
+  @keyframes chipPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, .5); }
+    62% { box-shadow: 0 0 0 6px rgba(248, 113, 113, 0); }
+  }
+  .hero-chip.bad::before { animation: chipPulse 2.4s ease-out infinite; }
+
+  /* 三件套换了型号：三张卡按 01 → 03 依次落位（只有型号真的变了才播） */
+  @keyframes pickIn { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+  .pick-in {
+    animation: pickIn .4s cubic-bezier(.22, .61, .36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  /* 某项核查翻转（过 ↔ 不过）：那一枚 chip 自己闪一圈 */
+  @keyframes chipFlip {
+    0% { box-shadow: 0 0 0 0 rgba(14, 116, 144, .45); transform: scale(1); }
+    40% { transform: scale(1.06); }
+    100% { box-shadow: 0 0 0 7px rgba(14, 116, 144, 0); transform: scale(1); }
+  }
+  .si-chip.flip { animation: chipFlip .55s ease-out; }
+
+  /* 模式切换：结论卡与需求面板整体淡入一次，说明「换了一套读法」 */
+  @keyframes modeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  html.mode-swap #scoreCard,
+  html.mode-swap .req-card { animation: modeIn .34s cubic-bezier(.22, .61, .36, 1) backwards; }
+
+  /* 微交互：悬停抬起、按下回弹 */
+  .pick:hover { transform: translateY(-2px); }
+  .pick:active { transform: translateY(0); }
+  .pick::before { transition: height .18s ease; }
+  .pick:hover::before { height: 4px; }
+  .btn:active, .bf-chip:active, .mode-switch button:active, .ha-btn:active { transform: scale(.975); }
+  .bf-chip { transition: .15s, transform .12s ease; }
+  .mode-switch button { transition: background .18s ease, color .18s ease, transform .12s ease; }
+  .ha-btn { transition: transform .12s ease; }
+
   @media (prefers-reduced-motion: reduce) {
     tbody tr { transition: none; }
-    #scoreNum.flash { animation: none; }
+    #scoreNum.flash, .hero-h.swap, .hero-p.swap, .hm-v.flash, .oa-beam.oa-in,
+    html.mode-swap #scoreCard, html.mode-swap .req-card,
+    .si-chip.flip, .pick-in, .hero-chip.bad::before { animation: none; }
+    .pick:hover, .pick:active, .btn:active, .bf-chip:active,
+    .mode-switch button:active, .ha-btn:active { transform: none; }
     #stitch .st-band, .sib-pane.on.sib-in .sib-scroll { animation: none; }
   }
 </style>
+<script>
+  // 首帧前定好阅读模式，否则简明与专业两套内容会同时闪一下。
+  // 优先级：网址里的 ?mode= > 上次选择 > 默认简明。
+  (function () {
+    var m = 'simple', fold = false;
+    try {
+      var q = /[?&]mode=(simple|pro)\b/.exec(location.search);
+      m = q ? q[1] : (localStorage.getItem('vs-mode') === 'pro' ? 'pro' : 'simple');
+      fold = localStorage.getItem('vs-req-fold') === '1';
+    } catch (e) { m = 'simple'; }
+    document.documentElement.className += ' mode-' + m;
+    // 需求面板上次收起的话，首帧就按窄轨排，别先闪一版宽左栏
+    if (fold) document.documentElement.className += ' req-folded';
+  })();
+</script>
 </head>
 <body>
 
@@ -897,6 +1237,11 @@
       <a href="combo.html" id="comboLink" title="从型号库自选相机 / 镜头 / 光源，系统逐项评定">自定义搭配</a>
       <a href="calc.html">工程计算器</a>
     </nav>
+    <!-- 两套阅读深度：简明给外行看结论与三件套，专业摊开全部参数与验算 -->
+    <div class="mode-switch" id="modeSwitch" role="group" aria-label="显示模式">
+      <button type="button" data-mode="simple" class="on" title="只填必要需求，右侧给结论与三件套">简明</button>
+      <button type="button" data-mode="pro" title="显示全部参数、验算、风险与配套清单">专业</button>
+    </div>
   </div>
 </header>
 
@@ -904,7 +1249,7 @@
 <nav class="segbar" id="segbar">
   <a class="seg" data-seg="form">需求</a>
   <a class="seg" data-seg="sol">方案</a>
-  <a class="seg" data-seg="detail">详细方案</a>
+  <a class="seg pro-only" data-seg="detail">详细方案</a>
 </nav>
 
 <div class="wrap">
@@ -918,9 +1263,18 @@
 
   <!-- ==================== 左栏：检测需求（悬浮，随时可改） ==================== -->
   <aside class="req-col">
+
+  <!-- 折叠后只剩这条窄轨：点一下把需求面板拉回来 -->
+  <button type="button" class="req-rail" id="reqRail" title="展开检测需求面板" aria-label="展开检测需求面板">
+    <span class="rr-ico" aria-hidden="true">☰</span>
+    <span class="rr-txt">检测需求</span>
+    <span class="rr-open" aria-hidden="true">展开</span>
+  </button>
+
   <section class="card req-card" id="sec-form">
     <h2 class="sec">检测需求
       <button class="btn" id="resetBtn">恢复默认</button>
+      <button class="btn req-fold-btn" id="reqFold" title="收起需求面板，让右侧方案占满宽度">收起 ◀</button>
     </h2>
     <div class="px-set">
       <span class="px-lbl">快速试用</span>
@@ -946,7 +1300,7 @@
         </div>
       </div>
 
-      <div class="field f-row">
+      <div class="field f-row pro-only">
         <label>最小特征 δ <em>公差 / 缺陷</em></label>
         <input type="number" id="precision" min="0.001" step="0.001" value="0.1" />
       </div>
@@ -956,7 +1310,7 @@
         <select id="task"></select>
       </div>
 
-      <div class="field f-row">
+      <div class="field f-row pro-only">
         <label>工作距离 WD <em>镜头到工件</em></label>
         <input type="number" id="wd" min="10" step="10" value="300" />
       </div>
@@ -966,68 +1320,73 @@
         <select id="material"></select>
       </div>
 
-      <div class="field">
-        <label>目标主色 <em>选单色光</em></label>
-        <select id="colorTarget"></select>
-      </div>
-
-      <div class="field f-row">
-        <label>高度变化 <em>决定景深</em></label>
-        <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
-      </div>
-
-      <div class="field f-row">
-        <label>运动速度 <span class="unit">mm/s</span></label>
-        <input type="number" id="speed" min="0" step="10" value="0" />
-      </div>
-
-      <div class="field btn-cell">
-        <button type="button" class="more-btn" id="moreBtn">更多参数 ＋</button>
-      </div>
-
-      <!-- 更多参数：默认收起（节拍 / 安装空间 / 彩色 / 线扫） -->
-      <div class="req-more" id="reqMore">
-        <div class="field f-row">
-          <label>生产节拍 <span class="unit">件/分</span></label>
-          <input type="number" id="cpm" min="0" step="1" value="0" />
-        </div>
-
-        <div class="field f-row">
-          <label>可用安装空间 <em>0 = 不校验</em></label>
-          <input type="number" id="space" min="0" step="10" value="0" title="工件表面到相机尾部的最大可用长度 mm" />
-        </div>
-
-        <div class="field">
-          <label class="check">
-            <input type="checkbox" id="needColor" />
-            <span>需要彩色相机</span>
-          </label>
-        </div>
-
-        <div class="field span2">
-          <label class="check" title="勾选后除单台线扫外，单台覆盖不了整幅时还会给出多机拼接的台数、镜头与排布">
-            <input type="checkbox" id="lineScanFirst" />
-            <span>优先线扫方案（超长幅面 / 高速连续检测，含多机拼接）</span>
-          </label>
-        </div>
-
-        <!-- 只在勾了线扫后出现：单台覆盖不了整幅时才用得到，平时不占版面 -->
-        <div class="field f-row stitch-opt" id="stitchOvRow" hidden>
-          <label>拼接重叠率 <span class="unit">%</span></label>
-          <input type="number" id="stitchOverlap" min="3" max="35" step="1" value="10"
-                 title="相邻两台在接缝处的重叠比例：10% 够做几何标定，幅面越大越可以给宽些" />
-        </div>
-
-        <div class="field f-row stitch-opt" id="stitchMaxRow" hidden>
-          <label>拼接台数上限 <span class="unit">台</span></label>
-          <input type="number" id="stitchMaxCams" min="2" max="8" step="1" value="6"
-                 title="按此上限比较 2~N 台方案；台数越多单台视场越小、越容易选到够精度的相机" />
-        </div>
-      </div>
-
     </div>
 
-    <!-- 品牌范围：常驻显示，不折叠 -->
+    <!-- 专业参数：简明模式收起（默认值可直接出方案），专业模式默认摊开 -->
+      <details class="req-pro" id="reqPro">
+        <summary>
+          <span class="rp-t">专业参数</span>
+          <span class="rp-h">不填也能出方案 · 点开可微调</span>
+          <span class="rp-act"></span>
+        </summary>
+        <div class="req-pro-body">
+
+          <div class="field">
+            <label>目标主色 <em>选单色光</em></label>
+            <select id="colorTarget"></select>
+          </div>
+
+          <div class="field f-row">
+            <label>高度变化 <em>决定景深</em></label>
+            <input type="number" id="heightDiff" min="0" step="0.1" value="1" />
+          </div>
+
+          <div class="field f-row">
+            <label>运动速度 <span class="unit">mm/s</span></label>
+            <input type="number" id="speed" min="0" step="10" value="0" />
+          </div>
+
+          <div class="field f-row">
+            <label>生产节拍 <span class="unit">件/分</span></label>
+            <input type="number" id="cpm" min="0" step="1" value="0" />
+          </div>
+
+          <div class="field f-row">
+            <label>可用安装空间 <em>0 = 不校验</em></label>
+            <input type="number" id="space" min="0" step="10" value="0" title="工件表面到相机尾部的最大可用长度 mm" />
+          </div>
+
+          <div class="field">
+            <label class="check">
+              <input type="checkbox" id="needColor" />
+              <span>需要彩色相机</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label class="check" title="勾选后除单台线扫外，单台覆盖不了整幅时还会给出多机拼接的台数、镜头与排布">
+              <input type="checkbox" id="lineScanFirst" />
+              <span>优先线扫方案（超长幅面 / 高速连续检测，含多机拼接）</span>
+            </label>
+          </div>
+
+          <!-- 只在勾了线扫后出现：单台覆盖不了整幅时才用得到，平时不占版面 -->
+          <div class="field f-row stitch-opt" id="stitchOvRow" hidden>
+            <label>拼接重叠率 <span class="unit">%</span></label>
+            <input type="number" id="stitchOverlap" min="3" max="35" step="1" value="10"
+                   title="相邻两台在接缝处的重叠比例：10% 够做几何标定，幅面越大越可以给宽些" />
+          </div>
+
+          <div class="field f-row stitch-opt" id="stitchMaxRow" hidden>
+            <label>拼接台数上限 <span class="unit">台</span></label>
+            <input type="number" id="stitchMaxCams" min="2" max="8" step="1" value="6"
+                   title="按此上限比较 2~N 台方案；台数越多单台视场越小、越容易选到够精度的相机" />
+          </div>
+
+        </div>
+      </details>
+
+    <!-- 品牌范围：常驻显示，不折叠（两套模式都在首屏可见） -->
     <div class="brands-fold">
       <div class="brands-title">品牌范围 <small>点击品牌可排除 / 纳入</small></div>
       <div class="brands-body" id="brandsBody">
@@ -1036,34 +1395,67 @@
         <div class="brand-filter" id="lightFilter"><span class="bf-label">光源</span></div>
       </div>
     </div>
+
   </section>
   </aside>
 
   <main class="res-col">
 
-  <!-- ==================== 右栏 1. 工程核查 ==================== -->
+  <!-- ==================== 右栏 1. 结论（简明 / 专业两套呈现） ==================== -->
   <section class="card score-card" id="scoreCard" data-anchor="sol">
-    <div class="score-top">
-      <div class="score-num" id="scoreNum">--</div>
-      <div class="score-mid">
-        <div class="lbl"><span>工程核查通过</span><span id="stateChip" class="tag">计算中</span></div>
-        <div class="bar"><i id="scoreBar" style="width:0%"></i></div>
-        <div class="score-note" id="scoreNote"></div>
+
+    <!-- 简明：一块「给领导看」的结论板 —— 能不能用 / 怎么装 / 买什么 -->
+    <div class="simple-only" id="heroSimple">
+      <!-- 型号方案放最上方：先看买什么，再看为什么行 -->
+      <div class="picks" id="picks"></div>
+      <div class="hero-board" id="heroBoard">
+        <div class="hb-main">
+          <div class="hero-top">
+            <span class="hero-chip" id="heroChip">计算中</span>
+            <span class="hero-note" id="heroNote"></span>
+          </div>
+          <h2 class="hero-h" id="heroH">—</h2>
+          <p class="hero-p" id="heroP">—</p>
+        </div>
+        <div class="hb-art" id="heroArt" aria-hidden="true"></div>
+        <div class="hb-metrics" id="heroMetrics"></div>
+      </div>
+      <div class="hero-assume">
+        <span class="ha-txt" id="heroAssume">—</span>
+        <button type="button" class="ha-btn" data-mode="pro" title="切到专业模式，可改最小特征、工作距离等全部参数">调整这两项 →</button>
       </div>
     </div>
-    <div class="summary" id="summary">—</div>
-    <div class="verdicts" id="verdicts"></div>
 
-    <!-- 三件套速览：一眼看清买什么；点任意一行直接跳到详细参数 -->
-    <div class="quick" id="quick"></div>
+    <!-- 专业：工程核查分数 + 速览 -->
+    <div class="pro-only">
+      <div class="score-top">
+        <div class="score-num" id="scoreNum">--</div>
+        <div class="score-mid">
+          <div class="lbl"><span>工程核查通过</span><span id="stateChip" class="tag">计算中</span></div>
+          <div class="bar"><i id="scoreBar" style="width:0%"></i></div>
+          <div class="score-note" id="scoreNote"></div>
+        </div>
+      </div>
+      <div class="summary" id="summary">—</div>
+      <div class="verdicts" id="verdicts"></div>
+
+      <!-- 三件套速览：一眼看清买什么；点任意一行直接跳到详细参数 -->
+      <div class="quick" id="quick"></div>
+
+      <!-- 9 项工程核查：完整明细表已下线，这里只留每条通过与否 -->
+      <div class="check-chips" id="checkChips"></div>
+    </div>
 
     <div class="hero-actions">
       <button type="button" class="btn primary" id="pdfBtn" title="按当前需求导出打印稿，浏览器里选「另存为 PDF」">导出 PDF</button>
       <button type="button" class="btn" id="shareBtn" title="把当前需求与已固定型号编码进网址，对方打开即还原同一份结果">复制链接</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
-      <a class="btn" href="combo.html" data-combo-link>自定义搭配</a>
-      <a class="btn" id="labBtn" target="_blank" rel="noopener" href="http://127.0.0.1:8848/lab" title="按当前光源形态、颜色、视野和工作距离，在本地光学实验室里看打光效果；点光源在实验室里按环形光源显示">光学实验室 ↗</a>
+      <a class="btn pro-only" href="combo.html" data-combo-link>自定义搭配</a>
+      <!-- 光学实验室是同伴的独立项目，只能在本机跑起来：线上打开时降级成提示按钮 -->
+      <a class="btn pro-only" id="labBtn" target="_blank" rel="noopener" href="http://127.0.0.1:8848/lab" title="按当前光源形态、颜色、视野和工作距离，在本地光学实验室里看打光效果；点光源在实验室里按环形光源显示">光学实验室 ↗</a>
     </div>
+
+    <!-- 简明模式下的出口：需要细节就去专业（已在假设条给了入口，这里不再重复） -->
   </section>
 
   <!-- 扩展建议：只有特殊场景（线扫 / 远心 / 3D）才出现 -->
@@ -1092,12 +1484,6 @@
       <div class="det-sec">
         <h3 class="det-h">风险与建议</h3>
         <div id="risks"></div>
-      </div>
-
-      <div class="det-sec">
-        <h3 class="det-h">评分明细 <span class="det-tip">每一分的来由，以及与次优方案的对比</span></h3>
-        <div class="score-items" id="scoreItems"></div>
-        <div id="rationale"></div>
       </div>
 
       <div class="det-sec" id="bomSec">
@@ -1162,6 +1548,8 @@
     </div>
   </div>
 </div>
+
+<div class="vs-toast" id="vsToast" role="status" aria-live="polite"></div>
 
 <script src="js/brands.js"></script>
 <script src="js/hikrobot-catalog.js"></script>
