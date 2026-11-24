@@ -20,7 +20,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SNAP = path.join(ROOT, 'tools/_cache/hikrobot_ir_official.json');
-const OUT = path.join(ROOT, 'hikrobot-ir-catalog.js');
+const OUT = path.join(ROOT, 'js', 'hikrobot-ir-catalog.js');
 const REVIEW = path.join(ROOT, 'tools/_cache/hikrobot_ir_review.txt');
 
 // 手册补充：响应波段（官网参数表无此项）；键为型号前缀

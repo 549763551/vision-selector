@@ -15,7 +15,7 @@ import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-CATALOG = os.path.join(ROOT, 'huarui-catalog.js')
+CATALOG = os.path.join(ROOT, 'js', 'huarui-catalog.js')
 ADD = os.path.join(HERE, '_cache', 'huarui_lens_add.json')
 
 ORDER = ['model', 'brand', 'series', 'group', 'kind', 'focal', 'fmin', 'fmax',

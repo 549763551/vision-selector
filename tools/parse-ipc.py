@@ -6,7 +6,7 @@
   - MV-IPC-MB-* 主板（含适配 CPU/内存/网口/USB/扩展槽/尺寸等）
 用法：
   pdftotext -enc UTF-8 -raw "manuals/机器视觉工控机产品手册-V.151.CN.26Q2.1(阅读版).pdf" tools/_cache/ipc.txt
-  python tools/parse-ipc.py tools/_cache/ipc.txt > hikrobot-ipc-catalog.js
+  python tools/parse-ipc.py tools/_cache/ipc.txt > js/hikrobot-ipc-catalog.js
 """
 import re, sys
 

@@ -12,13 +12,13 @@
  *
  * 用法：
  *   node tools/apply-hikrobot-web-fixes.js            # 试运行，只看报告
- *   node tools/apply-hikrobot-web-fixes.js --apply    # 写回 hikrobot-catalog.js 并同步小程序 lib
+ *   node tools/apply-hikrobot-web-fixes.js --apply    # 写回 js/hikrobot-catalog.js 并同步小程序 lib
  * 报告：tools/_cache/hikrobot_fixes.txt（已改）/ hikrobot_review.txt（复核清单）
  */
 'use strict';
 const fs = require('fs');
 
-const CAT = 'hikrobot-catalog.js';
+const CAT = 'js/hikrobot-catalog.js';
 const MINIPROGRAM = '小程序项目/lib/' + CAT;
 const RAW = 'tools/_cache/hikrobot_official_raw.json';
 const APPLY = process.argv.indexOf('--apply') >= 0;

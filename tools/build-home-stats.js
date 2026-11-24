@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const load = f => require(path.join(root, f));
+const load = f => require(path.join(root, 'js', f));
 
 const SRC = {
   hikrobot: 'hikrobot-catalog.js',
@@ -49,6 +49,6 @@ const total = Object.keys(n).reduce((s, k) => s + n[k], 0);
 
 const out = '/* 由 tools/build-home-stats.js 从型录生成，勿手改。型录更新后重跑。 */\n' +
   'window.HOME_STATS = ' + JSON.stringify({ n, total, metas, allMetas }) + ';\n';
-fs.writeFileSync(path.join(root, 'home-stats.js'), out, 'utf8');
+fs.writeFileSync(path.join(root, 'js', 'home-stats.js'), out, 'utf8');
 console.log('home-stats.js 已生成：' + Buffer.byteLength(out) + ' 字节，总计 ' + total + ' 款');
 console.log(JSON.stringify(n));

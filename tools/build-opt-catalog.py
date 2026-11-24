@@ -25,7 +25,7 @@ import re
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(BASE, 'tools', '_cache', 'opt')
-OUT = os.path.join(BASE, 'opt-catalog.js')
+OUT = os.path.join(BASE, 'js', 'opt-catalog.js')
 
 IFACE = {
     'USB 3.0': ('USB3', False),

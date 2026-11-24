@@ -164,7 +164,7 @@ def main():
     L.append('});')
     L.append('')
     s = '\n'.join(L)
-    io.open(os.path.join(BASE, 'opt-misc-catalog.js'), 'w', encoding='utf-8').write(s)
+    io.open(os.path.join(BASE, 'js', 'opt-misc-catalog.js'), 'w', encoding='utf-8').write(s)
     print('→ opt-misc-catalog.js  %.0f KB' % (len(s.encode('utf-8')) / 1024))
     print('智能相机 %d（相机 %d + 读码器 %d）· 传感器 %d · 测量运控 %d'
           % (len(smart), meta['smartCam'], meta['codeReader'], len(sensors), len(meas)))

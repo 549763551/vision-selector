@@ -362,7 +362,7 @@ def main():
 
     for name, s in [('opt-lens-catalog.js', lens_js), ('opt-light-catalog.js', light_js),
                     ('opt-ctrl-catalog.js', ctrl_js)]:
-        io.open(os.path.join(BASE, name), 'w', encoding='utf-8').write(s)
+        io.open(os.path.join(BASE, 'js', name), 'w', encoding='utf-8').write(s)
         print('→ %s  %.0f KB' % (name, len(s.encode('utf-8')) / 1024))
 
     print('\n镜头 %d（缺焦距 %d）· 远心 %d · 光源 %d · 控制器 %d · 工控机 %d'

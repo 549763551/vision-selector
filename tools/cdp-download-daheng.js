@@ -28,7 +28,7 @@ function jget(p) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const src = fs.readFileSync(path.join(ROOT, 'docs-data.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'docs-data.js'), 'utf8');
   const data = JSON.parse(src.match(/return (\{.*\});/s)[1]);
   const brand = data.brands.find(b => b.key === 'daheng');
   const jobs = brand.docs.filter(d => d.l && !fs.existsSync(path.join(OUT, d.l)));

@@ -17,7 +17,7 @@
  * 用法：
  *   node tools/parse-hikrobot-scatter.js            # 生成 tools/_cache/hikrobot_add_scatter.json + 报告
  * 之后：
- *   python tools/merge-catalog-add.py hikrobot-catalog.js tools/_cache/hikrobot_add_scatter.json \
+ *   python tools/merge-catalog-add.py js/hikrobot-catalog.js tools/_cache/hikrobot_add_scatter.json \
  *       --map cameras=CAMERAS:cameras --map linescan=LINESCAN:linescan --drop brand
  */
 'use strict';
@@ -33,7 +33,7 @@ if (!fs.existsSync(RAW)) {
   process.exit(1);
 }
 const official = JSON.parse(fs.readFileSync(RAW, 'utf8'));
-vm.runInThisContext(fs.readFileSync('hikrobot-catalog.js', 'utf8'), { filename: 'hikrobot-catalog.js' });
+vm.runInThisContext(fs.readFileSync('js/hikrobot-catalog.js', 'utf8'), { filename: 'js/hikrobot-catalog.js' });
 const inLib = new Set(global.HikrobotCatalog.CAMERAS.concat(global.HikrobotCatalog.LINESCAN).map((x) => norm(x.model)));
 
 function norm(m) { return String(m || '').toUpperCase().replace(/\s+/g, ''); }

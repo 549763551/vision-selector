@@ -13,7 +13,7 @@ from collections import Counter
 
 PDF = r"C:\Users\54976\Desktop\视觉\vision-selector\manuals\机器视觉产品手册中文版V20260901.pdf"
 OUT_JSON = r"C:\Users\54976\Desktop\视觉\vision-selector\tools\_cache\huarui_cams.json"
-OUT_JS = r"C:\Users\54976\Desktop\视觉\vision-selector\huarui-catalog.js"
+OUT_JS = r"C:\Users\54976\Desktop\视觉\vision-selector\js\huarui-catalog.js"
 
 def norm_key(t):
     s = re.sub(r"[\s()（）]", "", t)

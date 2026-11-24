@@ -11,7 +11,7 @@ Basler 相机型号库生成器
 联网补充条目（tools/fetch-basler-cams.js 抓 docs.baslerweb.com 型号页生成）：
   tools/_cache/basler_cams_add.json  面阵补充（BASE 表未覆盖的分辨率档）
   tools/_cache/basler_linescan.json  线扫 racer 2 全系列
-生成：python tools/parse-basler.py  ->  basler-catalog.js
+生成：python tools/parse-basler.py  ->  js/basler-catalog.js
 """
 import json
 import datetime
@@ -185,7 +185,7 @@ def main():
     out.append("  return { META: META, CAMERAS: CAMERAS, LINESCAN: LINESCAN, THREE_D: THREE_D, LENSES: [], TELECENTRIC: [], LIGHTS: [], CONTROLLERS: [] };")
     out.append("});")
     text = "\n".join(out) + "\n"
-    with open("basler-catalog.js", "w", encoding="utf-8") as f:
+    with open("js/basler-catalog.js", "w", encoding="utf-8") as f:
         f.write(text)
     print("wrote basler-catalog.js :", len(cams), "cameras (BASE %d + add %d)," % (len(cams) - len(add), len(add)), len(lines), "linescan,", len(threed), "3d")
 

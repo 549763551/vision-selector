@@ -20,7 +20,7 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, 'manuals')
-DATA_JS = os.path.join(ROOT, 'docs-data.js')
+DATA_JS = os.path.join(ROOT, 'js', 'docs-data.js')
 FAIL_LOG = os.path.join(ROOT, 'tmp', 'docs', 'download-fail.json')
 UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')

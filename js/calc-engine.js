@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * 纯计算模块，无 DOM 依赖：
  *   - 浏览器：window.CalcEngine
- *   - Node  ：const CalcEngine = require('./calc-engine.js')
+ *   - Node  ：const CalcEngine = require('./js/calc-engine.js')
  *
  * 口径与 engine.js / docs/algorithm.md 完全一致（同一套 k 表、光圈档、
  * 焦距档、接口带宽 × 0.85、λ=0.55µm、c=2 像元、彩色 Bayer ×1.2）。

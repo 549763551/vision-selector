@@ -2,7 +2,7 @@
 
 /**
  * 工程计算器测试：与选型引擎口径对齐 + 17 个公式的数值回归 + 6 个组合的共享输入/缺项提示
- * 运行：node calc.test.js
+ * 运行：node js/calc.test.js
  */
 
 const assert = require('assert');

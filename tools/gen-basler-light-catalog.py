@@ -6,7 +6,7 @@
   CONTROLLERS   Basler 灯光控制器
 用法：
   node tools/fetch-basler-lights.js > tools/_cache/basler-lights.json
-  python tools/gen-basler-light-catalog.py tools/_cache/basler-lights.json 2026-10-24 > basler-light-catalog.js
+  python tools/gen-basler-light-catalog.py tools/_cache/basler-lights.json 2026-10-24 > js/basler-light-catalog.js
 
 第二个参数是「数据抓取日期」，省略时取当天；用旧缓存重跑时应显式传原日期，
 避免把「重新生成」误写成「重新抓取」。

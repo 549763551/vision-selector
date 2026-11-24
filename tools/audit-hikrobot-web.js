@@ -13,7 +13,7 @@
 const fs = require('fs');
 const vm = require('vm');
 
-const CAT = 'hikrobot-catalog.js';
+const CAT = 'js/hikrobot-catalog.js';
 const RAW = 'tools/_cache/hikrobot_official_raw.json';
 
 vm.runInThisContext(fs.readFileSync(CAT, 'utf8'), { filename: CAT });

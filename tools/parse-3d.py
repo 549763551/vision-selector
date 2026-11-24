@@ -13,7 +13,7 @@
 用法：
   pdftotext -enc UTF-8 -raw "manuals/机器视觉3D产品手册26年Q3.pdf" tools/_cache/3d.txt
   node tools/fetch-hikrobot-3d.js
-  python tools/parse-3d.py tools/_cache/3d.txt > hikrobot-3d-catalog.js
+  python tools/parse-3d.py tools/_cache/3d.txt > js/hikrobot-3d-catalog.js
 """
 import json, os, re, sys
 

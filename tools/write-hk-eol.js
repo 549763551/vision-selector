@@ -1,9 +1,9 @@
-// 把 tools/_cache/hk_eol_models.json 写回 retired-catalog.js 的 hikrobot 段。
+// 把 tools/_cache/hk_eol_models.json 写回 js/retired-catalog.js 的 hikrobot 段。
 // 只替换 hikrobot 品牌块，其余品牌原样保留；META 的数量与更新时间同步。
 'use strict';
 const fs = require('fs');
 
-const FILE = 'retired-catalog.js';
+const FILE = 'js/retired-catalog.js';
 const models = JSON.parse(fs.readFileSync('tools/_cache/hk_eol_models.json', 'utf8'));
 
 // 输出字段顺序与在售型录一致，缺的字段不写

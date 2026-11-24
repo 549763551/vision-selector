@@ -33,7 +33,7 @@ import pymupdf
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PDF_PATH = os.path.join(ROOT, 'manuals', '大恒图像产品型录.pdf')
-CATALOG = os.path.join(ROOT, 'daheng-catalog.js')
+CATALOG = os.path.join(ROOT, 'js', 'daheng-catalog.js')
 MISS_TXT = os.path.join(HERE, '_cache', 'miss_daheng_cam.txt')
 TEXT_PATH = os.path.join(HERE, '_cache', '大恒图像产品型录.txt')
 

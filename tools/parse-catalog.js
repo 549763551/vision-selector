@@ -5,7 +5,7 @@
  * 用法：
  *   pdftotext -enc UTF-8 -raw "机器视觉标准产品手册-2026.Q3.pdf" stdraw.txt
  *   node tools/fetch-lights.js > lights.json
- *   node tools/parse-catalog.js stdraw.txt webref.json lights.json > hikrobot-catalog.js
+ *   node tools/parse-catalog.js stdraw.txt webref.json lights.json > js/hikrobot-catalog.js
  *
  * webref.json：型号 -> {color, iface}，来自官网产品列表，用于校正手册排版串行。
  */

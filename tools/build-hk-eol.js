@@ -5,13 +5,13 @@
 //   1) 公告清单：GET https://www.hikrobotics.com/cn/Api/Foreground/Support/ProductChange?type=1&size=100&page=1
 //      （官网「停产通知」栏目的接口，返回 21 条记录的标题 / 日期 / PDF 路径）
 //   2) 逐份下载 PDF 到 tools/_cache/hk_pcn/（需 UA + Referer），用 tools/pdf-text.py 抽成 .txt
-//   3) 跑本脚本 → tools/_cache/hk_eol_models.json，再跑 tools/write-hk-eol.js 写回 retired-catalog.js
+//   3) 跑本脚本 → tools/_cache/hk_eol_models.json，再跑 tools/write-hk-eol.js 写回 js/retired-catalog.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
 const DIR = 'tools/_cache/hk_pcn';
-const SRC = 'retired-catalog.js';
+const SRC = 'js/retired-catalog.js';
 
 const NOTICES = {
   '6_2021-06-01': {

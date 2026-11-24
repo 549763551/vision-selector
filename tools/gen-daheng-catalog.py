@@ -6,7 +6,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 CACHE = 'tools/_cache/daheng_cams.json'
 LENS_CACHE = 'tools/_cache/daheng_lenses.json'
 TELE_CACHE = 'tools/_cache/daheng_tele.json'
-OUT = 'daheng-catalog.js'
+OUT = 'js/daheng-catalog.js'
 
 cams = json.load(open(CACHE, encoding='utf-8'))
 lenses = json.load(open(LENS_CACHE, encoding='utf-8'))

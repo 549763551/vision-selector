@@ -6,7 +6,7 @@
   TELECENTRIC  C 口远心镜头（固定倍率）
 用法：
   node tools/fetch-basler-lenses.js > tools/_cache/basler-lenses.json
-  python tools/gen-basler-lens-catalog.py tools/_cache/basler-lenses.json > basler-lens-catalog.js
+  python tools/gen-basler-lens-catalog.py tools/_cache/basler-lenses.json > js/basler-lens-catalog.js
 """
 import json, sys
 from datetime import date

@@ -2,7 +2,7 @@
 
 /**
  * 选型引擎测试：基于海康机器人真实型号库
- * 运行：node engine.test.js
+ * 运行：node js/engine.test.js
  */
 
 const assert = require('assert');
@@ -475,14 +475,14 @@ test('核查清单：不达标时扣分项与未通过项对得上', () => {
 const vm = require('vm');
 const fs = require('fs');
 function loadGlobal(f) { vm.runInThisContext(fs.readFileSync(f, 'utf8'), { filename: f }); }
-loadGlobal('./brands.js');
-loadGlobal('./hikrobot-catalog.js');
-loadGlobal('./hikrobot-3d-catalog.js');
-loadGlobal('./huarui-catalog.js');
-loadGlobal('./basler-catalog.js');
-loadGlobal('./daheng-catalog.js');
-loadGlobal('./opt-catalog.js');
-loadGlobal('./engine.js');
+loadGlobal('./js/brands.js');
+loadGlobal('./js/hikrobot-catalog.js');
+loadGlobal('./js/hikrobot-3d-catalog.js');
+loadGlobal('./js/huarui-catalog.js');
+loadGlobal('./js/basler-catalog.js');
+loadGlobal('./js/daheng-catalog.js');
+loadGlobal('./js/opt-catalog.js');
+loadGlobal('./js/engine.js');
 const EngineFactory = global.VisionEngineFactory;
 const HIK = global.HikrobotCatalog;
 const HIK3D = global.Hikrobot3DCatalog;

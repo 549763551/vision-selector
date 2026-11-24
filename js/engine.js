@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * 纯计算模块，无 DOM 依赖：
  *   - 浏览器：先加载 hikrobot-catalog.js，再加载 engine.js → window.VisionEngine
- *   - Node  ：const VisionEngine = require('./engine.js')
+ *   - Node  ：const VisionEngine = require('./js/engine.js')
  *
  * 输入（单位 mm / fps）：
  *   { fovW, fovH, precision, task, wd, material, colorTarget,

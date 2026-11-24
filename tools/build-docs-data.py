@@ -35,7 +35,7 @@ from urllib.parse import quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, 'tmp', 'docs')
-OUT = os.path.join(ROOT, 'docs-data.js')
+OUT = os.path.join(ROOT, 'js', 'docs-data.js')
 
 HIK_BASE = 'https://www.hikrobotics.com'
 DAHENG_BASE = 'https://www.daheng-imaging.com'

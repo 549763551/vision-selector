@@ -240,7 +240,7 @@ async function boot(waitHome) {
     const files = ['basler-catalog.js'];
     const have = new Set();
     files.forEach(f => {
-      const p = path.join(ROOT, f);
+      const p = path.join(ROOT, 'js', f);
       if (!fs.existsSync(p)) return;
       const c = require(p);
       ['CAMERAS', 'LINESCAN'].forEach(k => (c[k] || []).forEach(x => have.add(key(x.model))));

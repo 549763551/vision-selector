@@ -233,7 +233,7 @@ function tierOf(slug) { const m = /^(ac|a2|bo)[Aa](\d+)-(\d+)/.exec(slug); retur
   const ONLY = onlyArg >= 0 ? String(argv[onlyArg + 1]).split(/[, ]+/).map(s => s.trim().toLowerCase().replace(/\.html$/, '')).filter(Boolean) : null;
 
   // 已有 86 台（用于按分辨率档去重）
-  const cat = require(path.join(ROOT, 'basler-catalog.js'));
+  const cat = require(path.join(ROOT, 'js', 'basler-catalog.js'));
   const existing = new Set((cat.CAMERAS || []).map(c => c.model.toLowerCase()));
   const existingTiers = new Set((cat.CAMERAS || []).map(c => tierOf(c.model.toLowerCase())).filter(Boolean));
 

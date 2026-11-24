@@ -6,7 +6,7 @@
 除新行与 META 外文件其余字节不变。
 
 用法:
-  python tools/merge-catalog-add.py hikrobot-catalog.js tools/_cache/hikrobot_add.json \
+  python tools/merge-catalog-add.py js/hikrobot-catalog.js tools/_cache/hikrobot_add.json \
       --map cameras=CAMERAS:cameras --map linescan=LINESCAN:linescan --map lenses=LENSES:lenses \
       --drop brand
 """

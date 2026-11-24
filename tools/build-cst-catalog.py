@@ -503,10 +503,10 @@ def main():
 
     # 型号归一差集校验：与现有五品牌在售型录比
     existing = set()
-    for f in os.listdir('.'):
+    for f in os.listdir('js'):
         if not f.endswith('-catalog.js') or f.startswith('cst-') or f == 'retired-catalog.js':
             continue
-        s = io.open(f, encoding='utf-8', errors='replace').read()
+        s = io.open(os.path.join('js', f), encoding='utf-8', errors='replace').read()
         for m in re.finditer(r'"model"\s*:\s*"([^"]+)"', s):
             existing.add(re.sub(r'\s+', '', m.group(1)).upper())
     overlap = sorted({d['model'] for d in CAM + LINE + LENS + TELE + LIGHT + CTRL}
@@ -564,7 +564,7 @@ def main():
         'cameras': len(CAM), 'linescan': len(LINE), 'lenses': len(LENS),
         'telecentric': len(TELE), 'lights': len(LIGHT), 'controllers': len(CTRL),
     }
-    write_umd('cst-catalog.js', 'CstCatalog', meta,
+    write_umd('js/cst-catalog.js', 'CstCatalog', meta,
               [('CAMERAS', CAM), ('LINESCAN', LINE), ('LENSES', LENS),
                ('TELECENTRIC', TELE), ('LIGHTS', LIGHT), ('CONTROLLERS', CTRL)],
               '康视达（CST）在售产品库：面阵 / 线阵相机、工业镜头、远心镜头、光源与控制器。\n'
@@ -572,7 +572,7 @@ def main():
               '说明：六品牌统一加载；面阵相机官网未给卡口，由 selection-catalog.js 的必要参数门槛挡在选型链外，其余类目正常参与。\n'
               '补充：红外 -IR850 为官网注明「波长可定制 850 / 940」的同规格派生变体（带备注）；'
               '用户补充型号未公布规格的字段留空。')
-    write_umd('cst-misc-catalog.js', 'CstMiscCatalog',
+    write_umd('js/cst-misc-catalog.js', 'CstMiscCatalog',
               {'source': '康视达官网 非标产品 / 其它未归入 9 类页签的产品',
                'brand': '康视达 CST', 'generated': TODAY, 'misc': len(MISC)},
               [('MISC', MISC)],

@@ -157,7 +157,7 @@ def build():
 
 def main():
     # 与现有库比对，只留新增
-    cat = io.open(os.path.join(ROOT, 'huarui-catalog.js'), encoding='utf-8').read()
+    cat = io.open(os.path.join(ROOT, 'js', 'huarui-catalog.js'), encoding='utf-8').read()
     have = set(m.upper().replace(' ', '') for m in re.findall(r'"model":\s*"([^"]+)"', cat))
     add = build()
     new = [x for x in add if x['model'].upper().replace(' ', '') not in have]
