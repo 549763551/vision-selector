@@ -804,27 +804,6 @@
   }
   .p-mask { display: none; position: fixed; inset: 0; z-index: 900; background: rgba(11, 18, 32, .55); align-items: flex-end; }
   .p-mask.show { display: flex; }
-  /* 光学实验室不在本机时：按钮降级成虚线灰字，点了弹说明，不做无效跳转 */
-  #labBtn.lab-off { color: #5b6b82; border-style: dashed; background: #fbfbfa; position: relative; }
-  #labBtn.lab-off:hover { color: #334155; border-color: #b9c4d2; }
-  /* 角标而不是加长文案：按钮行本来就挤，多三个字就把「光学实验室」挤成两行 */
-  #labBtn.lab-off::after {
-    content: "需本机"; position: absolute; top: -8px; right: -7px;
-    font-size: 10px; line-height: 1; font-weight: 700; letter-spacing: 0;
-    padding: 3px 5px; border-radius: 999px;
-    background: #e6edf4; color: #4a5c72; border: 1px solid #fff;
-  }
-  .vs-toast {
-    position: fixed; left: 50%; bottom: 26px; z-index: 960;
-    transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
-    max-width: min(560px, calc(100vw - 28px));
-    padding: 12px 16px; border-radius: 11px;
-    background: #0d2745; color: #e8f2f8; border: 1px solid rgba(34, 211, 238, .28);
-    font-size: 13px; line-height: 1.65; box-shadow: 0 14px 34px -16px rgba(13, 39, 69, .7);
-    transition: opacity .18s, transform .18s;
-  }
-  .vs-toast.show { opacity: 1; transform: translate(-50%, 0); }
-  @media (max-width: 760px) { .vs-toast { bottom: 76px; font-size: 12.5px; padding: 11px 14px; } }
   .p-sheet {
     width: 100%; min-width: 0; height: 78vh; display: flex; flex-direction: column;
     margin-bottom: calc(56px + env(safe-area-inset-bottom));
@@ -1451,8 +1430,6 @@
       <button type="button" class="btn" id="shareBtn" title="把当前需求与已固定型号编码进网址，对方打开即还原同一份结果">复制链接</button>
       <button type="button" class="btn" id="copyBtn">复制方案</button>
       <a class="btn pro-only" href="combo.html" data-combo-link>自定义搭配</a>
-      <!-- 光学实验室是同伴的独立项目，只能在本机跑起来：线上打开时降级成提示按钮 -->
-      <a class="btn pro-only" id="labBtn" target="_blank" rel="noopener" href="http://127.0.0.1:8848/lab" title="按当前光源形态、颜色、视野和工作距离，在本地光学实验室里看打光效果；点光源在实验室里按环形光源显示">光学实验室 ↗</a>
     </div>
 
     <!-- 简明模式下的出口：需要细节就去专业（已在假设条给了入口，这里不再重复） -->
@@ -1548,8 +1525,6 @@
     </div>
   </div>
 </div>
-
-<div class="vs-toast" id="vsToast" role="status" aria-live="polite"></div>
 
 <script src="js/brands.js"></script>
 <script src="js/hikrobot-catalog.js"></script>

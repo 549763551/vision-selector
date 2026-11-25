@@ -18,17 +18,6 @@
     setTimeout(function () { el.classList.remove(cls); }, ms || 460);
   }
 
-  /* ---------------- 轻提示：一句话说明，几秒后自己收 ---------------- */
-  var toastTimer = 0;
-  function toast(msg, ms) {
-    var t = $('vsToast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 5200);
-  }
-
   /* ---------------- 阅读模式：简明（外行）/ 专业（工程师） ---------------- */
   // 首帧的类由 index.html 的头部内联脚本先写好，这里只读取，避免两套内容闪一下。
   var MODE = /(^|\s)mode-pro(\s|$)/.test(document.documentElement.className) ? 'pro' : 'simple';
@@ -64,34 +53,6 @@
       swapTimer = setTimeout(function () { de.classList.remove('mode-swap'); }, 420);
     }
   }
-
-  // 本地光学实验室（Qsianuo/vision-spec-generator）地址；可在脚本加载前用
-  // window.SPEC_GENERATOR_BASE 覆盖（换端口或部署地址）。
-  var LAB_BASE = window.SPEC_GENERATOR_BASE || 'http://127.0.0.1:8848';
-  // 那是同伴的独立工程，只能在本机跑起来：线上打开时 127.0.0.1:8848 必然连不上，
-  // 按钮降级成说明，不做一次注定失败的跳转。自定义了非本机地址就当可用。
-  var LAB_USABLE = (function () {
-    var localHost = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i;
-    var custom = window.SPEC_GENERATOR_BASE;
-    if (custom && !localHost.test(String(custom).replace(/^https?:\/\//i, '').split(/[:\/]/)[0])) return true;
-    return location.protocol === 'file:' || localHost.test(location.hostname);
-  })();
-  // 选型助手光源子类 → 实验室光源系列。实验室没有点光源模型，按环形兜底。
-  var LAB_SERIES = {
-    backlight: 'HFS', coaxial: 'CO', dome: 'DS',
-    ring: 'RS', ring_low: 'RS', ring_high: 'RS',
-    bar_low: '2BS', line: 'LPG', point: 'RS'
-  };
-  // 光源颜色：各品牌型录里既有英文也有中文写法，统一成实验室的 tint 取值。
-  var LAB_TINT = {
-    white: 'white', '白光': 'white',
-    red: 'red', '红光': 'red',
-    blue: 'blue', '蓝光': 'blue',
-    green: 'green', '绿光': 'green',
-    yellow: 'yellow', '黄光': 'yellow', '黄光（琥珀）': 'yellow',
-    ir: 'ir', '红外': 'ir', '红外光': 'ir',
-    cyan: 'cyan', '青光': 'cyan'
-  };
 
   // 三个类目各自按「清洗后仍有有效型号」的品牌初始化，默认全选。
   // 退市排除、必要参数硬门槛、等价字段补齐统一在 selection-catalog.js，
@@ -641,20 +602,6 @@
       manualLens: manual.lens,
       manualLight: manual.light
     };
-  }
-
-  // 只带实验室需要的条件：光源形态、颜色、视野、工作距离。
-  // 任务/精度/速度/型号都不传，避免把两套口径混在一起。
-  function labHref(lightType, lightColor) {
-    var i = readInput();
-    var q = new URLSearchParams();
-    q.set('series', LAB_SERIES[lightType] || 'RS');
-    var tint = LAB_TINT[lightColor] || LAB_TINT[i.colorTarget];
-    if (tint) q.set('tint', tint);
-    q.set('fov', (i.fovW || 15) + 'x' + (i.fovH || 12));
-    // 实验室把 WD 夹在 80~400，链接里先夹一遍，免得页面显示值和 URL 不一致。
-    q.set('wd', String(Math.max(80, Math.min(400, i.wd || 160))));
-    return LAB_BASE + '/lab?' + q.toString();
   }
 
   function applyState(st) {
@@ -1447,8 +1394,6 @@
     }
 
     var r = E.solve(readInput());
-    var labBtn = $('labBtn');
-    if (labBtn) labBtn.href = labHref(r.ok && r.light ? r.light.type : null, r.ok && r.light ? r.light.color : null);
     Array.prototype.forEach.call(document.querySelectorAll('[data-combo-link]'), function (a) {
       a.href = comboLinkHref();
     });
@@ -1939,21 +1884,7 @@
   }
 
   /* ---------------- 绑定 ---------------- */
-  // 光学实验室不在本机可用时：按钮降级 + 点击给说明，别让线上访客点进一个空白页
-  function initLabBtn() {
-    var btn = $('labBtn');
-    if (!btn || LAB_USABLE) return;
-    btn.classList.add('lab-off');
-    btn.removeAttribute('target');
-    btn.title = '光学实验室是同伴的独立项目（vision-spec-generator），要在本机启动服务才能打开；线上页面里打不开，点一下看说明';
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      toast('光学实验室来自同伴的独立项目 vision-spec-generator，需要在本机启动它（默认 127.0.0.1:8848）才能打开。这里是线上版本，没有那套服务，只演示按当前需求拼好的跳转参数。');
-    });
-  }
-
   function init() {
-    initLabBtn();
     renderBrandFilter();
     renderLensFilter();
     renderLightFilter();
